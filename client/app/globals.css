@@ -1,0 +1,75 @@
+@import "tailwindcss";
+
+@theme {
+  --font-display: "Barlow Condensed", "Arial Narrow", system-ui, sans-serif;
+  --font-sans: "Inter", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --color-ink-950: #07090d;
+  --color-ink-900: #0d1117;
+  --color-ink-800: #151b24;
+  --color-ink-700: #1f2732;
+  --color-ink-600: #2d3846;
+  --color-ink-400: #7d8a9a;
+  --color-ink-200: #c9d2dd;
+  --color-volt: #3b82f6;
+  --color-volt-bright: #60a5fa;
+  --color-good: #22c55e;
+  --color-warn: #f59e0b;
+  --color-bad: #ef4444;
+}
+
+html {
+  color-scheme: dark;
+}
+
+body {
+  @apply bg-ink-950 text-ink-200 font-sans antialiased;
+}
+
+.card {
+  @apply rounded-2xl border border-ink-700 bg-ink-900 p-5;
+}
+
+.btn {
+  @apply inline-flex items-center justify-center gap-2 rounded-xl px-4 py-2 text-sm font-semibold transition disabled:cursor-not-allowed disabled:opacity-50;
+}
+.btn-primary {
+  @apply bg-volt text-white hover:bg-volt-bright;
+}
+.btn-ghost {
+  @apply border border-ink-600 text-ink-200 hover:border-ink-400 hover:text-white;
+}
+
+.input {
+  @apply w-full rounded-lg border border-ink-600 bg-ink-800 px-3 py-2 text-sm text-white placeholder:text-ink-400 focus:border-volt focus:outline-none;
+}
+
+.label {
+  @apply mb-1 block text-xs font-medium uppercase tracking-wider text-ink-400;
+}
+
+.h-display {
+  @apply font-display font-bold uppercase tracking-wide text-white;
+}
+
+.prose-chat :where(p, ul, ol, table, pre) {
+  @apply my-2;
+}
+.prose-chat ul {
+  @apply list-disc pl-5;
+}
+.prose-chat ol {
+  @apply list-decimal pl-5;
+}
+.prose-chat table {
+  @apply w-full border-collapse text-xs;
+}
+.prose-chat th,
+.prose-chat td {
+  @apply border border-ink-600 px-2 py-1 text-left;
+}
+.prose-chat code {
+  @apply rounded bg-ink-700 px-1 text-[0.85em];
+}
+.prose-chat strong {
+  @apply text-white;
+}
