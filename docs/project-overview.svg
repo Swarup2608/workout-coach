@@ -1,0 +1,137 @@
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="0 0 1440 900" role="img" aria-labelledby="title desc">
+  <title id="title">RepScore project architecture</title>
+  <desc id="desc">Animated data flow from the Next.js workout app through the Express API to shared services, JSON storage, and Claude coaching.</desc>
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#0b1018"/><stop offset="1" stop-color="#111a27"/></linearGradient>
+    <linearGradient id="blue" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#2563eb"/><stop offset="1" stop-color="#38bdf8"/></linearGradient>
+    <linearGradient id="violet" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#7c3aed"/><stop offset="1" stop-color="#c084fc"/></linearGradient>
+    <linearGradient id="green" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#059669"/><stop offset="1" stop-color="#34d399"/></linearGradient>
+    <filter id="glow"><feGaussianBlur stdDeviation="4" result="blur"/><feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+    <marker id="arrow-blue" markerWidth="10" markerHeight="10" refX="8" refY="5" orient="auto"><path d="M0 0L10 5L0 10Z" fill="#60a5fa"/></marker>
+    <marker id="arrow-green" markerWidth="10" markerHeight="10" refX="8" refY="5" orient="auto"><path d="M0 0L10 5L0 10Z" fill="#34d399"/></marker>
+    <marker id="arrow-purple" markerWidth="10" markerHeight="10" refX="8" refY="5" orient="auto"><path d="M0 0L10 5L0 10Z" fill="#c084fc"/></marker>
+  </defs>
+  <rect width="1440" height="900" rx="28" fill="url(#bg)"/>
+  <g fill="#e5edf7" font-family="Inter,Arial,sans-serif">
+    <text x="64" y="76" font-size="15" font-weight="700" letter-spacing="3" fill="#60a5fa">WORKOUT COACH · SYSTEM MAP</text>
+    <text x="64" y="128" font-size="40" font-weight="750">RepScore</text>
+    <text x="64" y="160" font-size="17" fill="#98a9bf">Track training → understand progress → get coaching</text>
+  </g>
+
+  <!-- Connection paths sit behind the cards. -->
+  <g fill="none" stroke-linecap="round">
+    <path id="client-api" d="M350 370 C390 370 410 370 450 370" stroke="#60a5fa" stroke-width="3" marker-end="url(#arrow-blue)"/>
+    <path id="api-client" d="M450 410 C410 410 390 410 350 410" stroke="#60a5fa" stroke-width="2" stroke-dasharray="7 8" marker-end="url(#arrow-blue)" opacity=".65"/>
+    <path id="api-services" d="M770 350 C810 350 810 320 850 320" stroke="#34d399" stroke-width="3" marker-end="url(#arrow-green)"/>
+    <path id="services-store" d="M1010 430 C1010 465 1010 475 1010 510" stroke="#34d399" stroke-width="3" marker-end="url(#arrow-green)"/>
+    <path id="services-api" d="M850 280 C815 280 810 300 770 300" stroke="#34d399" stroke-width="2" stroke-dasharray="7 8" marker-end="url(#arrow-green)" opacity=".65"/>
+    <path id="services-claude" d="M1160 245 C1185 245 1190 245 1210 245" stroke="#c084fc" stroke-width="3" marker-end="url(#arrow-purple)"/>
+    <path id="client-project" d="M250 590 C250 680 1110 700 1210 555" stroke="#c084fc" stroke-width="2" stroke-dasharray="8 9" marker-end="url(#arrow-purple)" opacity=".65"/>
+    <path id="shared-client" d="M450 750 C390 750 320 690 300 590" stroke="#60a5fa" stroke-width="2" stroke-dasharray="6 8" marker-end="url(#arrow-blue)" opacity=".55"/>
+    <path id="shared-api" d="M610 660 C610 630 610 615 610 590" stroke="#60a5fa" stroke-width="2" stroke-dasharray="6 8" marker-end="url(#arrow-blue)" opacity=".55"/>
+  </g>
+
+  <!-- Animated packets traveling across the architecture. -->
+  <g filter="url(#glow)">
+    <circle r="6" fill="#93c5fd"><animateMotion dur="3.8s" repeatCount="indefinite"><mpath xlink:href="#client-api"/></animateMotion></circle>
+    <circle r="5" fill="#bfdbfe"><animateMotion dur="4.6s" begin="-2s" repeatCount="indefinite"><mpath xlink:href="#api-client"/></animateMotion></circle>
+    <circle r="6" fill="#6ee7b7"><animateMotion dur="4.2s" begin="-1s" repeatCount="indefinite"><mpath xlink:href="#api-services"/></animateMotion></circle>
+    <circle r="5" fill="#a7f3d0"><animateMotion dur="3.5s" begin="-1.7s" repeatCount="indefinite"><mpath xlink:href="#services-store"/></animateMotion></circle>
+    <circle r="6" fill="#d8b4fe"><animateMotion dur="4.8s" begin="-.8s" repeatCount="indefinite"><mpath xlink:href="#services-claude"/></animateMotion></circle>
+    <circle r="5" fill="#d8b4fe"><animateMotion dur="9s" begin="-4s" repeatCount="indefinite"><mpath xlink:href="#client-project"/></animateMotion></circle>
+    <circle r="4" fill="#93c5fd"><animateMotion dur="5.5s" begin="-2.4s" repeatCount="indefinite"><mpath xlink:href="#shared-api"/></animateMotion></circle>
+  </g>
+
+  <!-- Client -->
+  <g font-family="Inter,Arial,sans-serif">
+    <rect x="60" y="225" width="290" height="365" rx="22" fill="#111b29" stroke="#31527b" stroke-width="2"/>
+    <rect x="60" y="225" width="290" height="8" rx="4" fill="url(#blue)"/>
+    <text x="88" y="273" fill="#93c5fd" font-size="13" font-weight="700" letter-spacing="2">WEB APP · NEXT.JS</text>
+    <text x="88" y="312" fill="#f4f8ff" font-size="25" font-weight="700">Your training home</text>
+    <g fill="#b8c5d6" font-size="16">
+      <text x="92" y="355">▸ Dashboard &amp; scores</text>
+      <text x="92" y="391">▸ Workout log &amp; quick add</text>
+      <text x="92" y="427">▸ Plan &amp; day editor</text>
+      <text x="92" y="463">▸ History &amp; lift progress</text>
+      <text x="92" y="499">▸ Coach chat</text>
+      <text x="92" y="535">▸ Profile &amp; constraints</text>
+    </g>
+    <rect x="88" y="555" width="152" height="24" rx="12" fill="#1d3552"/>
+    <text x="103" y="572" fill="#bfdbfe" font-size="12" font-weight="600">Port 3000</text>
+  </g>
+
+  <!-- API -->
+  <g font-family="Inter,Arial,sans-serif">
+    <rect x="450" y="225" width="320" height="365" rx="22" fill="#111b29" stroke="#31527b" stroke-width="2"/>
+    <rect x="450" y="225" width="320" height="8" rx="4" fill="url(#blue)"/>
+    <text x="478" y="273" fill="#93c5fd" font-size="13" font-weight="700" letter-spacing="2">SERVER · EXPRESS</text>
+    <text x="478" y="312" fill="#f4f8ff" font-size="25" font-weight="700">App API</text>
+    <g fill="#b8c5d6" font-size="16">
+      <text x="482" y="355">▸ Plans &amp; day edits</text>
+      <text x="482" y="391">▸ Sessions &amp; imports</text>
+      <text x="482" y="427">▸ Metrics &amp; scores</text>
+      <text x="482" y="463">▸ Claude handoff</text>
+      <text x="482" y="499">▸ Streaming coach chat</text>
+    </g>
+    <rect x="478" y="555" width="152" height="24" rx="12" fill="#1d3552"/>
+    <text x="493" y="572" fill="#bfdbfe" font-size="12" font-weight="600">Port 4000</text>
+  </g>
+
+  <!-- Domain services -->
+  <g font-family="Inter,Arial,sans-serif">
+    <rect x="850" y="145" width="310" height="285" rx="22" fill="#10221f" stroke="#246753" stroke-width="2"/>
+    <rect x="850" y="145" width="310" height="8" rx="4" fill="url(#green)"/>
+    <text x="878" y="193" fill="#6ee7b7" font-size="13" font-weight="700" letter-spacing="2">SERVER SERVICES</text>
+    <text x="878" y="232" fill="#f4f8ff" font-size="24" font-weight="700">Coaching engine</text>
+    <g fill="#c1d8d0" font-size="15">
+      <text x="882" y="274">Plan parser + muscle rules</text>
+      <text x="882" y="307">Weekly metrics + calories</text>
+      <text x="882" y="340">Constraint checks + swaps</text>
+      <text x="882" y="373">Readable prompts + imports</text>
+      <text x="882" y="406">Offline scoring fallback</text>
+    </g>
+  </g>
+
+  <!-- JSON store -->
+  <g font-family="Inter,Arial,sans-serif">
+    <rect x="850" y="510" width="310" height="145" rx="22" fill="#10221f" stroke="#246753" stroke-width="2"/>
+    <text x="878" y="551" fill="#6ee7b7" font-size="13" font-weight="700" letter-spacing="2">LOCAL PERSISTENCE</text>
+    <text x="878" y="590" fill="#f4f8ff" font-size="22" font-weight="700">server/data/db.json</text>
+    <text x="878" y="621" fill="#c1d8d0" font-size="14">Profile · plans · sessions · scores · chat</text>
+  </g>
+
+  <!-- AI options -->
+  <g font-family="Inter,Arial,sans-serif">
+    <rect x="1210" y="155" width="185" height="180" rx="22" fill="#21182d" stroke="#68448b" stroke-width="2"/>
+    <rect x="1210" y="155" width="185" height="8" rx="4" fill="url(#violet)"/>
+    <text x="1233" y="200" fill="#d8b4fe" font-size="12" font-weight="700" letter-spacing="1.5">OPTIONAL</text>
+    <text x="1233" y="235" fill="#f4f8ff" font-size="20" font-weight="700">Claude API</text>
+    <text x="1233" y="270" fill="#d3c4e2" font-size="14">Direct scoring</text>
+    <text x="1233" y="294" fill="#d3c4e2" font-size="14">and chat</text>
+    <rect x="1210" y="445" width="185" height="190" rx="22" fill="#21182d" stroke="#68448b" stroke-width="2"/>
+    <rect x="1210" y="445" width="185" height="8" rx="4" fill="url(#violet)"/>
+    <text x="1233" y="490" fill="#d8b4fe" font-size="12" font-weight="700" letter-spacing="1.5">NO API KEY</text>
+    <text x="1233" y="525" fill="#f4f8ff" font-size="20" font-weight="700">Claude Project</text>
+    <text x="1233" y="560" fill="#d3c4e2" font-size="14">Copy check-in,</text>
+    <text x="1233" y="584" fill="#d3c4e2" font-size="14">paste reply back</text>
+    <text x="1233" y="613" fill="#a78bfa" font-size="12">User controls each step</text>
+  </g>
+
+  <!-- Shared package -->
+  <g font-family="Inter,Arial,sans-serif">
+    <rect x="450" y="680" width="710" height="145" rx="22" fill="#111b29" stroke="#31527b" stroke-width="2"/>
+    <rect x="450" y="680" width="8" height="145" rx="4" fill="url(#blue)"/>
+    <text x="482" y="722" fill="#93c5fd" font-size="13" font-weight="700" letter-spacing="2">SHARED TYPESCRIPT PACKAGE</text>
+    <text x="482" y="762" fill="#f4f8ff" font-size="23" font-weight="700">shared/src/index.ts</text>
+    <text x="482" y="795" fill="#b8c5d6" font-size="15">Domain types · date helpers · set and calorie math · weekly stats</text>
+  </g>
+
+  <g font-family="Inter,Arial,sans-serif" fill="#7f91a8" font-size="12">
+    <text x="372" y="352">REST + JSON</text>
+    <text x="372" y="437">SSE chat</text>
+    <text x="786" y="332">validate + compute</text>
+    <text x="1027" y="475">read / write</text>
+    <text x="1126" y="218">API mode</text>
+    <text x="675" y="705">same domain rules in browser and server</text>
+  </g>
+</svg>
