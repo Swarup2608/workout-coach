@@ -6,5 +6,4 @@ export default defineConfig({
   target: "node20",
   outDir: "dist",
   clean: true,
-  noExternal: ["@workout/shared"],
 });

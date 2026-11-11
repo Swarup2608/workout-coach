@@ -12,7 +12,7 @@ import {
   type Weekday,
   type WorkoutPlan,
   type WorkoutSession,
-} from "@workout/shared";
+} from "../domain.js";
 
 /**
  * "Quick add with AI": the user pastes our prompt + their day in plain words into any AI,
@@ -62,7 +62,7 @@ Rules:
 
 \`\`\`json
 {
-  "repscoreDay": {
+  "starkfitiqDay": {
     "date": "${date}",
     "workout": { "basedOn": "plan", "title": "" },
     "exercises": [
@@ -168,7 +168,7 @@ export function parseDay(text: string): DayImport {
   for (const c of candidates.reverse()) {
     try {
       const obj = JSON.parse(c.trim());
-      const parsed = DaySchema.safeParse(obj.repscoreDay ?? obj);
+      const parsed = DaySchema.safeParse(obj.starkfitiqDay ?? obj.repscoreDay ?? obj);
       if (parsed.success) return parsed.data;
       lastError = parsed.error.issues.map((i) => `${i.path.join(".")}: ${i.message}`).slice(0, 3).join("; ");
     } catch {

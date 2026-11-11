@@ -1,46 +1,41 @@
 import { Router, type Request, type Response, type NextFunction } from "express";
 import { z } from "zod";
-import { WEEKDAYS, addDays, computeWeekStats, estimateKcal, weekdayOf, weekStartOf, type ScoreReport, type WorkoutSession } from "@workout/shared";
-import { activePlan, getDb, newId, update } from "../store.js";
-import { claudeEnabled, config } from "../config.js";
+import { WEEKDAYS, addDays, computeWeekStats, estimateKcal, weekdayOf, weekStartOf, type ApiStatus, type Profile, type ScoreReport, type WorkoutSession } from "../domain.js";
+import { userRepo, type UserRepo } from "../repo.js";
+import { newId, now } from "../util/id.js";
 import { parsePlan } from "../services/planParser.js";
 import { classifyMuscle } from "../services/muscles.js";
 import { computePlanMetrics, computeWeekMetrics, inWeek, inWeekThrough, latestLoggedDate } from "../services/metrics.js";
 import { buildChatContext, scorePlan, scoreWeek, streamChat } from "../services/claude.js";
+import { aiForUser, aiLabel } from "../services/ai.js";
 import { parseReply, planPack, reportFromReply, weekPack } from "../services/handoff.js";
 import { dayPrompt, mergeDay, parseDay } from "../services/dayImport.js";
 
+/** Mounted behind requireAuth: req.user is always set, and all data goes through that user's repo. */
 export const api = Router();
+
+const repoOf = (req: Request) => userRepo(req.user!._id);
 
 const wrap =
   (fn: (req: Request, res: Response) => Promise<unknown> | unknown) =>
   (req: Request, res: Response, next: NextFunction) =>
     Promise.resolve(fn(req, res)).catch(next);
 
-const now = () => new Date().toISOString();
-
 /** The app's weekly stats for the score card (bodyweight change measured from last week's last weigh-in). */
-function statsFor(weekStart: string, through?: string) {
-  const db = getDb();
-  const prevBw = [...inWeek(db.sessions, addDays(weekStart, -7))].sort((a, b) => a.date.localeCompare(b.date)).reverse().find((s) => s.bodyweightKg)?.bodyweightKg ?? null;
-  const current = inWeek(db.sessions, weekStart).filter((s) => !through || s.date <= through);
-  return computeWeekStats(
-    [...current].sort((a, b) => a.date.localeCompare(b.date)),
-    db.profile.startBodyweightKg,
-    prevBw,
-  );
-}
-
-/** Stores Claude's per-session calorie estimates on the matching logged days. */
-function applyClaudeCalories(sessions: WorkoutSession[], calories?: { date: string; kcal: number }[]) {
-  for (const c of calories ?? []) {
-    const s = sessions.find((x) => x.date === c.date);
-    if (s && Number.isFinite(c.kcal) && c.kcal > 0) s.kcalClaude = Math.round(c.kcal);
-  }
+function statsFor(sessions: WorkoutSession[], profile: Profile, weekStart: string, through?: string) {
+  const prevBw = [...inWeek(sessions, addDays(weekStart, -7))].sort((a, b) => a.date.localeCompare(b.date)).reverse().find((s) => s.bodyweightKg)?.bodyweightKg ?? null;
+  const current = inWeek(sessions, weekStart).filter((s) => !through || s.date <= through);
+  return computeWeekStats([...current].sort((a, b) => a.date.localeCompare(b.date)), profile.startBodyweightKg, prevBw);
 }
 
 // ── Status ───────────────────────────────────────────────────
-api.get("/status", (_req, res) => res.json({ claudeConnected: claudeEnabled(), model: config.model }));
+api.get("/status", (req, res) => {
+  const ai = req.user!.ai;
+  const status: ApiStatus = ai
+    ? { aiConnected: true, provider: ai.provider, model: ai.model, label: aiLabel(ai.provider, ai.model) }
+    : { aiConnected: false, provider: null, model: null, label: null };
+  res.json(status);
+});
 
 // ── Profile ──────────────────────────────────────────────────
 const ConstraintSchema = z.object({
@@ -60,16 +55,16 @@ const ProfileSchema = z.object({
   claudeProjectUrl: z.string().url().or(z.literal("")).optional(),
 });
 
-api.get("/profile", (_req, res) => res.json(getDb().profile));
+api.get("/profile", wrap(async (req, res) => res.json(await repoOf(req).profile())));
 api.put("/profile", wrap(async (req, res) => {
   const profile = ProfileSchema.parse(req.body);
-  await update((d) => (d.profile = profile));
+  await repoOf(req).saveProfile(profile);
   res.json(profile);
 }));
 
 // ── Plans ────────────────────────────────────────────────────
-api.get("/plans", (_req, res) => res.json(getDb().plans));
-api.get("/plans/active", (_req, res) => res.json(activePlan()));
+api.get("/plans", wrap(async (req, res) => res.json(await repoOf(req).plans())));
+api.get("/plans/active", wrap(async (req, res) => res.json(await repoOf(req).activePlan())));
 
 api.post("/plans", wrap(async (req, res) => {
   const { name, text } = z.object({ name: z.string().default("Uploaded plan"), text: z.string().min(20) }).parse(req.body);
@@ -78,10 +73,7 @@ api.post("/plans", wrap(async (req, res) => {
   if (!exerciseCount)
     return res.status(422).json({ error: "No exercises found. Use lines like '| Bench press | 3 × 8–12 |' or '- Squat — 3 × 8' under '## Monday' headers." });
   const plan = { id: newId(), name, goal: parsed.goal, createdAt: now(), active: true, rawText: text, days: parsed.days };
-  await update((d) => {
-    d.plans.forEach((p) => (p.active = false));
-    d.plans.push(plan);
-  });
+  await repoOf(req).addPlan(plan);
   res.status(201).json(plan);
 }));
 
@@ -103,11 +95,11 @@ api.put("/plans/:id/days/:day", wrap(async (req, res) => {
   const day = WEEKDAYS.find((d) => d.toLowerCase() === String(req.params.day).toLowerCase());
   if (!day) return res.status(400).json({ error: "Invalid plan day" });
   const input = PlanDayEditSchema.parse(req.body);
-  const result = await update((d) => {
-    const plan = d.plans.find((p) => p.id === req.params.id);
-    if (!plan) return null;
-    const target = plan.days.find((x) => x.day === day);
-    if (!target) return null;
+  const repo = repoOf(req);
+  const plan = await repo.plan(String(req.params.id));
+  const target = plan?.days.find((x) => x.day === day);
+  if (!plan || !target) return res.status(404).json({ error: "Plan not found" });
+  {
     target.title = input.title;
     target.notes = input.notes;
     target.exercises = input.exercises.map((edited) => {
@@ -129,27 +121,19 @@ api.put("/plans/:id/days/:day", wrap(async (req, res) => {
       };
     });
     target.isRest = target.exercises.length === 0;
-    d.scores = d.scores.filter((s) => !(s.kind === "plan" && s.planId === plan.id));
-    return plan;
-  });
-  result ? res.json(result) : res.status(404).json({ error: "Plan not found" });
+  }
+  await repo.replacePlan(plan);
+  await repo.deletePlanScores(plan.id);
+  res.json(plan);
 }));
 
 api.post("/plans/:id/activate", wrap(async (req, res) => {
-  const ok = await update((d) => {
-    const p = d.plans.find((x) => x.id === req.params.id);
-    if (!p) return false;
-    d.plans.forEach((x) => (x.active = x.id === p.id));
-    return true;
-  });
-  ok ? res.json(activePlan()) : res.status(404).json({ error: "Plan not found" });
+  const repo = repoOf(req);
+  (await repo.activatePlan(String(req.params.id))) ? res.json(await repo.activePlan()) : res.status(404).json({ error: "Plan not found" });
 }));
 
 api.delete("/plans/:id", wrap(async (req, res) => {
-  await update((d) => {
-    d.plans = d.plans.filter((p) => p.id !== req.params.id);
-    if (!d.plans.some((p) => p.active) && d.plans.length) d.plans[d.plans.length - 1].active = true;
-  });
+  await repoOf(req).deletePlan(String(req.params.id));
   res.status(204).end();
 }));
 
@@ -207,10 +191,9 @@ const SessionSchema = z.object({
 export type SessionBody = z.infer<typeof SessionSchema>;
 
 /** Create or replace the log for body.date (one log per date). */
-function saveSessionBody(body: SessionBody) {
-  const plan = activePlan();
-  return update((d) => {
-    const existing = d.sessions.find((s) => s.date === body.date);
+async function saveSessionBody(repo: UserRepo, body: SessionBody) {
+  const [plan, profile, existing] = await Promise.all([repo.activePlan(), repo.profile(), repo.sessionByDate(body.date)]);
+  {
     const session: WorkoutSession = {
       id: existing?.id ?? newId(),
       planId: plan?.id ?? "",
@@ -224,7 +207,7 @@ function saveSessionBody(body: SessionBody) {
       cardioMinutes: body.cardio.length ? body.cardio.reduce((a, c) => a + (c.minutes ?? 0), 0) : body.cardioMinutes,
       sessionRpe: body.sessionRpe,
       bodyweightKg: body.bodyweightKg,
-      kcalApp: estimateKcal(body, d.profile.startBodyweightKg),
+      kcalApp: estimateKcal(body, profile.startBodyweightKg),
       kcalClaude: existing?.kcalClaude ?? null,
       food: body.food,
       steps: body.steps,
@@ -234,42 +217,41 @@ function saveSessionBody(body: SessionBody) {
       createdAt: existing?.createdAt ?? now(),
       updatedAt: now(),
     };
-    if (existing) Object.assign(existing, session);
-    else d.sessions.push(session);
+    await repo.upsertSession(session);
     return session;
-  });
+  }
 }
 
-api.get("/sessions", (req, res) => {
+api.get("/sessions", wrap(async (req, res) => {
   const { week, date } = req.query as { week?: string; date?: string };
-  let list = getDb().sessions;
+  let list = await repoOf(req).sessions();
   if (week) list = inWeek(list, weekStartOf(week));
   if (date) list = list.filter((s) => s.date === date);
   res.json([...list].sort((a, b) => a.date.localeCompare(b.date)));
-});
+}));
 
 /** Most recent previous performance per exercise name (for placeholders on the log screen). */
-api.get("/sessions/previous", (req, res) => {
+api.get("/sessions/previous", wrap(async (req, res) => {
   const before = String(req.query.before ?? "9999-12-31");
   const out: Record<string, { date: string; sets: { weightKg: number | null; reps: number | null; negatives?: number | null }[] }> = {};
-  const sorted = [...getDb().sessions].filter((s) => s.date < before).sort((a, b) => b.date.localeCompare(a.date));
+  const sorted = [...(await repoOf(req).sessions())].filter((s) => s.date < before).sort((a, b) => b.date.localeCompare(a.date));
   for (const s of sorted)
     for (const e of s.exercises) {
       const k = e.name.toLowerCase();
       if (!out[k] && e.sets.some((x) => x.done)) out[k] = { date: s.date, sets: e.sets.filter((x) => x.done) };
     }
   res.json(out);
-});
+}));
 
 api.put("/sessions", wrap(async (req, res) => {
-  res.json(await saveSessionBody(SessionSchema.parse(req.body)));
+  res.json(await saveSessionBody(repoOf(req), SessionSchema.parse(req.body)));
 }));
 
 // ── "Quick add with AI": prompt out, JSON back ───────────────
-api.get("/day-import/prompt", (req, res) => {
+api.get("/day-import/prompt", wrap(async (req, res) => {
   const date = String(req.query.date ?? new Date().toISOString().slice(0, 10));
-  res.json({ text: dayPrompt(activePlan(), date) });
-});
+  res.json({ text: dayPrompt(await repoOf(req).activePlan(), date) });
+}));
 
 api.post("/day-import", wrap(async (req, res) => {
   const { text, date: fallbackDate } = z.object({ text: z.string().min(2), date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/) }).parse(req.body);
@@ -280,94 +262,100 @@ api.post("/day-import", wrap(async (req, res) => {
     return res.status(422).json({ error: (e as Error).message });
   }
   const date = day.date && /^\d{4}-\d{2}-\d{2}$/.test(day.date) ? day.date : fallbackDate;
-  const existing = getDb().sessions.find((s) => s.date === date) ?? null;
-  const { body, summary } = mergeDay(day, date, existing, activePlan());
-  const saved = await saveSessionBody(SessionSchema.parse(body));
+  const repo = repoOf(req);
+  const existing = await repo.sessionByDate(date);
+  const { body, summary } = mergeDay(day, date, existing, await repo.activePlan());
+  const saved = await saveSessionBody(repo, SessionSchema.parse(body));
   res.json({ session: saved, summary });
 }));
 
 api.delete("/sessions/:id", wrap(async (req, res) => {
-  await update((d) => (d.sessions = d.sessions.filter((s) => s.id !== req.params.id)));
+  await repoOf(req).deleteSession(String(req.params.id));
   res.status(204).end();
 }));
 
 // ── Scores ───────────────────────────────────────────────────
-api.get("/scores", (req, res) => {
-  const kind = req.query.kind as string | undefined;
-  res.json(getDb().scores.filter((s) => !kind || s.kind === kind));
-});
+api.get("/scores", wrap(async (req, res) => {
+  const kind = req.query.kind === "plan" || req.query.kind === "week" ? req.query.kind : undefined;
+  res.json(await repoOf(req).scores(kind));
+}));
 
-api.get("/metrics/week", (req, res) => {
-  const plan = activePlan();
+/** Loads everything week maths needs in one go. */
+async function loadAll(repo: UserRepo) {
+  const [plan, profile, sessions] = await Promise.all([repo.activePlan(), repo.profile(), repo.sessions()]);
+  return { plan, profile, sessions };
+}
+
+api.get("/metrics/week", wrap(async (req, res) => {
+  const { plan, profile, sessions } = await loadAll(repoOf(req));
   if (!plan) return res.status(400).json({ error: "No active plan" });
   const date = String(req.query.date ?? new Date().toISOString().slice(0, 10));
   const ws = weekStartOf(date);
-  const through = latestLoggedDate(getDb().sessions, ws, date);
-  res.json(computeWeekMetrics(plan, getDb().sessions, ws, getDb().profile, through));
-});
+  const through = latestLoggedDate(sessions, ws, date);
+  res.json(computeWeekMetrics(plan, sessions, ws, profile, through));
+}));
 
-api.post("/scores/plan", wrap(async (_req, res) => {
-  const plan = activePlan();
+api.post("/scores/plan", wrap(async (req, res) => {
+  const repo = repoOf(req);
+  const [plan, profile] = await Promise.all([repo.activePlan(), repo.profile()]);
   if (!plan) return res.status(400).json({ error: "Upload a plan first" });
-  const profile = getDb().profile;
   const m = computePlanMetrics(plan, profile);
-  const v = await scorePlan(plan, profile, { base: m.baseScore, subScores: m.subScores, flags: m.flags, setsByMuscle: m.setsByMuscle });
+  const v = await scorePlan(aiForUser(req.user!), plan, profile, { base: m.baseScore, subScores: m.subScores, flags: m.flags, setsByMuscle: m.setsByMuscle });
   const report: ScoreReport = { id: newId(), kind: "plan", planId: plan.id, createdAt: now(), ...v };
-  await update((d) => d.scores.push(report));
+  await repo.addScore(report);
   res.json(report);
 }));
 
 api.post("/scores/week", wrap(async (req, res) => {
-  const plan = activePlan();
+  const repo = repoOf(req);
+  const { plan, profile, sessions } = await loadAll(repo);
   if (!plan) return res.status(400).json({ error: "Upload a plan first" });
-  const { date } = z.object({ date: z.string().default(() => new Date().toISOString().slice(0, 10)) }).parse(req.body ?? {});
+  const { date } = z.object({ date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).default(() => new Date().toISOString().slice(0, 10)) }).parse(req.body ?? {});
   const ws = weekStartOf(date);
-  const db = getDb();
-  const through = latestLoggedDate(db.sessions, ws, date);
-  const { metrics, flags } = computeWeekMetrics(plan, db.sessions, ws, db.profile, through);
+  const through = latestLoggedDate(sessions, ws, date);
+  const { metrics, flags } = computeWeekMetrics(plan, sessions, ws, profile, through);
   if (!metrics.completedSets) return res.status(422).json({ error: "No completed sets logged this week yet." });
-  const { calories, ...v } = await scoreWeek(plan, db.profile, metrics, inWeekThrough(db.sessions, ws, through), flags, inWeek(db.sessions, addDays(ws, -7)), statsFor(ws, through));
+  const { calories, ...v } = await scoreWeek(aiForUser(req.user!), plan, profile, metrics, inWeekThrough(sessions, ws, through), flags, inWeek(sessions, addDays(ws, -7)), statsFor(sessions, profile, ws, through));
   const report: ScoreReport = { id: newId(), kind: "week", planId: plan.id, weekStart: ws, createdAt: now(), ...v };
-  await update((d) => {
-    d.scores = d.scores.filter((s) => !(s.kind === "week" && s.weekStart === ws));
-    d.scores.push(report);
-    applyClaudeCalories(inWeekThrough(d.sessions, ws, through), calories);
-  });
+  await repo.addScore(report);
+  await repo.setAiCalories(ws, metrics.weekEnd, calories);
   res.json(report);
 }));
 
 // ── Claude Project bridge (no API key needed) ────────────────
-const dateQ = (req: Request) => String(req.query.date ?? req.body?.date ?? new Date().toISOString().slice(0, 10));
+const dateQ = (req: Request) => {
+  const d = String(req.query.date ?? req.body?.date ?? "");
+  return /^\d{4}-\d{2}-\d{2}$/.test(d) ? d : new Date().toISOString().slice(0, 10);
+};
 
-api.get("/handoff/week", (req, res) => {
-  const plan = activePlan();
+api.get("/handoff/week", wrap(async (req, res) => {
+  const { plan, profile, sessions } = await loadAll(repoOf(req));
   if (!plan) return res.status(400).json({ error: "Upload a plan first" });
-  const db = getDb();
-  const date = dateQ(req);
-  const ws = weekStartOf(date);
-  const through = latestLoggedDate(db.sessions, ws, date);
-  const { metrics, flags } = computeWeekMetrics(plan, db.sessions, ws, db.profile, through);
-  res.json({ filename: `repscore-week-${ws}.md`, markdown: weekPack(plan, db.profile, metrics, inWeekThrough(db.sessions, ws, through), flags, inWeek(db.sessions, addDays(ws, -7)), statsFor(ws, through)) });
-});
+  const ws = weekStartOf(dateQ(req));
+  const through = latestLoggedDate(sessions, ws, dateQ(req));
+  const { metrics, flags } = computeWeekMetrics(plan, sessions, ws, profile, through);
+  res.json({ filename: `starkfitiq-week-${ws}.md`, markdown: weekPack(plan, profile, metrics, inWeekThrough(sessions, ws, through), flags, inWeek(sessions, addDays(ws, -7)), statsFor(sessions, profile, ws, through)) });
+}));
 
-api.get("/handoff/plan", (_req, res) => {
-  const plan = activePlan();
+api.get("/handoff/plan", wrap(async (req, res) => {
+  const repo = repoOf(req);
+  const [plan, profile] = await Promise.all([repo.activePlan(), repo.profile()]);
   if (!plan) return res.status(400).json({ error: "Upload a plan first" });
-  const db = getDb();
-  const m = computePlanMetrics(plan, db.profile);
-  res.json({ filename: `repscore-plan-review.md`, markdown: planPack(plan, db.profile, m) });
-});
+  res.json({ filename: `starkfitiq-plan-review.md`, markdown: planPack(plan, profile, computePlanMetrics(plan, profile)) });
+}));
 
-api.get("/handoff/context", (_req, res) => {
-  const db = getDb();
+api.get("/handoff/context", wrap(async (req, res) => {
+  const repo = repoOf(req);
+  const [{ plan, profile, sessions }, scores] = await Promise.all([loadAll(repo), repo.scores()]);
   res.json({
-    filename: "repscore-context.md",
-    markdown: `# My RepScore training context\n\nUse this as my current training data when coaching me.\n\n${buildChatContext(db.profile, activePlan(), db.scores, db.sessions)}\n`,
+    filename: "starkfitiq-context.md",
+    markdown: `# My StarkFitIQ training context\n\nUse this as my current training data when coaching me.\n\n${buildChatContext(profile, plan, scores, sessions)}\n`,
   });
-});
+}));
 
 api.post("/scores/import", wrap(async (req, res) => {
-  const plan = activePlan();
+  const repo = repoOf(req);
+  const { plan, profile, sessions } = await loadAll(repo);
   if (!plan) return res.status(400).json({ error: "Upload a plan first" });
   const { kind, text } = z.object({ kind: z.enum(["plan", "week"]), text: z.string().min(10) }).parse(req.body);
   let reply;
@@ -379,47 +367,43 @@ api.post("/scores/import", wrap(async (req, res) => {
   if (reply.kind && reply.kind !== kind) {
     return res.status(422).json({ error: `This reply is a ${reply.kind} score, but the importer is set to ${kind}.` });
   }
-  const db = getDb();
   let report: ScoreReport;
   if (kind === "week") {
     const date = dateQ(req);
     const ws = weekStartOf(date);
-    const through = latestLoggedDate(db.sessions, ws, date);
-    const { metrics, flags } = computeWeekMetrics(plan, db.sessions, ws, db.profile, through);
-    report = { id: newId(), kind, planId: plan.id, weekStart: ws, createdAt: now(), ...reportFromReply(reply, metrics.subScores, flags, statsFor(ws, through)), metrics };
+    const through = latestLoggedDate(sessions, ws, date);
+    const { metrics, flags } = computeWeekMetrics(plan, sessions, ws, profile, through);
+    report = { id: newId(), kind, planId: plan.id, weekStart: ws, createdAt: now(), ...reportFromReply(reply, metrics.subScores, flags, statsFor(sessions, profile, ws, through)), metrics };
   } else {
-    const m = computePlanMetrics(plan, db.profile);
+    const m = computePlanMetrics(plan, profile);
     report = { id: newId(), kind, planId: plan.id, createdAt: now(), ...reportFromReply(reply, m.subScores, m.flags) };
   }
-  await update((d) => {
-    if (kind === "week") d.scores = d.scores.filter((s) => !(s.kind === "week" && s.weekStart === report.weekStart));
-    d.scores.push(report);
-    if (kind === "week" && report.weekStart && report.metrics)
-      applyClaudeCalories(inWeekThrough(d.sessions, report.weekStart, report.metrics.weekEnd), reply.calories);
-  });
+  await repo.addScore(report);
+  if (kind === "week" && report.weekStart && report.metrics) await repo.setAiCalories(report.weekStart, report.metrics.weekEnd, reply.calories);
   res.json(report);
 }));
 
 // ── Chat (Server-Sent Events stream) ─────────────────────────
-api.get("/chat", (_req, res) => res.json(getDb().chat));
-api.delete("/chat", wrap(async (_req, res) => {
-  await update((d) => (d.chat = []));
+api.get("/chat", wrap(async (req, res) => res.json(await repoOf(req).chat())));
+api.delete("/chat", wrap(async (req, res) => {
+  await repoOf(req).clearChat();
   res.status(204).end();
 }));
 
 api.post("/chat", wrap(async (req, res) => {
   const { message } = z.object({ message: z.string().min(1).max(8000) }).parse(req.body);
-  await update((d) => d.chat.push({ id: newId(), role: "user", content: message, createdAt: now() }));
+  const repo = repoOf(req);
+  await repo.addChat({ id: newId(), role: "user", content: message, createdAt: now() });
+  const [{ plan, profile, sessions }, scores, history] = await Promise.all([loadAll(repo), repo.scores(), repo.chat()]);
 
   res.writeHead(200, { "Content-Type": "text/event-stream", "Cache-Control": "no-cache, no-transform", Connection: "keep-alive" });
   const send = (event: string, data: unknown) => res.write(`event: ${event}\ndata: ${JSON.stringify(data)}\n\n`);
 
-  const db = getDb();
-  const context = buildChatContext(db.profile, activePlan(), db.scores, db.sessions);
+  const context = buildChatContext(profile, plan, scores, sessions);
   try {
-    const full = await streamChat(db.chat, context, (t) => send("delta", t));
+    const full = await streamChat(aiForUser(req.user!), history, context, (t) => send("delta", t));
     const msg = { id: newId(), role: "assistant" as const, content: full, createdAt: now() };
-    await update((d) => d.chat.push(msg));
+    await repo.addChat(msg);
     send("done", msg);
   } catch (e) {
     send("error", { error: e instanceof Error ? e.message : "Chat failed" });

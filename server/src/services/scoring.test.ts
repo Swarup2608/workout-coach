@@ -4,7 +4,7 @@ import fs from "node:fs";
 import { parsePlan } from "./planParser.js";
 import { checkPlan, DEFAULT_CONSTRAINTS } from "./constraints.js";
 import { computeWeekMetrics } from "./metrics.js";
-import type { Profile, WorkoutPlan, WorkoutSession } from "@workout/shared";
+import type { Profile, WorkoutPlan, WorkoutSession } from "../domain.js";
 
 const raw = fs.readFileSync(new URL("../seed/baseline-plan.md", import.meta.url), "utf8");
 const parsed = parsePlan(raw);

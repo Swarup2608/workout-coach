@@ -1,4 +1,4 @@
-import { swapsFor, type Constraint, type ConstraintFlag, type PlanDay } from "@workout/shared";
+import { swapsFor, type Constraint, type ConstraintFlag, type PlanDay } from "../domain.js";
 
 export const DEFAULT_CONSTRAINTS: Constraint[] = [
   {

@@ -1,4 +1,4 @@
-import type { MuscleGroup } from "@workout/shared";
+import type { MuscleGroup } from "../domain.js";
 
 // Ordered rules: first match wins, so specific patterns come before generic ones.
 const RULES: [RegExp, MuscleGroup][] = [

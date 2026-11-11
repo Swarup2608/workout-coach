@@ -1,9 +1,9 @@
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import type { DB } from "../store.js";
-import { newId } from "../store.js";
+import { newId, now } from "../util/id.js";
 import { parsePlan } from "../services/planParser.js";
+import { userRepo } from "../repo.js";
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 
@@ -14,23 +14,18 @@ function readBaseline(): string {
   return "";
 }
 
-export function initialDb(): DB {
+/** Gives a brand-new account a starter profile and the baseline weekly plan. */
+export async function seedNewUser(userId: string, name: string) {
   const raw = readBaseline();
   const parsed = parsePlan(raw);
-  return {
-    profile: {
-      name: "",
-      goal: parsed.goal || "Fat loss, muscle development, V-shaped upper body, stronger arms and chest, balanced legs",
-      experience: "Intermediate",
-      startBodyweightKg: null,
-      targetBodyweightKg: null,
-      constraints: [],
-    },
-    plans: raw
-      ? [{ id: newId(), name: "Final weekly gym workout plan", goal: parsed.goal, createdAt: new Date().toISOString(), active: true, rawText: raw, days: parsed.days }]
-      : [],
-    sessions: [],
-    scores: [],
-    chat: [],
-  };
+  const repo = userRepo(userId);
+  await repo.saveProfile({
+    name,
+    goal: parsed.goal || "Fat loss, muscle development, V-shaped upper body, stronger arms and chest, balanced legs",
+    experience: "Intermediate",
+    startBodyweightKg: null,
+    targetBodyweightKg: null,
+    constraints: [],
+  });
+  if (raw) await repo.addPlan({ id: newId(), name: "Final weekly gym workout plan", goal: parsed.goal, createdAt: now(), active: true, rawText: raw, days: parsed.days });
 }

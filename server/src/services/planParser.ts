@@ -1,5 +1,5 @@
-import { WEEKDAYS, type PlanDay, type PlannedExercise, type Weekday } from "@workout/shared";
-import { newId } from "../store.js";
+import { WEEKDAYS, type PlanDay, type PlannedExercise, type Weekday } from "../domain.js";
+import { newId } from "../util/id.js";
 import { classifyMuscle } from "./muscles.js";
 
 /**

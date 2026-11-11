@@ -1,6 +1,6 @@
 <svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="0 0 1440 900" role="img" aria-labelledby="title desc">
-  <title id="title">RepScore project architecture</title>
-  <desc id="desc">Animated data flow from the Next.js workout app through the Express API to shared services, JSON storage, and Claude coaching.</desc>
+  <title id="title">StarkFitIQ project architecture</title>
+  <desc id="desc">Animated data flow from the Next.js workout app through the Express API to domain services, MongoDB storage, and Claude coaching.</desc>
   <defs>
     <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#0b1018"/><stop offset="1" stop-color="#111a27"/></linearGradient>
     <linearGradient id="blue" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#2563eb"/><stop offset="1" stop-color="#38bdf8"/></linearGradient>
@@ -14,7 +14,7 @@
   <rect width="1440" height="900" rx="28" fill="url(#bg)"/>
   <g fill="#e5edf7" font-family="Inter,Arial,sans-serif">
     <text x="64" y="76" font-size="15" font-weight="700" letter-spacing="3" fill="#60a5fa">WORKOUT COACH · SYSTEM MAP</text>
-    <text x="64" y="128" font-size="40" font-weight="750">RepScore</text>
+    <text x="64" y="128" font-size="40" font-weight="750">StarkFitIQ</text>
     <text x="64" y="160" font-size="17" fill="#98a9bf">Track training → understand progress → get coaching</text>
   </g>
 
@@ -117,12 +117,12 @@
     <text x="1233" y="613" fill="#a78bfa" font-size="12">User controls each step</text>
   </g>
 
-  <!-- Shared package -->
+  <!-- Domain code (one copy per app) -->
   <g font-family="Inter,Arial,sans-serif">
     <rect x="450" y="680" width="710" height="145" rx="22" fill="#111b29" stroke="#31527b" stroke-width="2"/>
     <rect x="450" y="680" width="8" height="145" rx="4" fill="url(#blue)"/>
-    <text x="482" y="722" fill="#93c5fd" font-size="13" font-weight="700" letter-spacing="2">SHARED TYPESCRIPT PACKAGE</text>
-    <text x="482" y="762" fill="#f4f8ff" font-size="23" font-weight="700">shared/src/index.ts</text>
+    <text x="482" y="722" fill="#93c5fd" font-size="13" font-weight="700" letter-spacing="2">DOMAIN CODE (ONE COPY PER APP)</text>
+    <text x="482" y="762" fill="#f4f8ff" font-size="23" font-weight="700">server/src/domain.ts · client/lib/domain.ts</text>
     <text x="482" y="795" fill="#b8c5d6" font-size="15">Domain types · date helpers · set and calorie math · weekly stats</text>
   </g>
 

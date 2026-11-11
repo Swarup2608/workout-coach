@@ -1,4 +1,3 @@
-import Anthropic from "@anthropic-ai/sdk";
 import {
   EQUIPMENT,
   STAT_LABELS,
@@ -20,8 +19,8 @@ import {
   type WeekMetrics,
   type WorkoutPlan,
   type WorkoutSession,
-} from "@workout/shared";
-import { claudeEnabled, config } from "../config.js";
+} from "../domain.js";
+import type { AiClient, ToolSpec } from "./ai.js";
 
 /** Every completed set: "S1 60 kg × 10 reps, S2 60 kg × 9 reps + 2 negative-only reps (2 of 3 planned sets done)". */
 export const setText = (e: LoggedExercise) => {
@@ -46,10 +45,9 @@ const plannedTarget = (plan: WorkoutPlan | null | undefined, e: LoggedExercise) 
 };
 
 // ─────────────────────────────────────────────────────────────
-// Claude API slot. Set ANTHROPIC_API_KEY in server/.env to enable.
+// AI slot: each user brings their own provider + key (Profile → AI provider).
+// `ai` is null when they haven't added one; scoring then runs offline.
 // ─────────────────────────────────────────────────────────────
-let client: Anthropic | null = null;
-const getClient = () => (client ??= new Anthropic({ apiKey: config.anthropicApiKey }));
 
 const COACH_SYSTEM = `You are an evidence-based strength & conditioning coach inside a workout-tracking app.
 Be specific and numbers-driven (sets, reps, kg, %). Prefer short tables and bullet lists.
@@ -67,10 +65,10 @@ type Verdict = Pick<
   stats?: WeekStats;
 };
 
-const SCORE_TOOL: Anthropic.Tool = {
+const SCORE_TOOL: ToolSpec = {
   name: "submit_score",
   description: "Return the structured score report.",
-  input_schema: {
+  schema: {
     type: "object",
     properties: {
       overall: { type: "integer", minimum: 0, maximum: 100, description: "Final 0–100 score. Stay within ±10 of the base score unless clearly justified." },
@@ -136,18 +134,10 @@ const SCORE_TOOL: Anthropic.Tool = {
   },
 };
 
-async function askForScore(prompt: string): Promise<Verdict> {
-  const res = await getClient().messages.create({
-    model: config.model,
-    max_tokens: 3000,
-    system: COACH_SYSTEM,
-    tools: [SCORE_TOOL],
-    tool_choice: { type: "tool", name: SCORE_TOOL.name },
-    messages: [{ role: "user", content: prompt }],
-  });
-  const block = res.content.find((b) => b.type === "tool_use");
-  if (!block || block.type !== "tool_use") throw new Error("Claude returned no score");
-  return block.input as Verdict;
+async function askForScore(ai: AiClient, prompt: string): Promise<Verdict> {
+  const v = (await ai.structured({ system: COACH_SYSTEM, prompt, tool: SCORE_TOOL, maxTokens: 3000 })) as Verdict;
+  if (!v || typeof v.overall !== "number" || typeof v.summary !== "string") throw new Error("The AI returned an incomplete score");
+  return v;
 }
 
 export function mergeSubScores(base: SubScore[], notes?: Verdict["subScoreNotes"]): SubScore[] {
@@ -230,9 +220,10 @@ export interface ScoreInput {
   flags: ConstraintFlag[];
 }
 
-export async function scorePlan(plan: WorkoutPlan, profile: Profile, input: ScoreInput & { setsByMuscle: Record<string, number> }) {
-  if (!claudeEnabled()) return offlineVerdict("plan", input);
+export async function scorePlan(ai: AiClient | null, plan: WorkoutPlan, profile: Profile, input: ScoreInput & { setsByMuscle: Record<string, number> }) {
+  if (!ai) return offlineVerdict("plan", input);
   const v = await askForScore(
+    ai,
     `Score this weekly training PLAN for the athlete's goal.\n\n${profileText(profile)}\n\nPLAN:\n${planOutline(plan)}\n\n` +
       `App-computed metrics:\n- Base score: ${input.base}/100\n${input.subScores.map((s) => `- ${s.label} (${s.key}): ${s.score} (${s.detail})`).join("\n")}\n` +
       `- Weekly sets per muscle: ${Object.entries(input.setsByMuscle).map(([k, v]) => `${k} ${v}`).join(", ")}\n` +
@@ -240,10 +231,11 @@ export async function scorePlan(plan: WorkoutPlan, profile: Profile, input: Scor
       `Evaluate fit for MY goal as written above, plus volume, frequency, recovery, exercise selection and safety. ` +
       `Return the report via submit_score. nextWeekAdjustments = concrete plan edits.`,
   );
-  return finalize(v, input, "claude");
+  return finalize(v, input, "ai", undefined, undefined, ai.label);
 }
 
 export async function scoreWeek(
+  ai: AiClient | null,
   plan: WorkoutPlan,
   profile: Profile,
   metrics: WeekMetrics,
@@ -253,12 +245,13 @@ export async function scoreWeek(
   stats?: WeekStats,
 ) {
   const input = { base: metrics.baseScore, subScores: metrics.subScores, flags };
-  if (!claudeEnabled()) return offlineVerdict("week", input, metrics, stats);
+  if (!ai) return offlineVerdict("week", input, metrics, stats);
   const log =
     sessions.map((s) => sessionText(s, plan)).join("\n") +
     `\n\nLAST WEEK'S SESSIONS (for your own comparison):\n${prevSessions.map((s) => sessionText(s, plan)).join("\n") || "(nothing logged)"}`;
   const unlogged = unloggedPlanDays(plan, metrics.weekStart, metrics.weekEnd, sessions);
   const v = await askForScore(
+    ai,
     `Score this athlete's TRAINING WEEK from ${metrics.weekStart} through ${metrics.weekEnd} against their plan. This is a partial-week check-in: use only the logged sessions through ${metrics.weekEnd}; don't assume later days have happened.\n\n${profileText(profile)}\n\nPLAN:\n${planOutline(plan)}\n\n` +
       `LOGGED SESSIONS:\n${log || "(nothing logged)"}\n\nApp-computed metrics (ground truth, do not contradict the numbers):\n${weekMetricsText(metrics)}\n\n` +
       `Weekly stats the app computed from my logs:\n${statsText(stats ?? {})}\n\n` +
@@ -267,10 +260,10 @@ export async function scoreWeek(
       `Read the athlete's notes carefully (pain, sleep, energy). Estimate calories burned for each logged day, and fill "stats": confirm or correct the app's weekly numbers ` +
       `and add next-week targets for calories per day, protein per day and steps per day that fit the goal. Return via submit_score.`,
   );
-  return finalize(v, input, "claude", metrics, stats);
+  return finalize(v, input, "ai", metrics, stats, ai.label);
 }
 
-function finalize(v: Verdict, input: ScoreInput, source: "claude" | "offline", metrics?: WeekMetrics, appStats?: WeekStats) {
+function finalize(v: Verdict, input: ScoreInput, source: "ai" | "offline", metrics?: WeekMetrics, appStats?: WeekStats, aiLabel?: string) {
   // Claude's numbers win where it gave them; the app's fill the gaps.
   const stats = appStats || v.stats ? { ...(appStats ?? {}), ...cleanStats(v.stats) } : undefined;
   const overall = Math.max(0, Math.min(100, Math.round(v.overall)));
@@ -285,6 +278,7 @@ function finalize(v: Verdict, input: ScoreInput, source: "claude" | "offline", m
     nextWeekAdjustments: v.nextWeekAdjustments ?? [],
     constraintFlags: v.constraintFlags?.length ? v.constraintFlags : input.flags,
     source,
+    aiLabel,
     metrics,
     stats,
     calories: v.calories ?? [],
@@ -359,7 +353,7 @@ function offlineVerdict(kind: "plan" | "week", input: ScoreInput, metrics?: Week
   return finalize(
     {
       overall: input.base,
-      summary: `Offline score computed by the app (add ANTHROPIC_API_KEY for Claude's coaching analysis). Weakest area: ${low[0]?.label ?? "n/a"}.`,
+      summary: `Offline score computed by the app (add your AI provider key in Profile for full coaching analysis). Weakest area: ${low[0]?.label ?? "n/a"}.`,
       strengths: high.slice(0, 2).map((s) => `${s.label}: ${s.score}/100 — ${s.detail}`),
       issues: low.slice(0, 2).map((s) => `${s.label}: ${s.score}/100 — ${s.detail}`),
       recommendations: input.flags.map((f) => `${f.exercise} conflicts with "${f.constraint}" → try ${f.swaps.slice(0, 2).join(" or ")}`),
@@ -374,24 +368,22 @@ function offlineVerdict(kind: "plan" | "week", input: ScoreInput, metrics?: Week
 
 // ── Chat ─────────────────────────────────────────────────────
 export async function streamChat(
+  ai: AiClient | null,
   history: ChatMessage[],
   context: string,
   onText: (t: string) => void,
 ): Promise<string> {
-  if (!claudeEnabled()) {
-    const msg = "Claude isn't connected yet. Add your key to `ANTHROPIC_API_KEY` in `server/.env` and restart the server — scoring still works offline in the meantime.";
+  if (!ai) {
+    const msg = "No AI provider connected yet. Add your API key (Claude, OpenAI, Gemini, Groq, Mistral, OpenRouter or any OpenAI-compatible API) under **Profile → AI provider** — scoring still works offline in the meantime.";
     onText(msg);
     return msg;
   }
-  const stream = getClient().messages.stream({
-    model: config.model,
-    max_tokens: 2000,
+  return ai.stream({
     system: `${COACH_SYSTEM}\n\nCURRENT ATHLETE CONTEXT (from the app's database):\n${context}`,
-    messages: history.slice(-20).map((m) => ({ role: m.role, content: m.content })),
+    messages: history.slice(-20),
+    maxTokens: 2000,
+    onText,
   });
-  stream.on("text", onText);
-  const final = await stream.finalMessage();
-  return final.content.map((b) => (b.type === "text" ? b.text : "")).join("");
 }
 
 export function buildChatContext(profile: Profile, plan: WorkoutPlan | null, scores: ScoreReport[], sessions: WorkoutSession[]) {

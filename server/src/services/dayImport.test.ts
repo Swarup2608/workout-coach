@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 import fs from "node:fs";
 import { parsePlan } from "./planParser.js";
 import { dayPrompt, mergeDay, parseDay } from "./dayImport.js";
-import type { WorkoutPlan } from "@workout/shared";
+import type { WorkoutPlan } from "../domain.js";
 
 const raw = fs.readFileSync(new URL("../seed/baseline-plan.md", import.meta.url), "utf8");
 const parsed = parsePlan(raw);
@@ -12,7 +12,7 @@ const monday = "2026-11-09";
 
 test("prompt lists the plan and the JSON format", () => {
   const p = dayPrompt(plan, monday);
-  assert.match(p, /repscoreDay/);
+  assert.match(p, /starkfitiqDay/);
   assert.match(p, /Monday/);
   assert.match(p, /My day:\s*$/);
 });

@@ -6,3 +6,6 @@ server/data/db.json
 .env.local
 *.tsbuildinfo
 next-env.d.ts
+server/.mongo-test-*
+.DS_Store
+client/.shots

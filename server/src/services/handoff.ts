@@ -9,7 +9,7 @@ import {
   type WeekStats,
   type WorkoutPlan,
   type WorkoutSession,
-} from "@workout/shared";
+} from "../domain.js";
 import { cleanStats, mergeSubScores, planOutline, profileText, sessionText, statsText, unloggedPlanDays, weekMetricsText } from "./claude.js";
 
 /**
@@ -49,7 +49,7 @@ Coach me in plain words first. Then **end your reply with exactly one fenced \`j
 
 \`\`\`json
 {
-  "repscore": {
+  "starkfitiq": {
     "kind": "${kind}",
     "overall": 0,
     "summary": "2–3 sentence verdict",
@@ -92,7 +92,7 @@ export function weekPack(
   stats?: WeekStats,
 ) {
   const unlogged = unloggedPlanDays(plan, metrics.weekStart, metrics.weekEnd, sessions);
-  return `# RepScore weekly check-in: ${metrics.weekStart} through ${metrics.weekEnd}
+  return `# StarkFitIQ weekly check-in: ${metrics.weekStart} through ${metrics.weekEnd}
 
 Please score my training week against my plan using only the logged information through ${metrics.weekEnd}. This may be a partial week; don't assume later days have happened.
 
@@ -120,7 +120,7 @@ ${replyFormat("week", metrics.subScores, metrics.baseScore, profile, stats)}
 }
 
 export function planPack(plan: WorkoutPlan, profile: Profile, m: { subScores: SubScore[]; baseScore: number; setsByMuscle: Record<string, number>; flags: ConstraintFlag[] }) {
-  return `# RepScore plan review: ${plan.name}
+  return `# StarkFitIQ plan review: ${plan.name}
 
 Please score this weekly training plan for my goal and suggest concrete edits.
 
@@ -160,7 +160,9 @@ const ReplySchema = z.object({
 export function parseReply(text: string) {
   const candidates: string[] = [];
   for (const m of text.matchAll(/```(?:json)?\s*([\s\S]*?)```/g)) candidates.push(m[1]);
-  const brace = text.lastIndexOf('{"repscore"') >= 0 ? text.slice(text.lastIndexOf('{"repscore"')) : null;
+  // "repscore" = replies made before the StarkFitIQ rename; still accepted.
+  const at = Math.max(text.lastIndexOf('{"starkfitiq"'), text.lastIndexOf('{"repscore"'));
+  const brace = at >= 0 ? text.slice(at) : null;
   if (brace) candidates.push(brace);
   if (!candidates.length) {
     const first = text.indexOf("{");
@@ -170,7 +172,7 @@ export function parseReply(text: string) {
   for (const c of candidates.reverse()) {
     try {
       const obj = JSON.parse(c.trim());
-      const parsed = ReplySchema.safeParse(obj.repscore ?? obj);
+      const parsed = ReplySchema.safeParse(obj.starkfitiq ?? obj.repscore ?? obj);
       if (parsed.success) return parsed.data;
     } catch {
       /* try next */

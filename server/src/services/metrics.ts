@@ -13,7 +13,7 @@ import {
   type WeekMetrics,
   type WorkoutPlan,
   type WorkoutSession,
-} from "@workout/shared";
+} from "../domain.js";
 import { checkExercise, checkPlan } from "./constraints.js";
 
 const clamp = (n: number) => Math.max(0, Math.min(100, Math.round(n)));
