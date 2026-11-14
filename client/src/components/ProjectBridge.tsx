@@ -113,7 +113,7 @@ export function ProjectBridge({
       <ol className="mt-4 space-y-4 text-sm">
         <li className="space-y-3">
           <div className="flex flex-wrap items-center gap-3">
-            <span className="flex h-6 w-6 items-center justify-center rounded-full bg-volt font-display font-bold text-ink-950">1</span>
+            <span className="flex h-6 w-6 items-center justify-center rounded-full bg-volt font-display font-bold text-on-accent">1</span>
             <button className="btn btn-primary" onClick={() => send("open")} disabled={busy !== null}>
               {busy === "send" && <Spinner />} Copy check-in & open Claude
             </button>
@@ -131,7 +131,7 @@ export function ProjectBridge({
         </li>
         <li className="space-y-2">
           <div className="flex items-center gap-3">
-            <span className="flex h-6 w-6 items-center justify-center rounded-full bg-volt font-display font-bold text-ink-950">2</span>
+            <span className="flex h-6 w-6 items-center justify-center rounded-full bg-volt font-display font-bold text-on-accent">2</span>
             <span>Copy Claude&apos;s whole reply (it ends with a ```json score block) and paste it here:</span>
           </div>
           <textarea className="input h-32 font-mono text-xs" placeholder="Paste Claude's reply…" value={reply} onChange={(e) => setReply(e.target.value)} />

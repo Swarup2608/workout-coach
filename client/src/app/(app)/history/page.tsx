@@ -143,7 +143,7 @@ export default function HistoryPage() {
                   <tbody>
                     {lifts.map((e) => (
                       <tr key={e.name} className="border-t border-ink-700">
-                        <td className="py-2 text-white">
+                        <td className="py-2 text-fg">
                           {e.name} <span className={`ml-1 text-xs ${e.trend === "up" ? "text-good" : e.trend === "down" ? "text-bad" : "text-ink-400"}`}>{{ up: "▲", down: "▼", flat: "●", new: "new" }[e.trend]}</span>
                         </td>
                         <td>{e.bestE1rm ? `${e.bestE1rm} kg e1RM` : `${e.totalReps} total`}</td>
@@ -196,7 +196,7 @@ function Tile({ label, value, unit }: { label: string; value: string; unit?: str
   return (
     <div className="card">
       <p className="label">{label}</p>
-      <p className="font-display text-3xl font-bold text-white">
+      <p className="font-display text-3xl font-bold text-fg">
         {value}
         {unit && <span className="ml-1 text-sm font-normal text-ink-400">{unit}</span>}
       </p>
@@ -209,7 +209,7 @@ function SessionRow({ s, title, kcal }: { s: WorkoutSession; title?: string; kca
   return (
     <details className="group">
       <summary className="flex cursor-pointer list-none flex-wrap items-center gap-x-6 gap-y-1 px-5 py-3 hover:bg-ink-800/40">
-        <span className="w-32 font-semibold text-white">{fmtDate(s.date)}</span>
+        <span className="w-32 font-semibold text-fg">{fmtDate(s.date)}</span>
         <span className="min-w-0 flex-1 truncate text-sm text-ink-400">
           {title ?? `${s.exercises.length} exercises`}
           {s.planDay && <span className="ml-2 rounded-full bg-volt/20 px-2 py-0.5 text-[10px] text-volt-bright">{s.planDay === "custom" ? "own workout" : `changed: ${s.planDay}'s workout`}</span>}
@@ -218,7 +218,7 @@ function SessionRow({ s, title, kcal }: { s: WorkoutSession; title?: string; kca
           {doneSets(s)} sets{s.durationMin ? ` · ${s.durationMin} min` : ""}
         </span>
         <span className="w-28 text-right text-sm">
-          <strong className="text-white">{kcal}</strong> kcal{" "}
+          <strong className="text-fg">{kcal}</strong> kcal{" "}
           <span className="text-[10px] uppercase text-ink-400">{s.kcalClaude ? "Claude" : "est."}</span>
         </span>
         <span className="w-4 text-ink-400" title={hasNotes ? "Has notes" : undefined}>
@@ -230,7 +230,7 @@ function SessionRow({ s, title, kcal }: { s: WorkoutSession; title?: string; kca
         <ul className="space-y-1">
           {s.exercises.map((e, i) => (
             <li key={i}>
-              <span className="text-white">{e.name}</span>{" "}
+              <span className="text-fg">{e.name}</span>{" "}
               <span className="text-ink-400">
                 {e.sets
                   .filter((x) => x.done)
@@ -243,13 +243,13 @@ function SessionRow({ s, title, kcal }: { s: WorkoutSession; title?: string; kca
           ))}
           {(s.cardio ?? []).map((c, i) => (
             <li key={`c${i}`}>
-              <span className="text-white">Cardio</span> <span className="text-ink-400">{cardioText(c)}</span>
+              <span className="text-fg">Cardio</span> <span className="text-ink-400">{cardioText(c)}</span>
             </li>
           ))}
         </ul>
         {!!s.food?.length && (
           <div>
-            <p className="text-white">
+            <p className="text-fg">
               Food <span className="text-ink-400">· {foodTotals(s.food).kcal} kcal · {foodTotals(s.food).proteinG} g protein</span>
             </p>
             <ul className="text-ink-400">

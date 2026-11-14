@@ -29,7 +29,9 @@ StarkFitIQ is a personal workout tracker and coaching app. It records training a
 | `client/src/app/` | Next.js screens: dashboard, log, plan, history, coach chat, profile, and auth pages |
 | `client/src/components/` | Shared UI, navigation, logo, auth provider, quick-add, and Claude Project bridge |
 | `client/src/lib/api.ts` | Browser API client (cookies, CSRF, silent refresh) and chat stream reader |
-| `client/src/assets/StarkFitIq.png` | Logo (nav, auth pages; cropped copies are the tab icons) |
+| `client/public/brand/` | Logo PNGs (horizontal, stacked, mark; dark- and light-background variants) used by `components/Logo.tsx` |
+| `client/public/media/` | Landing page photos and videos |
+| `client/src/components/landing/` | Landing page (sections, nav, styles) |
 | `server/src/routes/api.ts` | Express endpoints for plans, sessions, scores, handoffs, and chat |
 | `server/src/services/` | Plan parsing, metrics, constraints, Claude prompts, and day/score import |
 | `server/src/repo.ts`, `server/src/db.ts` | MongoDB persistence, every query scoped to the signed-in user |

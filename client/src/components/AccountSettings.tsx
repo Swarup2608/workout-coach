@@ -84,7 +84,7 @@ export function AccountSettings() {
       <div>
         <h2 className="h-display text-2xl">Account & security</h2>
         <p className="text-sm text-ink-400">
-          Signed in as <span className="text-white">{user?.email}</span>
+          Signed in as <span className="text-fg">{user?.email}</span>
         </p>
       </div>
 
@@ -119,7 +119,7 @@ export function AccountSettings() {
           {sessions.map((s) => (
             <li key={s.id} className="flex flex-wrap items-center justify-between gap-2 px-3 py-2 text-sm">
               <div>
-                <p className="text-white">
+                <p className="text-fg">
                   {device(s.userAgent)} {s.current && <span className="ml-1 rounded-full bg-volt/20 px-2 py-0.5 text-[11px] text-volt-bright">This device</span>}
                 </p>
                 <p className="text-xs text-ink-400">

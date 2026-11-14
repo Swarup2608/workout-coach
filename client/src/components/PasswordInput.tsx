@@ -26,7 +26,7 @@ export function PasswordInput({ id, value, onChange, autoComplete }: { id: strin
       />
       <button
         type="button"
-        className="absolute inset-y-0 right-2 my-auto h-7 rounded-md px-2 text-xs text-ink-400 hover:text-white"
+        className="absolute inset-y-0 right-2 my-auto h-7 rounded-md px-2 text-xs text-ink-400 hover:text-fg"
         onClick={() => setShow((s) => !s)}
         aria-label={show ? "Hide password" : "Show password"}
       >

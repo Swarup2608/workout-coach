@@ -93,7 +93,7 @@ export function QuickAdd({
 function Step({ n, children }: { n: number; children: React.ReactNode }) {
   return (
     <div className="flex items-start gap-3">
-      <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-volt font-display font-bold text-ink-950">{n}</span>
+      <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-volt font-display font-bold text-on-accent">{n}</span>
       <span>{children}</span>
     </div>
   );

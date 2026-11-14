@@ -95,7 +95,7 @@ export default function ChatPage() {
       {status && !status.aiConnected && (
         <div className="card mb-4 flex flex-wrap items-center justify-between gap-3 border-volt/40">
           <p className="text-sm">
-            No AI key yet? Add one under <a href="/profile#ai" className="text-volt-bright hover:underline">Profile → AI provider</a>, or chat in your <strong className="text-white">Claude Workout Project</strong> instead. This copies your latest plan, logs and scores so Claude has them.
+            No AI key yet? Add one under <a href="/profile#ai" className="text-volt-bright hover:underline">Profile → AI provider</a>, or chat in your <strong className="text-fg">Claude Workout Project</strong> instead. This copies your latest plan, logs and scores so Claude has them.
           </p>
           <div className="flex items-center gap-3">
             {copied && <span className="text-xs text-good">Copied. Paste it as your first message.</span>}
@@ -163,7 +163,7 @@ export default function ChatPage() {
 function Bubble({ role, content }: { role: "user" | "assistant"; content: string }) {
   return (
     <div className={`flex ${role === "user" ? "justify-end" : "justify-start"}`}>
-      <div className={`max-w-[85%] rounded-2xl px-4 py-3 text-sm leading-relaxed ${role === "user" ? "bg-volt font-medium text-ink-950" : "border border-ink-700 bg-ink-800"}`}>
+      <div className={`max-w-[85%] rounded-2xl px-4 py-3 text-sm leading-relaxed ${role === "user" ? "bg-volt font-medium text-on-accent" : "border border-ink-700 bg-ink-800"}`}>
         {role === "assistant" ? (
           <div className="prose-chat">
             <ReactMarkdown>{content}</ReactMarkdown>

@@ -217,7 +217,7 @@ export default function PlanPage() {
                             {e.name}
                             <span className="ml-1.5 rounded bg-ink-700 px-1.5 text-[10px] uppercase text-ink-400">{e.muscle}</span>
                           </span>
-                          <span className="shrink-0 font-display font-bold text-white">
+                          <span className="shrink-0 font-display font-bold text-fg">
                             {e.sets}×{e.repMin}
                             {e.repMax !== e.repMin && `–${e.repMax}`}
                             {e.unit !== "reps" && unitShort(e.unit)}

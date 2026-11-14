@@ -38,7 +38,7 @@ export function VerifyEmailGate() {
       <h1 className="h-display text-4xl">Check your inbox</h1>
       <div className="card mt-6 space-y-4">
         <p className="text-sm leading-relaxed">
-          We sent a verification link to <strong className="text-white">{user?.email}</strong>. Click it to start using StarkFitIQ. The link expires in 24 hours.
+          We sent a verification link to <strong className="text-fg">{user?.email}</strong>. Click it to start using StarkFitIQ. The link expires in 24 hours.
         </p>
         <p className="text-xs text-ink-400">Can&apos;t find it? Check spam, or send a new link (the old one stops working).</p>
         <ErrorNote error={error} />

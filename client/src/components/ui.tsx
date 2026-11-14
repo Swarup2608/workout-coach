@@ -3,14 +3,14 @@
 import { useRef, useState } from "react";
 import { STAT_LABELS, type ScoreReport, type SubScore, type WeekStats } from "@/lib/domain";
 
-export const scoreColor = (s: number) => (s >= 80 ? "var(--color-good)" : s >= 60 ? "var(--color-volt)" : s >= 45 ? "var(--color-warn)" : "var(--color-bad)");
+export const scoreColor = (s: number) => (s >= 80 ? "var(--good)" : s >= 60 ? "var(--accent)" : s >= 45 ? "var(--warn)" : "var(--bad)");
 
 export function ScoreRing({ score, grade, size = 132 }: { score: number; grade?: string; size?: number }) {
   const r = size / 2 - 10;
   const c = 2 * Math.PI * r;
   return (
     <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`} role="img" aria-label={`Score ${score} out of 100`}>
-      <circle cx={size / 2} cy={size / 2} r={r} stroke="var(--color-ink-700)" strokeWidth={10} fill="none" />
+      <circle cx={size / 2} cy={size / 2} r={r} stroke="var(--surface-700)" strokeWidth={10} fill="none" />
       <circle
         cx={size / 2}
         cy={size / 2}
@@ -24,11 +24,11 @@ export function ScoreRing({ score, grade, size = 132 }: { score: number; grade?:
         transform={`rotate(-90 ${size / 2} ${size / 2})`}
         style={{ transition: "stroke-dashoffset .8s ease" }}
       />
-      <text x="50%" y="48%" textAnchor="middle" dominantBaseline="middle" className="fill-white font-display" fontSize={size * 0.3} fontWeight={700}>
+      <text x="50%" y="48%" textAnchor="middle" dominantBaseline="middle" className="fill-fg font-display" fontSize={size * 0.3} fontWeight={700}>
         {score}
       </text>
       {grade && (
-        <text x="50%" y="70%" textAnchor="middle" className="fill-[var(--color-ink-400)] font-display" fontSize={size * 0.12} fontWeight={600}>
+        <text x="50%" y="70%" textAnchor="middle" className="fill-ink-400 font-display" fontSize={size * 0.12} fontWeight={600}>
           GRADE {grade}
         </text>
       )}
@@ -43,7 +43,7 @@ export function SubScoreBars({ items }: { items: SubScore[] }) {
         <li key={s.key}>
           <div className="mb-1 flex justify-between text-sm">
             <span className="text-ink-200">{s.label}</span>
-            <span className="font-display text-base font-bold text-white">{s.score}</span>
+            <span className="font-display text-base font-bold text-fg">{s.score}</span>
           </div>
           <div className="h-2 overflow-hidden rounded-full bg-ink-700">
             <div className="h-full rounded-full transition-all duration-700" style={{ width: `${s.score}%`, background: scoreColor(s.score) }} />
@@ -87,7 +87,7 @@ function StatsGrid({ stats, byClaude }: { stats: WeekStats; byClaude: boolean })
           const v = stats[key] as number;
           const t = target ? (stats[target] as number | null | undefined) : null;
           const signed = key === "kcalNet" || key === "bodyweightChangeKg";
-          const tone = key === "kcalNet" ? (v < 0 ? "text-good" : "text-warn") : t ? (v >= t ? "text-good" : "text-warn") : "text-white";
+          const tone = key === "kcalNet" ? (v < 0 ? "text-good" : "text-warn") : t ? (v >= t ? "text-good" : "text-warn") : "text-fg";
           return (
             <div key={key} className="rounded-xl border border-ink-700 bg-ink-800/40 px-3 py-2">
               <p className="text-[11px] text-ink-400">{label}</p>
@@ -145,7 +145,7 @@ export function ScoreReportCard({ report }: { report: ScoreReport }) {
         <List title="Strengths" items={report.strengths} tone="text-good" />
         <List title="Issues" items={report.issues} tone="text-warn" />
         <List title="Recommendations" items={report.recommendations} tone="text-volt-bright" />
-        <List title="Next week adjustments" items={report.nextWeekAdjustments} tone="text-white" />
+        <List title="Next week adjustments" items={report.nextWeekAdjustments} tone="text-fg" />
       </div>
       {report.constraintFlags.length > 0 && (
         <div className="rounded-xl border border-bad/40 bg-bad/10 p-4">
@@ -153,7 +153,7 @@ export function ScoreReportCard({ report }: { report: ScoreReport }) {
           <ul className="space-y-1 text-sm">
             {report.constraintFlags.map((f, i) => (
               <li key={i}>
-                <strong className="text-white">{f.exercise}</strong>
+                <strong className="text-fg">{f.exercise}</strong>
                 {f.day ? ` (${f.day})` : ""}: {f.constraint} → try <span className="text-good">{f.swaps.slice(0, 2).join(" or ")}</span>
               </li>
             ))}
@@ -190,7 +190,7 @@ export function CopyBox({ text, rows = 8, label = "Copy" }: { text: string; rows
 }
 
 export function Spinner() {
-  return <span className="h-4 w-4 animate-spin rounded-full border-2 border-white/30 border-t-white" aria-hidden />;
+  return <span className="h-4 w-4 animate-spin rounded-full border-2 border-current/30 border-t-current" aria-hidden />;
 }
 
 export function ErrorNote({ error }: { error: string | null }) {

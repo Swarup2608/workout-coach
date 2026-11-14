@@ -7,6 +7,7 @@ import type { ApiStatus } from "@/lib/domain";
 import { api, ApiError } from "@/lib/api";
 import { useAuth } from "@/components/AuthProvider";
 import { Logo } from "@/components/Logo";
+import { ThemeToggle } from "@/components/ThemeToggle";
 
 const links = [
   { href: "/dashboard", label: "Dashboard" },
@@ -44,6 +45,7 @@ export function Nav() {
           <Link href="/" aria-label="StarkFitIQ home">
             <Logo size={26} />
           </Link>
+          <ThemeToggle className="ml-auto" />
         </div>
       </header>
     );
@@ -62,7 +64,7 @@ export function Nav() {
               <Link
                 key={l.href}
                 href={l.href}
-                className={`rounded-lg px-3 py-1.5 text-sm font-medium transition ${active ? "bg-ink-700 text-white" : "text-ink-400 hover:text-white"}`}
+                className={`rounded-lg px-3 py-1.5 text-sm font-medium transition ${active ? "bg-ink-700 text-fg" : "text-ink-400 hover:text-fg"}`}
               >
                 {l.label}
               </Link>
@@ -79,6 +81,7 @@ export function Nav() {
           <span className={`h-2 w-2 rounded-full ${down ? "bg-bad" : status?.aiConnected ? "bg-good" : "bg-warn"}`} />
           {down ? "API offline" : status ? (status.aiConnected ? status.label : "No AI key (offline mode)") : "…"}
         </Link>
+        <ThemeToggle />
         <div className="relative" ref={menu}>
           <button
             className="flex h-8 w-8 items-center justify-center rounded-full bg-volt/20 text-sm font-semibold text-volt-bright hover:bg-volt/30"
@@ -92,7 +95,7 @@ export function Nav() {
           {open && (
             <div role="menu" className="absolute right-0 mt-2 w-60 rounded-xl border border-ink-700 bg-ink-900 p-2 shadow-xl">
               <div className="border-b border-ink-700 px-2 pb-2">
-                <p className="truncate text-sm font-medium text-white">{user.name}</p>
+                <p className="truncate text-sm font-medium text-fg">{user.name}</p>
                 <p className="truncate text-xs text-ink-400">{user.email}</p>
               </div>
               <Link role="menuitem" href="/profile#account" onClick={() => setOpen(false)} className="mt-1 block rounded-lg px-2 py-1.5 text-sm hover:bg-ink-800">

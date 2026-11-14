@@ -108,7 +108,7 @@ export default function Dashboard() {
                   className={`rounded-xl border p-3 text-center transition hover:border-ink-500 ${d.isRest ? "border-ink-700 bg-ink-800/40" : done ? "border-good/50 bg-good/10" : "border-ink-600"}`}
                   title={d.title}
                 >
-                  <p className="font-display text-sm font-bold uppercase text-white">{WEEKDAYS[i].slice(0, 3)}</p>
+                  <p className="font-display text-sm font-bold uppercase text-fg">{WEEKDAYS[i].slice(0, 3)}</p>
                   <p className="mt-1 text-xs">{d.isRest ? "Rest" : done ? "✓" : "·"}</p>
                 </Link>
               );
@@ -149,7 +149,7 @@ function Stat({ label, value, hint, color }: { label: string; value: string; hin
   return (
     <div className="card">
       <p className="label">{label}</p>
-      <p className="font-display text-3xl font-bold text-white" style={color ? { color } : undefined}>
+      <p className="font-display text-3xl font-bold text-fg" style={color ? { color } : undefined}>
         {value}
       </p>
       <p className="text-xs text-ink-400">{hint}</p>

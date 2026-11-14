@@ -1,73 +1,230 @@
 @import "tailwindcss";
 
-@theme {
-  --font-display: "Barlow Condensed", "Arial Narrow", system-ui, sans-serif;
-  --font-sans: "Inter", system-ui, -apple-system, "Segoe UI", sans-serif;
-  --font-landing2: "Manrope", "Inter", system-ui, sans-serif;
-  /* StarkFitIQ: near-black surfaces + gold accent (landing page design) */
-  --color-ink-950: #050505;
-  --color-ink-900: #0d0d0d;
-  --color-ink-800: #161616;
-  --color-ink-700: #242424;
-  --color-ink-600: #343434;
-  --color-ink-400: #8f8a80;
-  --color-ink-200: #d9d4ca;
-  /* "volt" is the accent token used across the app: now gold */
-  --color-volt: #f5b525;
-  --color-volt-bright: #ffcf4a;
-  --color-gold-deep: #e09a12;
-  --color-cream: #f4efe6;
-  --color-good: #22c55e;
-  --color-warn: #f59e0b;
-  --color-bad: #ef4444;
+/* =====================================================================
+   StarkFitIQ themes — "Ion" indigo, light + dark.
+   Source of truth: the theme tokens below (ported from the starkfitiq 3 UI).
+   The theme is chosen by <html data-theme="dark|light">, set before first
+   paint by the script in app/layout.tsx and switched by <ThemeToggle />.
+   ===================================================================== */
+:root,
+[data-theme="dark"] {
+  color-scheme: dark;
+  --bg: #07080a;
+  --bg-2: #0e1114;
+  --card: #12161a;
+  --card-2: #0b0d10;
+  --line: rgba(255, 255, 255, 0.08);
+  --line-2: rgba(255, 255, 255, 0.22);
+  --text: #f2f4f7;
+  --text-2: #c4ccd5;
+  --muted: #a3acb6;
+  --accent: #8b93ff; /* text, lines, icons on dark */
+  --accent-fill: #4f57f0; /* buttons and filled surfaces */
+  --on-accent: #ffffff;
+  --accent-soft: rgba(139, 147, 255, 0.12);
+  --accent-line: rgba(139, 147, 255, 0.42);
+  --accent-glow: rgba(79, 87, 240, 0.55);
+  --ice: #5fd4f5;
+  --pulse: #ff8a4c;
+  --rest: #5b6470;
+  --good: #34d399;
+  --warn: #fbbf24;
+  --bad: #f87171;
+  --glass: rgba(14, 17, 20, 0.62);
+  --glass-line: rgba(255, 255, 255, 0.12);
+  --nav-bg: rgba(7, 8, 10, 0.72);
+  --shadow: rgba(0, 0, 0, 0.85);
+  --grid-line: rgba(255, 255, 255, 0.05);
+  --outline-text: rgba(255, 255, 255, 0.32);
+  --giant: rgba(255, 255, 255, 0.12);
+  --hero-shade: linear-gradient(90deg, rgba(7, 8, 10, 0.92) 0%, rgba(7, 8, 10, 0.6) 45%, rgba(7, 8, 10, 0.2) 100%);
+  --cta-shade: radial-gradient(ellipse at 50% 60%, rgba(7, 8, 10, 0.55), rgba(7, 8, 10, 0.94) 70%);
+  --photo-filter: grayscale(0.4) contrast(1.05);
+  /* Solid surface steps used by the app (borders, inputs, hover fills) */
+  --surface-700: #22272e;
+  --surface-600: #2f353d;
+  --surface-500: #4a525c;
 }
 
-html {
-  color-scheme: dark;
+[data-theme="light"] {
+  color-scheme: light;
+  --bg: #f5f6f8;
+  --bg-2: #eceef2;
+  --card: #ffffff;
+  --card-2: #f5f6f8;
+  --line: rgba(11, 13, 16, 0.09);
+  --line-2: rgba(11, 13, 16, 0.2);
+  --text: #0b0d10;
+  --text-2: #2e343b;
+  --muted: #59626e;
+  --accent: #3b3fd8;
+  --accent-fill: #3b3fd8;
+  --on-accent: #ffffff;
+  --accent-soft: rgba(59, 63, 216, 0.08);
+  --accent-line: rgba(59, 63, 216, 0.35);
+  --accent-glow: rgba(59, 63, 216, 0.4);
+  --ice: #0a7394;
+  --pulse: #c2410c;
+  --rest: #9aa3ae;
+  --good: #15803d;
+  --warn: #b45309;
+  --bad: #dc2626;
+  --glass: rgba(255, 255, 255, 0.74);
+  --glass-line: rgba(11, 13, 16, 0.08);
+  --nav-bg: rgba(245, 246, 248, 0.8);
+  --shadow: rgba(30, 36, 60, 0.22);
+  --grid-line: rgba(11, 13, 16, 0.06);
+  --outline-text: rgba(11, 13, 16, 0.28);
+  --giant: rgba(11, 13, 16, 0.12);
+  --hero-shade: linear-gradient(90deg, rgba(245, 246, 248, 0.96) 0%, rgba(245, 246, 248, 0.8) 45%, rgba(245, 246, 248, 0.25) 100%);
+  --cta-shade: radial-gradient(ellipse at 50% 60%, rgba(245, 246, 248, 0.7), rgba(245, 246, 248, 0.96) 70%);
+  --photo-filter: grayscale(0.2) contrast(1.02);
+  --surface-700: #dfe3e9;
+  --surface-600: #cfd5dd;
+  --surface-500: #aab2bd;
+}
+
+:root {
+  --on-media: #ffffff; /* text on photos / video stays white in both themes */
+  --on-media-2: #d5dbe1;
+  --r-lg: 28px;
+  --ease: cubic-bezier(0.2, 0.8, 0.2, 1);
+  --pad: clamp(20px, 4vw, 48px);
+  --f-disp: "Unbounded", system-ui, sans-serif;
+  --f-body: "Inter", system-ui, sans-serif;
+  --f-mono: "JetBrains Mono", ui-monospace, monospace;
+}
+
+/* Tailwind colour names used across the app, mapped onto the theme tokens.
+   `inline` makes utilities reference the live variables, so they follow the theme. */
+@theme inline {
+  --font-display: var(--f-disp);
+  --font-sans: var(--f-body);
+  --font-mono: var(--f-mono);
+  --font-landing2: "Manrope", "Inter", system-ui, sans-serif;
+
+  --color-ink-950: var(--bg);
+  --color-ink-900: var(--card);
+  --color-ink-800: var(--bg-2);
+  --color-ink-700: var(--surface-700);
+  --color-ink-600: var(--surface-600);
+  --color-ink-500: var(--surface-500);
+  --color-ink-400: var(--muted);
+  --color-ink-200: var(--text-2);
+  --color-fg: var(--text);
+  --color-on-accent: var(--on-accent);
+
+  /* "volt" is the app's accent name: now Ion indigo */
+  --color-volt: var(--accent-fill);
+  --color-volt-bright: var(--accent);
+  --color-gold-deep: var(--accent-fill);
+  --color-cream: var(--text);
+  --color-ice: var(--ice);
+  --color-pulse: var(--pulse);
+
+  --color-good: var(--good);
+  --color-warn: var(--warn);
+  --color-bad: var(--bad);
+}
+
+/* Smooth colour cross-fade only while switching themes */
+.theme-anim,
+.theme-anim *,
+.theme-anim *::before,
+.theme-anim *::after {
+  transition: background-color 0.45s ease, color 0.45s ease, border-color 0.45s ease, fill 0.45s ease, stroke 0.45s ease !important;
 }
 
 body {
   @apply bg-ink-950 text-ink-200 font-sans antialiased;
 }
 
+::selection {
+  background: var(--accent-fill);
+  color: var(--on-accent);
+}
+
+/* Theme-aware brand images: render both, show the one that suits the theme */
+[data-theme="light"] .on-dark-only,
+[data-theme="dark"] .on-light-only {
+  display: none !important;
+}
+
 .card {
-  @apply rounded-2xl border border-ink-700 bg-gradient-to-b from-ink-900 to-ink-950 p-5;
+  @apply rounded-2xl border border-ink-700 bg-ink-900 p-5;
+  box-shadow: 0 24px 48px -36px var(--shadow);
 }
 
 .btn {
-  @apply inline-flex items-center justify-center gap-2 rounded-xl px-4 py-2 text-sm font-semibold transition disabled:cursor-not-allowed disabled:opacity-50;
+  @apply inline-flex items-center justify-center gap-2 rounded-full px-5 py-2 text-sm font-semibold transition disabled:cursor-not-allowed disabled:opacity-50;
 }
 .btn-primary {
-  @apply bg-gradient-to-b from-volt-bright to-volt font-bold text-ink-950 shadow-[0_0_24px_-6px_rgba(245,181,37,.6)] hover:from-volt-bright hover:to-volt-bright;
+  @apply bg-volt font-bold text-on-accent;
+}
+.btn-primary:not(:disabled):hover {
+  box-shadow: 0 14px 40px -12px var(--accent-glow);
 }
 .btn-ghost {
-  @apply border border-ink-600 text-ink-200 hover:border-volt/60 hover:text-white;
+  @apply border border-ink-600 text-ink-200 hover:border-volt-bright/60 hover:bg-volt-bright/10 hover:text-fg;
+}
+
+/* Theme toggle (landing nav + app nav) */
+.theme-toggle {
+  position: relative;
+  width: 40px;
+  height: 40px;
+  flex-shrink: 0;
+  border-radius: 50%;
+  border: 1px solid var(--line-2);
+  color: var(--text);
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+  cursor: pointer;
+  transition: border-color 0.3s, background 0.3s;
+}
+.theme-toggle:hover {
+  border-color: var(--accent-line);
+  background: var(--accent-soft);
+}
+.tt-icon {
+  position: absolute;
+  display: grid;
+  place-items: center;
+  transform: translateY(140%) rotate(-90deg);
+  opacity: 0;
+  transition: transform 0.5s var(--ease), opacity 0.3s;
+}
+.tt-icon.on {
+  transform: none;
+  opacity: 1;
 }
 
 .input {
-  @apply w-full rounded-lg border border-ink-600 bg-ink-800 px-3 py-2 text-sm text-white placeholder:text-ink-400 focus:border-volt focus:outline-none;
+  @apply w-full rounded-lg border border-ink-600 bg-ink-800 px-3 py-2 text-sm text-fg placeholder:text-ink-400 focus:border-volt-bright focus:outline-none;
 }
 
 .label {
-  @apply mb-1 block text-xs font-medium uppercase tracking-wider text-ink-400;
+  @apply mb-1 block font-mono text-[11px] font-semibold uppercase tracking-[0.12em] text-ink-400;
 }
 
 .h-display {
-  @apply font-display font-extrabold uppercase italic tracking-wide text-white;
+  @apply font-display font-bold tracking-tight text-fg;
 }
 
-/* Gold gradient text, e.g. "INTELLIGENTLY." */
+/* Accent gradient text (kept under its old name) */
 .text-gold {
-  background: linear-gradient(180deg, #ffd65c 0%, #f5b525 55%, #e09a12 100%);
+  background: linear-gradient(180deg, var(--accent) 0%, var(--accent-fill) 100%);
   -webkit-background-clip: text;
   background-clip: text;
   color: transparent;
 }
 
-/* Glass card with a soft gold edge (landing stat cards, feature tiles) */
+/* Glass card with a soft accent edge (kept under its old name) */
 .glass-gold {
-  @apply rounded-2xl border border-volt/25 bg-white/[0.03] backdrop-blur-md;
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.06), 0 0 30px -12px rgba(245, 181, 37, 0.35);
+  @apply rounded-2xl border border-volt-bright/25 backdrop-blur-md;
+  background: var(--glass);
+  box-shadow: 0 0 30px -12px var(--accent-glow);
 }
 
 .prose-chat :where(p, ul, ol, table, pre) {
@@ -90,5 +247,12 @@ body {
   @apply rounded bg-ink-700 px-1 text-[0.85em];
 }
 .prose-chat strong {
-  @apply text-white;
+  @apply text-fg;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .theme-anim,
+  .theme-anim * {
+    transition: none !important;
+  }
 }

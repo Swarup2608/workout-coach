@@ -233,7 +233,7 @@ export default function LogPage() {
       title: `Reset ${day}, ${date}?`,
       body: existing ? (
         <>
-          This <strong className="text-white">deletes the saved workout</strong> for this day (sets, cardio, notes and Claude&apos;s calories) and brings back {day}&apos;s plan
+          This <strong className="text-fg">deletes the saved workout</strong> for this day (sets, cardio, notes and Claude&apos;s calories) and brings back {day}&apos;s plan
           with empty sets.
         </>
       ) : (
@@ -286,7 +286,7 @@ export default function LogPage() {
         body: (
           <>
             The sets you&apos;ve entered will be replaced by{" "}
-            <strong className="text-white">{next === "custom" ? "a blank workout you build yourself" : `${next}'s ${plan.days.find((d) => d.day === next)?.title ?? "workout"}`}</strong>. Cardio and
+            <strong className="text-fg">{next === "custom" ? "a blank workout you build yourself" : `${next}'s ${plan.days.find((d) => d.day === next)?.title ?? "workout"}`}</strong>. Cardio and
             notes stay. Your weekly plan doesn&apos;t change.
           </>
         ),
@@ -331,7 +331,7 @@ export default function LogPage() {
             <button
               key={d}
               onClick={() => setDate(d)}
-              className={`rounded-xl border px-2 py-2 text-center text-xs transition ${d === date ? "border-volt bg-volt/15 text-white" : logged ? "border-good/50 text-good" : "border-ink-700 text-ink-400 hover:border-ink-500"}`}
+              className={`rounded-xl border px-2 py-2 text-center text-xs transition ${d === date ? "border-volt bg-volt/15 text-fg" : logged ? "border-good/50 text-good" : "border-ink-700 text-ink-400 hover:border-ink-500"}`}
             >
               <div className="font-display text-sm font-bold uppercase">{weekdayOf(d).slice(0, 3)}</div>
               <div>{d.slice(8)}</div>
@@ -437,7 +437,7 @@ export default function LogPage() {
                     ))}
                   </select>
                   <label className="flex items-center gap-1.5 text-ink-400" title="One arm/leg at a time: reps counted per side">
-                    <input type="checkbox" className="accent-[var(--color-volt)]" checked={e.perSide} onChange={(ev) => patch(e.key, (x) => ({ ...x, perSide: ev.target.checked }))} />
+                    <input type="checkbox" className="accent-[var(--accent)]" checked={e.perSide} onChange={(ev) => patch(e.key, (x) => ({ ...x, perSide: ev.target.checked }))} />
                     Each side
                   </label>
                   <label className="flex items-center gap-1.5 text-ink-400">
@@ -455,7 +455,7 @@ export default function LogPage() {
                       ))}
                     </select>
                   </label>
-                  <button className={e.showNote ? "text-volt-bright" : "text-ink-400 hover:text-white"} onClick={() => patch(e.key, (x) => ({ ...x, showNote: !x.showNote }))}>
+                  <button className={e.showNote ? "text-volt-bright" : "text-ink-400 hover:text-fg"} onClick={() => patch(e.key, (x) => ({ ...x, showNote: !x.showNote }))}>
                     {e.notes ? "✎ Note" : "+ Note"}
                   </button>
                   <button className="text-ink-400 hover:text-bad" onClick={() => setExercises((xs) => xs.filter((x) => x.key !== e.key))}>
@@ -501,7 +501,7 @@ export default function LogPage() {
                     {e.sets.map((s, i) => {
                       const ps = p?.sets[i];
                       return (
-                        <tr key={i} className={s.done ? "text-white" : ""}>
+                        <tr key={i} className={s.done ? "text-fg" : ""}>
                           <td className="py-1 font-display text-base font-bold">{i + 1}</td>
                           <td className="py-1 text-xs text-ink-400">{ps ? `${ps.weightKg ?? "BW"} × ${ps.reps}${ps.negatives ? ` +${ps.negatives}n` : ""}` : "—"}</td>
                           <td className="py-1 pr-2">
@@ -550,7 +550,7 @@ export default function LogPage() {
                             </td>
                           )}
                           <td className="py-1 text-center">
-                            <input type="checkbox" className="h-5 w-5 accent-[var(--color-good)]" checked={s.done} onChange={(ev) => patchSet(e.key, i, { done: ev.target.checked })} aria-label={`Set ${i + 1} done`} />
+                            <input type="checkbox" className="h-5 w-5 accent-[var(--good)]" checked={s.done} onChange={(ev) => patchSet(e.key, i, { done: ev.target.checked })} aria-label={`Set ${i + 1} done`} />
                           </td>
                           <td className="py-1 text-right">
                             <button className="text-ink-400 hover:text-bad" onClick={() => patch(e.key, (x) => ({ ...x, sets: x.sets.filter((_, j) => j !== i) }))} aria-label="Remove set">
@@ -580,7 +580,7 @@ export default function LogPage() {
                 </button>
                 {p && (
                   <button
-                    className="text-ink-400 hover:text-white"
+                    className="text-ink-400 hover:text-fg"
                     onClick={() => patch(e.key, (x) => ({ ...x, sets: x.sets.map((s, i) => (p.sets[i] ? { weightKg: p.sets[i].weightKg, reps: p.sets[i].reps, negatives: p.sets[i].negatives ?? null, done: false } : s)) }))}
                   >
                     Copy last session ({p.date})
@@ -618,7 +618,7 @@ export default function LogPage() {
           </h2>
           <div className="flex flex-wrap gap-2 text-xs">
             {(["incline walk", "cycling", "other"] as CardioType[]).map((t) => (
-              <button key={t} className="rounded-full border border-ink-600 px-3 py-1 text-ink-200 hover:border-volt hover:text-white" onClick={() => addCardio(t)}>
+              <button key={t} className="rounded-full border border-ink-600 px-3 py-1 text-ink-200 hover:border-volt hover:text-fg" onClick={() => addCardio(t)}>
                 + {t === "other" ? "Other" : t[0].toUpperCase() + t.slice(1)}
               </button>
             ))}
@@ -669,7 +669,7 @@ export default function LogPage() {
                       <td className="py-1 pr-2">
                         <input type="number" inputMode="decimal" min="0" step="0.01" className="input" placeholder="–" value={c.distanceKm ?? ""} onChange={(e) => patchCardio(i, { distanceKm: numOrNull(e.target.value) })} aria-label="Distance km" />
                       </td>
-                      <td className="py-1 text-right font-display font-bold text-white">{cardioKcal(c, kg) || "–"}</td>
+                      <td className="py-1 text-right font-display font-bold text-fg">{cardioKcal(c, kg) || "–"}</td>
                       <td className="py-1 text-right">
                         <button className="text-ink-400 hover:text-bad" onClick={() => setCardio((xs) => xs.filter((_, j) => j !== i))} aria-label="Remove cardio">
                           ×
@@ -689,7 +689,7 @@ export default function LogPage() {
           <h2 className="h-display text-lg">
             Food &amp; day <span className="text-sm font-normal text-ink-400">(optional)</span>
           </h2>
-          <button className="rounded-full border border-ink-600 px-3 py-1 text-xs text-ink-200 hover:border-volt hover:text-white" onClick={() => setFood((xs) => [...xs, { name: "", kcal: null }])}>
+          <button className="rounded-full border border-ink-600 px-3 py-1 text-xs text-ink-200 hover:border-volt hover:text-fg" onClick={() => setFood((xs) => [...xs, { name: "", kcal: null }])}>
             + Add food
           </button>
         </div>
@@ -740,8 +740,8 @@ export default function LogPage() {
                   <td className="pt-2" colSpan={2}>
                     Total eaten{eaten.carbsG || eaten.fatG ? ` · ${eaten.carbsG} g carbs · ${eaten.fatG} g fat` : ""}
                   </td>
-                  <td className="pt-2 font-display text-base font-bold text-white">{eaten.kcal}</td>
-                  <td className="pt-2 font-display text-base font-bold text-white">{eaten.proteinG}</td>
+                  <td className="pt-2 font-display text-base font-bold text-fg">{eaten.kcal}</td>
+                  <td className="pt-2 font-display text-base font-bold text-fg">{eaten.proteinG}</td>
                   <td />
                 </tr>
               </tfoot>
@@ -790,7 +790,7 @@ export default function LogPage() {
             <label className="label" htmlFor="rpe">
               Effort (RPE) {rpe ?? "–"}/10
             </label>
-            <input id="rpe" type="range" min={1} max={10} value={rpe ?? 7} onChange={(e) => setRpe(Number(e.target.value))} className="w-full accent-[var(--color-volt)]" />
+            <input id="rpe" type="range" min={1} max={10} value={rpe ?? 7} onChange={(e) => setRpe(Number(e.target.value))} className="w-full accent-[var(--accent)]" />
           </div>
         </div>
         <div>
@@ -810,14 +810,14 @@ export default function LogPage() {
 
       <div className="sticky bottom-4 z-10 flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-ink-600 bg-ink-800/95 px-5 py-3 backdrop-blur">
         <p className="text-sm">
-          <span className="font-display text-xl font-bold text-white">{doneSets}</span>/{totalSets} sets ·{" "}
-          <span className="font-display text-xl font-bold text-white">{Math.round(volume).toLocaleString()}</span> kg ·{" "}
-          <span className="font-display text-xl font-bold text-white">{kcal ?? "–"}</span> kcal
+          <span className="font-display text-xl font-bold text-fg">{doneSets}</span>/{totalSets} sets ·{" "}
+          <span className="font-display text-xl font-bold text-fg">{Math.round(volume).toLocaleString()}</span> kg ·{" "}
+          <span className="font-display text-xl font-bold text-fg">{kcal ?? "–"}</span> kcal
           <span className="ml-1 text-xs text-ink-400">{existing?.kcalClaude ? "(Claude)" : "(est.)"}</span>
           {eaten.kcal > 0 && (
             <>
               {" "}
-              · <span className="font-display text-xl font-bold text-white">{eaten.kcal}</span> eaten
+              · <span className="font-display text-xl font-bold text-fg">{eaten.kcal}</span> eaten
             </>
           )}
           {savedAt && <span className="ml-3 text-good">Saved {savedAt}</span>}

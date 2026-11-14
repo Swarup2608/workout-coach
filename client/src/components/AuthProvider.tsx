@@ -102,7 +102,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         <VerifyEmailGate />
       ) : blocked ? (
         <div className="flex min-h-[60vh] items-center justify-center text-sm text-ink-400">
-          <span className="mr-2 h-4 w-4 animate-spin rounded-full border-2 border-white/30 border-t-white" aria-hidden /> Loading…
+          <span className="mr-2 h-4 w-4 animate-spin rounded-full border-2 border-current/30 border-t-current" aria-hidden /> Loading…
         </div>
       ) : (
         children
