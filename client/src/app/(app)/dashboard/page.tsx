@@ -2,12 +2,20 @@
 
 import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
-import { WEEKDAYS, type ScoreReport, type WeekMetrics, type WorkoutPlan } from "@/lib/domain";
+import { WEEKDAYS, type Checkin, type Profile, type ScoreReport, type WeekMetrics, type WorkoutPlan } from "@/lib/domain";
 import { api, today } from "@/lib/api";
 import { ProjectBridge } from "@/components/ProjectBridge";
+import { useAuth } from "@/components/AuthProvider";
+import { SetupCard } from "@/components/SetupCard";
+import { CheckinCard } from "@/components/CheckinCard";
 import { ErrorNote, ScoreReportCard, ScoreRing, Spinner, SubScoreBars, scoreColor } from "@/components/ui";
 
 export default function Dashboard() {
+  const { user } = useAuth();
+  const [profile, setProfile] = useState<Profile | null>(null);
+  /** undefined = not loaded yet; null = no check-in today */
+  const [checkin, setCheckin] = useState<Checkin | null | undefined>(undefined);
+  const [justCheckedIn, setJustCheckedIn] = useState(false);
   const [plan, setPlan] = useState<WorkoutPlan | null>(null);
   const [metrics, setMetrics] = useState<WeekMetrics | null>(null);
   const [weekScores, setWeekScores] = useState<ScoreReport[]>([]);
@@ -31,6 +39,8 @@ export default function Dashboard() {
 
   useEffect(() => {
     load();
+    api.profile().then(setProfile).catch(() => {});
+    api.checkin(today()).then(setCheckin).catch(() => {});
     api.status().then((s) => setApiConnected(s.aiConnected)).catch(() => {});
   }, [load]);
 
@@ -51,8 +61,28 @@ export default function Dashboard() {
   const thisWeek =
     latest && metrics && latest.weekStart === metrics.weekStart && latest.metrics?.weekEnd === metrics.weekEnd ? latest : null;
 
+  // One card at a time: unfinished setup first, then today's check-in.
+  const o = profile?.onboarding;
+  const showSetup = !!o && !o.completedAt && !o.skippedAt;
+  const showCheckin = !!profile && !showSetup && checkin === null;
+
   return (
     <div className="space-y-6">
+      {showSetup && <SetupCard profile={profile!} name={user?.name ?? profile!.name} onSkipped={setProfile} />}
+      {showCheckin && (
+        <CheckinCard
+          onSaved={(c) => {
+            setCheckin(c);
+            setJustCheckedIn(true);
+          }}
+        />
+      )}
+      {justCheckedIn && (
+        <p className="card py-3 text-sm text-good" role="status">
+          Checked in today ✓
+        </p>
+      )}
+
       <section className="flex flex-wrap items-end justify-between gap-4">
         <div>
           <p className="text-sm text-ink-400">{metrics ? `Week of ${metrics.weekStart}` : "Your training"}</p>

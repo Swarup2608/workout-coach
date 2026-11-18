@@ -1,5 +1,6 @@
 node_modules
 .next
+.next-demo
 dist
 .env
 server/data/db.json

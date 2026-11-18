@@ -140,15 +140,15 @@ export function AiProviderSettings() {
       <ErrorNote error={error} />
       {note && <p className="text-sm text-good">{note}</p>}
       <div className="flex flex-wrap gap-2">
-        <button className="btn btn-primary" onClick={save} disabled={!!busy || !model.trim() || (!apiKey.trim() && !keyReusable) || (provider === "custom" && !baseUrl.trim())}>
+        <button type="button" className="btn btn-primary" onClick={save} disabled={!!busy || !model.trim() || (!apiKey.trim() && !keyReusable) || (provider === "custom" && !baseUrl.trim())}>
           {busy === "save" && <Spinner />} Check & save
         </button>
         {saved?.configured && (
           <>
-            <button className="btn btn-ghost" onClick={test} disabled={!!busy}>
+            <button type="button" className="btn btn-ghost" onClick={test} disabled={!!busy}>
               {busy === "test" && <Spinner />} Test saved key
             </button>
-            <button className="btn btn-ghost hover:!border-bad hover:!text-bad" onClick={remove} disabled={!!busy}>
+            <button type="button" className="btn btn-ghost hover:!border-bad hover:!text-bad" onClick={remove} disabled={!!busy}>
               Remove key
             </button>
           </>

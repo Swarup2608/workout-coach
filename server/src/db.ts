@@ -1,5 +1,5 @@
 import { MongoClient, type Collection, type Db } from "mongodb";
-import type { AiProviderId, ChatMessage, Profile, ScoreReport, WorkoutPlan, WorkoutSession } from "./domain.js";
+import type { AiProviderId, ChatMessage, Checkin, Profile, ScoreReport, WorkoutPlan, WorkoutSession } from "./domain.js";
 import { config } from "./config.js";
 
 // ── Document shapes ──────────────────────────────────────────
@@ -84,6 +84,7 @@ export const col = {
   sessions: () => coll<Owned<WorkoutSession>>("sessions"),
   scores: () => coll<Owned<ScoreReport>>("scores"),
   chat: () => coll<Owned<ChatMessage>>("chat_messages"),
+  checkins: () => coll<Owned<Checkin>>("checkins"),
 };
 
 async function ensureIndexes() {
@@ -100,5 +101,6 @@ async function ensureIndexes() {
     col.sessions().createIndex({ userId: 1, id: 1 }, { unique: true }),
     col.scores().createIndex({ userId: 1, kind: 1, createdAt: 1 }),
     col.chat().createIndex({ userId: 1, createdAt: 1 }),
+    col.checkins().createIndex({ userId: 1, date: 1 }, { unique: true }),
   ]);
 }

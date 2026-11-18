@@ -14,8 +14,8 @@ function readBaseline(): string {
   return "";
 }
 
-/** Gives a brand-new account a starter profile and the baseline weekly plan. */
-export async function seedNewUser(userId: string, name: string) {
+/** Gives a brand-new account a starter profile (onboarding at step 2) and the baseline weekly plan, used until onboarding builds theirs. */
+export async function seedNewUser(userId: string, name: string, age: number | null) {
   const raw = readBaseline();
   const parsed = parsePlan(raw);
   const repo = userRepo(userId);
@@ -26,6 +26,10 @@ export async function seedNewUser(userId: string, name: string) {
     startBodyweightKg: null,
     targetBodyweightKg: null,
     constraints: [],
+    age,
+    units: "kg",
+    injuries: [],
+    onboarding: { step: 2, completedAt: null, skippedAt: null },
   });
   if (raw) await repo.addPlan({ id: newId(), name: "Final weekly gym workout plan", goal: parsed.goal, createdAt: now(), active: true, rawText: raw, days: parsed.days });
 }

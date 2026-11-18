@@ -1,0 +1,119 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1280 380" width="1280" height="380" role="img" aria-labelledby="t d">
+  <title id="t">StarkFitIQ workflow</title>
+  <desc id="d">Animated five-step flow: sign up, guided setup, rule-based starter plan, log workouts and daily check-ins, then a weekly score with AI coaching. A light pulse travels along the line and each step lights up in turn.</desc>
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#07080d"/>
+      <stop offset="1" stop-color="#0e1020"/>
+    </linearGradient>
+    <linearGradient id="line" x1="0" x2="1">
+      <stop offset="0" stop-color="#6366f1"/>
+      <stop offset="1" stop-color="#34d399"/>
+    </linearGradient>
+    <linearGradient id="node" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#171a2b"/>
+      <stop offset="1" stop-color="#10121e"/>
+    </linearGradient>
+    <radialGradient id="glow" cx=".5" cy=".5" r=".5">
+      <stop offset="0" stop-color="#818cf8" stop-opacity=".6"/>
+      <stop offset="1" stop-color="#818cf8" stop-opacity="0"/>
+    </radialGradient>
+    <pattern id="dots" width="24" height="24" patternUnits="userSpaceOnUse">
+      <circle cx="2" cy="2" r="1" fill="#fff" fill-opacity=".05"/>
+    </pattern>
+    <style>
+      .f { font-family: Inter, "SF Pro Display", -apple-system, "Segoe UI", Helvetica, Arial, sans-serif; }
+      .flow { stroke-dasharray: 10 14; animation: flow 1.2s linear infinite; }
+      @keyframes flow { to { stroke-dashoffset: -24; } }
+      .comet { animation: comet 7.5s cubic-bezier(.45,0,.55,1) infinite; }
+      @keyframes comet { 0% { transform: translateX(0); opacity: 0; } 4% { opacity: 1; } 92% { opacity: 1; } 100% { transform: translateX(1000px); opacity: 0; } }
+      .lit { animation: lit 7.5s ease-in-out infinite; }
+      @keyframes lit { 0%, 14%, 100% { stroke: #2a2e45; } 4%, 10% { stroke: #a5b4fc; } }
+      .halo { opacity: 0; animation: halo 7.5s ease-in-out infinite; }
+      @keyframes halo { 0%, 16%, 100% { opacity: 0; } 5%, 10% { opacity: 1; } }
+      .in { opacity: 0; animation: in .8s cubic-bezier(.2,.8,.2,1) forwards; }
+      @keyframes in { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: none; } }
+      @media (prefers-reduced-motion: reduce) { * { animation: none !important; } .in { opacity: 1; } .comet, .halo { display: none; } }
+    </style>
+  </defs>
+
+  <rect width="1280" height="380" fill="url(#bg)"/>
+  <rect width="1280" height="380" fill="url(#dots)"/>
+
+  <g class="f">
+    <text class="in" x="640" y="62" text-anchor="middle" font-size="30" font-weight="800" fill="#f4f4f5" letter-spacing="-.5">From sign-up to a scored week</text>
+    <text class="in" style="animation-delay:.1s" x="640" y="92" text-anchor="middle" font-size="15" fill="#a1a1aa">Rules build your plan. Your logs drive the score. AI adds the coaching, if you want it.</text>
+  </g>
+
+  <!-- connector -->
+  <line x1="140" y1="196" x2="1140" y2="196" stroke="#23263a" stroke-width="4" stroke-linecap="round"/>
+  <line class="flow" x1="140" y1="196" x2="1140" y2="196" stroke="url(#line)" stroke-width="4" stroke-linecap="round" opacity=".85"/>
+  <g class="comet">
+    <circle cx="140" cy="196" r="22" fill="url(#glow)"/>
+    <circle cx="140" cy="196" r="5" fill="#e0e7ff"/>
+  </g>
+
+  <!-- steps: x = 140, 390, 640, 890, 1140 ; each lights up 1.5s apart -->
+  <g class="f">
+    <!-- 1 Sign up -->
+    <g class="in" style="animation-delay:.2s">
+      <circle class="halo" cx="140" cy="196" r="58" fill="url(#glow)" style="animation-delay:0s"/>
+      <circle class="lit" cx="140" cy="196" r="40" fill="url(#node)" stroke="#2a2e45" stroke-width="2.5" style="animation-delay:0s"/>
+      <circle cx="140" cy="186" r="9" fill="none" stroke="#c7d2fe" stroke-width="3"/>
+      <path d="M122 214c3-10 10-15 18-15s15 5 18 15" fill="none" stroke="#c7d2fe" stroke-width="3" stroke-linecap="round"/>
+      <text x="140" y="270" text-anchor="middle" font-size="17" font-weight="700" fill="#fafafa">Sign up</text>
+      <text x="140" y="292" text-anchor="middle" font-size="13" fill="#a1a1aa">name, email, age</text>
+      <text x="140" y="312" text-anchor="middle" font-size="12" fill="#34d399">✓ 2 of 8 steps done</text>
+    </g>
+    <!-- 2 Guided setup -->
+    <g class="in" style="animation-delay:.35s">
+      <circle class="halo" cx="390" cy="196" r="58" fill="url(#glow)" style="animation-delay:1.5s"/>
+      <circle class="lit" cx="390" cy="196" r="40" fill="url(#node)" stroke="#2a2e45" stroke-width="2.5" style="animation-delay:1.5s"/>
+      <rect x="370" y="180" width="40" height="8" rx="4" fill="#23263a"/>
+      <rect x="370" y="180" width="26" height="8" rx="4" fill="#34d399"/>
+      <rect x="370" y="196" width="40" height="8" rx="4" fill="#23263a"/>
+      <rect x="370" y="196" width="18" height="8" rx="4" fill="#818cf8"/>
+      <rect x="370" y="212" width="40" height="8" rx="4" fill="#23263a"/>
+      <rect x="370" y="212" width="10" height="8" rx="4" fill="#f87171"/>
+      <text x="390" y="270" text-anchor="middle" font-size="17" font-weight="700" fill="#fafafa">Guided setup</text>
+      <text x="390" y="292" text-anchor="middle" font-size="13" fill="#a1a1aa">goal · body · training</text>
+      <text x="390" y="312" text-anchor="middle" font-size="12" fill="#a1a1aa">equipment · injuries · kg/lb</text>
+    </g>
+    <!-- 3 Starter plan -->
+    <g class="in" style="animation-delay:.5s">
+      <circle class="halo" cx="640" cy="196" r="58" fill="url(#glow)" style="animation-delay:3s"/>
+      <circle class="lit" cx="640" cy="196" r="40" fill="url(#node)" stroke="#2a2e45" stroke-width="2.5" style="animation-delay:3s"/>
+      <rect x="618" y="176" width="44" height="40" rx="7" fill="none" stroke="#c7d2fe" stroke-width="3"/>
+      <line x1="618" y1="187" x2="662" y2="187" stroke="#c7d2fe" stroke-width="3"/>
+      <circle cx="629" cy="198" r="3" fill="#34d399"/><circle cx="640" cy="198" r="3" fill="#34d399"/><circle cx="651" cy="198" r="3" fill="#23263a"/>
+      <circle cx="629" cy="208" r="3" fill="#34d399"/><circle cx="640" cy="208" r="3" fill="#23263a"/><circle cx="651" cy="208" r="3" fill="#34d399"/>
+      <text x="640" y="270" text-anchor="middle" font-size="17" font-weight="700" fill="#fafafa">Your starter plan</text>
+      <text x="640" y="292" text-anchor="middle" font-size="13" fill="#a1a1aa">rule-based, no AI needed</text>
+      <text x="640" y="312" text-anchor="middle" font-size="12" fill="#a1a1aa">2–6 days · injury-safe swaps</text>
+    </g>
+    <!-- 4 Log + check in -->
+    <g class="in" style="animation-delay:.65s">
+      <circle class="halo" cx="890" cy="196" r="58" fill="url(#glow)" style="animation-delay:4.5s"/>
+      <circle class="lit" cx="890" cy="196" r="40" fill="url(#node)" stroke="#2a2e45" stroke-width="2.5" style="animation-delay:4.5s"/>
+      <rect x="866" y="190" width="10" height="12" rx="2" fill="#c7d2fe"/>
+      <rect x="904" y="190" width="10" height="12" rx="2" fill="#c7d2fe"/>
+      <rect x="876" y="186" width="6" height="20" rx="2" fill="#818cf8"/>
+      <rect x="898" y="186" width="6" height="20" rx="2" fill="#818cf8"/>
+      <rect x="882" y="194" width="16" height="4" rx="2" fill="#c7d2fe"/>
+      <text x="890" y="270" text-anchor="middle" font-size="17" font-weight="700" fill="#fafafa">Log &amp; check in</text>
+      <text x="890" y="292" text-anchor="middle" font-size="13" fill="#a1a1aa">sets · reps · load · cardio</text>
+      <text x="890" y="312" text-anchor="middle" font-size="12" fill="#a1a1aa">daily weight · mood · sleep</text>
+    </g>
+    <!-- 5 Score + coach -->
+    <g class="in" style="animation-delay:.8s">
+      <circle class="halo" cx="1140" cy="196" r="58" fill="url(#glow)" style="animation-delay:6s"/>
+      <circle class="lit" cx="1140" cy="196" r="40" fill="url(#node)" stroke="#2a2e45" stroke-width="2.5" style="animation-delay:6s"/>
+      <circle cx="1140" cy="196" r="20" fill="none" stroke="#23263a" stroke-width="6"/>
+      <circle cx="1140" cy="196" r="20" fill="none" stroke="#34d399" stroke-width="6" stroke-linecap="round" stroke-dasharray="108 126" transform="rotate(-90 1140 196)"/>
+      <text x="1140" y="201" text-anchor="middle" font-size="13" font-weight="800" fill="#fff">86</text>
+      <text x="1140" y="270" text-anchor="middle" font-size="17" font-weight="700" fill="#fafafa">Score &amp; coach</text>
+      <text x="1140" y="292" text-anchor="middle" font-size="13" fill="#a1a1aa">adherence · overload · balance</text>
+      <text x="1140" y="312" text-anchor="middle" font-size="12" fill="#a1a1aa">AI coaching with your key</text>
+    </g>
+  </g>
+</svg>

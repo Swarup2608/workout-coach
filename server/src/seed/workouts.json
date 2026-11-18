@@ -1,0 +1,139 @@
+{
+  "exercises": [
+    { "name": "Barbell back squat", "pattern": "squat", "equipment": ["gym"], "stresses": ["knee", "lower_back"], "level": "intermediate", "unit": "reps" },
+    { "name": "Front squat", "pattern": "squat", "equipment": ["gym"], "stresses": ["knee", "wrist"], "level": "advanced", "unit": "reps" },
+    { "name": "Leg press", "pattern": "squat", "equipment": ["gym"], "stresses": ["knee"], "level": "beginner", "unit": "reps" },
+    { "name": "Goblet squat", "pattern": "squat", "equipment": ["gym", "home_dumbbells"], "stresses": ["knee"], "level": "beginner", "unit": "reps" },
+    { "name": "Bodyweight squat", "pattern": "squat", "equipment": ["gym", "home_dumbbells", "bodyweight"], "stresses": ["knee"], "level": "beginner", "unit": "reps" },
+    { "name": "Box squat to bench", "pattern": "squat", "equipment": ["gym", "home_dumbbells", "bodyweight"], "stresses": ["knee"], "level": "beginner", "unit": "reps" },
+    { "name": "Glute bridge", "pattern": "squat", "equipment": ["gym", "home_dumbbells", "bodyweight"], "stresses": [], "level": "beginner", "unit": "reps" },
+
+    { "name": "Barbell Romanian deadlift", "pattern": "hinge", "equipment": ["gym"], "stresses": ["lower_back"], "level": "intermediate", "unit": "reps" },
+    { "name": "Trap bar deadlift", "pattern": "hinge", "equipment": ["gym"], "stresses": ["lower_back", "knee"], "level": "intermediate", "unit": "reps" },
+    { "name": "Dumbbell Romanian deadlift", "pattern": "hinge", "equipment": ["gym", "home_dumbbells"], "stresses": ["lower_back"], "level": "beginner", "unit": "reps" },
+    { "name": "Hip thrust", "pattern": "hinge", "equipment": ["gym", "home_dumbbells"], "stresses": [], "level": "beginner", "unit": "reps" },
+    { "name": "Cable pull-through", "pattern": "hinge", "equipment": ["gym"], "stresses": [], "level": "beginner", "unit": "reps" },
+    { "name": "Bodyweight good morning", "pattern": "hinge", "equipment": ["home_dumbbells", "bodyweight"], "stresses": ["lower_back"], "level": "beginner", "unit": "reps" },
+    { "name": "Single-leg glute bridge", "pattern": "hinge", "equipment": ["gym", "home_dumbbells", "bodyweight"], "stresses": [], "level": "beginner", "unit": "reps" },
+    { "name": "Bird dog", "pattern": "hinge", "equipment": ["gym", "home_dumbbells", "bodyweight"], "stresses": [], "level": "beginner", "unit": "reps" },
+
+    { "name": "Bulgarian split squat", "pattern": "lunge", "equipment": ["gym", "home_dumbbells", "bodyweight"], "stresses": ["knee"], "level": "intermediate", "unit": "reps" },
+    { "name": "Dumbbell walking lunge", "pattern": "lunge", "equipment": ["gym", "home_dumbbells"], "stresses": ["knee"], "level": "beginner", "unit": "reps" },
+    { "name": "Reverse lunge", "pattern": "lunge", "equipment": ["gym", "home_dumbbells", "bodyweight"], "stresses": ["knee"], "level": "beginner", "unit": "reps" },
+    { "name": "Step-up", "pattern": "lunge", "equipment": ["gym", "home_dumbbells", "bodyweight"], "stresses": ["knee"], "level": "beginner", "unit": "reps" },
+    { "name": "Lateral lunge", "pattern": "lunge", "equipment": ["gym", "home_dumbbells", "bodyweight"], "stresses": ["knee"], "level": "beginner", "unit": "reps" },
+    { "name": "Side-lying leg raise", "pattern": "lunge", "equipment": ["gym", "home_dumbbells", "bodyweight"], "stresses": [], "level": "beginner", "unit": "reps" },
+
+    { "name": "Barbell bench press", "pattern": "horizontal_push", "equipment": ["gym"], "stresses": ["shoulder", "wrist"], "level": "intermediate", "unit": "reps" },
+    { "name": "Dumbbell bench press", "pattern": "horizontal_push", "equipment": ["gym", "home_dumbbells"], "stresses": ["shoulder"], "level": "beginner", "unit": "reps" },
+    { "name": "Machine chest press", "pattern": "horizontal_push", "equipment": ["gym"], "stresses": ["shoulder"], "level": "beginner", "unit": "reps" },
+    { "name": "Incline dumbbell press", "pattern": "horizontal_push", "equipment": ["gym", "home_dumbbells"], "stresses": ["shoulder"], "level": "beginner", "unit": "reps" },
+    { "name": "Dumbbell floor press", "pattern": "horizontal_push", "equipment": ["gym", "home_dumbbells"], "stresses": ["elbow"], "level": "beginner", "unit": "reps" },
+    { "name": "Push-up", "pattern": "horizontal_push", "equipment": ["gym", "home_dumbbells", "bodyweight"], "stresses": ["wrist", "shoulder"], "level": "beginner", "unit": "reps" },
+    { "name": "Incline push-up", "pattern": "horizontal_push", "equipment": ["gym", "home_dumbbells", "bodyweight"], "stresses": ["wrist"], "level": "beginner", "unit": "reps" },
+    { "name": "Fist wall press", "pattern": "horizontal_push", "equipment": ["gym", "home_dumbbells", "bodyweight"], "stresses": ["shoulder"], "level": "beginner", "unit": "reps" },
+    { "name": "Isometric chest squeeze", "pattern": "horizontal_push", "equipment": ["gym", "home_dumbbells", "bodyweight"], "stresses": [], "level": "beginner", "unit": "seconds" },
+
+    { "name": "Barbell overhead press", "pattern": "vertical_push", "equipment": ["gym"], "stresses": ["shoulder", "lower_back"], "level": "intermediate", "unit": "reps" },
+    { "name": "Seated dumbbell shoulder press", "pattern": "vertical_push", "equipment": ["gym", "home_dumbbells"], "stresses": ["shoulder"], "level": "beginner", "unit": "reps" },
+    { "name": "Machine shoulder press", "pattern": "vertical_push", "equipment": ["gym"], "stresses": ["shoulder"], "level": "beginner", "unit": "reps" },
+    { "name": "Landmine press", "pattern": "vertical_push", "equipment": ["gym"], "stresses": ["wrist"], "level": "beginner", "unit": "reps" },
+    { "name": "Half-kneeling dumbbell press", "pattern": "vertical_push", "equipment": ["gym", "home_dumbbells"], "stresses": ["shoulder"], "level": "beginner", "unit": "reps" },
+    { "name": "Pike push-up", "pattern": "vertical_push", "equipment": ["gym", "home_dumbbells", "bodyweight"], "stresses": ["shoulder", "wrist"], "level": "intermediate", "unit": "reps" },
+    { "name": "Pike hold", "pattern": "vertical_push", "equipment": ["gym", "home_dumbbells", "bodyweight"], "stresses": ["shoulder", "wrist"], "level": "beginner", "unit": "seconds" },
+    { "name": "Prone Y-raise", "pattern": "vertical_push", "equipment": ["gym", "home_dumbbells", "bodyweight"], "stresses": [], "level": "beginner", "unit": "reps" },
+
+    { "name": "Barbell bent-over row", "pattern": "horizontal_pull", "equipment": ["gym"], "stresses": ["lower_back"], "level": "intermediate", "unit": "reps" },
+    { "name": "Seated cable row", "pattern": "horizontal_pull", "equipment": ["gym"], "stresses": [], "level": "beginner", "unit": "reps" },
+    { "name": "Chest-supported dumbbell row", "pattern": "horizontal_pull", "equipment": ["gym", "home_dumbbells"], "stresses": [], "level": "beginner", "unit": "reps" },
+    { "name": "One-arm dumbbell row", "pattern": "horizontal_pull", "equipment": ["gym", "home_dumbbells"], "stresses": ["lower_back"], "level": "beginner", "unit": "reps" },
+    { "name": "Inverted row", "pattern": "horizontal_pull", "equipment": ["gym", "home_dumbbells", "bodyweight"], "stresses": ["shoulder", "elbow"], "level": "beginner", "unit": "reps" },
+    { "name": "Towel door row", "pattern": "horizontal_pull", "equipment": ["home_dumbbells", "bodyweight"], "stresses": ["elbow"], "level": "beginner", "unit": "reps" },
+    { "name": "Prone W-raise", "pattern": "horizontal_pull", "equipment": ["gym", "home_dumbbells", "bodyweight"], "stresses": [], "level": "beginner", "unit": "reps" },
+
+    { "name": "Pull-up", "pattern": "vertical_pull", "equipment": ["gym", "home_dumbbells", "bodyweight"], "stresses": ["shoulder", "elbow"], "level": "advanced", "unit": "reps" },
+    { "name": "Negative pull-up", "pattern": "vertical_pull", "equipment": ["gym", "home_dumbbells", "bodyweight"], "stresses": ["shoulder", "elbow"], "level": "intermediate", "unit": "reps" },
+    { "name": "Lat pulldown", "pattern": "vertical_pull", "equipment": ["gym"], "stresses": [], "level": "beginner", "unit": "reps" },
+    { "name": "Assisted pull-up machine", "pattern": "vertical_pull", "equipment": ["gym"], "stresses": ["shoulder"], "level": "beginner", "unit": "reps" },
+    { "name": "Straight-arm cable pulldown", "pattern": "vertical_pull", "equipment": ["gym"], "stresses": [], "level": "beginner", "unit": "reps" },
+    { "name": "Dumbbell pullover", "pattern": "vertical_pull", "equipment": ["gym", "home_dumbbells"], "stresses": ["shoulder"], "level": "beginner", "unit": "reps" },
+    { "name": "Superman pull", "pattern": "vertical_pull", "equipment": ["gym", "home_dumbbells", "bodyweight"], "stresses": ["lower_back"], "level": "beginner", "unit": "reps" },
+    { "name": "Prone T-raise", "pattern": "vertical_pull", "equipment": ["gym", "home_dumbbells", "bodyweight"], "stresses": [], "level": "beginner", "unit": "reps" },
+
+    { "name": "EZ-bar curl", "pattern": "biceps", "equipment": ["gym"], "stresses": ["wrist", "elbow"], "level": "beginner", "unit": "reps" },
+    { "name": "Dumbbell curl", "pattern": "biceps", "equipment": ["gym", "home_dumbbells"], "stresses": ["elbow"], "level": "beginner", "unit": "reps" },
+    { "name": "Hammer curl", "pattern": "biceps", "equipment": ["gym", "home_dumbbells"], "stresses": [], "level": "beginner", "unit": "reps" },
+    { "name": "Cable curl", "pattern": "biceps", "equipment": ["gym"], "stresses": ["elbow"], "level": "beginner", "unit": "reps" },
+    { "name": "Backpack curl", "pattern": "biceps", "equipment": ["bodyweight"], "stresses": ["elbow"], "level": "beginner", "unit": "reps" },
+    { "name": "Towel curl isometric", "pattern": "biceps", "equipment": ["gym", "home_dumbbells", "bodyweight"], "stresses": [], "level": "beginner", "unit": "seconds" },
+    { "name": "Doorframe curl hold", "pattern": "biceps", "equipment": ["home_dumbbells", "bodyweight"], "stresses": [], "level": "beginner", "unit": "seconds" },
+
+    { "name": "Cable rope pushdown", "pattern": "triceps", "equipment": ["gym"], "stresses": ["elbow"], "level": "beginner", "unit": "reps" },
+    { "name": "Overhead dumbbell extension", "pattern": "triceps", "equipment": ["gym", "home_dumbbells"], "stresses": ["elbow", "shoulder"], "level": "beginner", "unit": "reps" },
+    { "name": "Dumbbell kickback", "pattern": "triceps", "equipment": ["gym", "home_dumbbells"], "stresses": [], "level": "beginner", "unit": "reps" },
+    { "name": "Bench dip", "pattern": "triceps", "equipment": ["gym", "home_dumbbells", "bodyweight"], "stresses": ["shoulder", "wrist"], "level": "intermediate", "unit": "reps" },
+    { "name": "Diamond push-up", "pattern": "triceps", "equipment": ["gym", "home_dumbbells", "bodyweight"], "stresses": ["wrist", "elbow"], "level": "intermediate", "unit": "reps" },
+    { "name": "Close-grip incline push-up", "pattern": "triceps", "equipment": ["gym", "home_dumbbells", "bodyweight"], "stresses": ["wrist"], "level": "beginner", "unit": "reps" },
+    { "name": "Prone triceps lift", "pattern": "triceps", "equipment": ["gym", "home_dumbbells", "bodyweight"], "stresses": [], "level": "beginner", "unit": "reps" },
+    { "name": "Isometric triceps press", "pattern": "triceps", "equipment": ["gym", "home_dumbbells", "bodyweight"], "stresses": [], "level": "beginner", "unit": "seconds" },
+
+    { "name": "Dumbbell lateral raise", "pattern": "shoulders_iso", "equipment": ["gym", "home_dumbbells"], "stresses": ["shoulder"], "level": "beginner", "unit": "reps" },
+    { "name": "Cable face pull", "pattern": "shoulders_iso", "equipment": ["gym"], "stresses": [], "level": "beginner", "unit": "reps" },
+    { "name": "Rear-delt dumbbell fly", "pattern": "shoulders_iso", "equipment": ["gym", "home_dumbbells"], "stresses": [], "level": "beginner", "unit": "reps" },
+    { "name": "Wall slide", "pattern": "shoulders_iso", "equipment": ["gym", "home_dumbbells", "bodyweight"], "stresses": ["shoulder"], "level": "beginner", "unit": "reps" },
+    { "name": "Bent-over reverse fly (no weight)", "pattern": "shoulders_iso", "equipment": ["home_dumbbells", "bodyweight"], "stresses": [], "level": "beginner", "unit": "reps" },
+    { "name": "Scapular squeeze", "pattern": "shoulders_iso", "equipment": ["gym", "home_dumbbells", "bodyweight"], "stresses": [], "level": "beginner", "unit": "reps" },
+
+    { "name": "Standing calf raise", "pattern": "calves", "equipment": ["gym", "home_dumbbells", "bodyweight"], "stresses": [], "level": "beginner", "unit": "reps" },
+    { "name": "Single-leg calf raise", "pattern": "calves", "equipment": ["gym", "home_dumbbells", "bodyweight"], "stresses": [], "level": "intermediate", "unit": "reps" },
+    { "name": "Seated calf raise", "pattern": "calves", "equipment": ["gym", "home_dumbbells", "bodyweight"], "stresses": [], "level": "beginner", "unit": "reps" },
+
+    { "name": "Hanging knee raise", "pattern": "core", "equipment": ["gym", "bodyweight"], "stresses": ["shoulder"], "level": "intermediate", "unit": "reps" },
+    { "name": "Pallof press", "pattern": "core", "equipment": ["gym"], "stresses": [], "level": "beginner", "unit": "reps" },
+    { "name": "Plank", "pattern": "core", "equipment": ["gym", "home_dumbbells", "bodyweight"], "stresses": [], "level": "beginner", "unit": "seconds" },
+    { "name": "Dead bug", "pattern": "core", "equipment": ["gym", "home_dumbbells", "bodyweight"], "stresses": [], "level": "beginner", "unit": "reps" },
+    { "name": "Side plank", "pattern": "core", "equipment": ["gym", "home_dumbbells", "bodyweight"], "stresses": ["shoulder"], "level": "beginner", "unit": "seconds" }
+  ],
+
+  "fallbacks": {
+    "squat": "Glute bridge",
+    "hinge": "Bird dog",
+    "lunge": "Side-lying leg raise",
+    "horizontal_push": "Isometric chest squeeze",
+    "vertical_push": "Prone Y-raise",
+    "horizontal_pull": "Prone W-raise",
+    "vertical_pull": "Prone T-raise",
+    "biceps": "Towel curl isometric",
+    "triceps": "Isometric triceps press",
+    "shoulders_iso": "Scapular squeeze",
+    "calves": "Seated calf raise",
+    "core": "Dead bug"
+  },
+
+  "templates": {
+    "full_a": { "title": "Full body A", "slots": ["squat", "horizontal_push", "horizontal_pull", "hinge", "shoulders_iso", "core", "biceps", "triceps"] },
+    "full_b": { "title": "Full body B", "slots": ["hinge", "vertical_push", "vertical_pull", "lunge", "biceps", "core", "triceps", "calves"] },
+    "full_c": { "title": "Full body C", "slots": ["lunge", "horizontal_push", "vertical_pull", "squat", "shoulders_iso", "core", "triceps", "biceps"] },
+    "upper": { "title": "Upper body", "slots": ["horizontal_push", "horizontal_pull", "vertical_push", "vertical_pull", "biceps", "triceps", "shoulders_iso", "core"] },
+    "lower": { "title": "Lower body", "slots": ["squat", "hinge", "lunge", "calves", "core", "squat", "hinge", "core"] },
+    "push": { "title": "Push", "slots": ["horizontal_push", "vertical_push", "horizontal_push", "shoulders_iso", "triceps", "core", "triceps", "shoulders_iso"] },
+    "pull": { "title": "Pull", "slots": ["vertical_pull", "horizontal_pull", "horizontal_pull", "biceps", "shoulders_iso", "core", "biceps", "vertical_pull"] },
+    "legs": { "title": "Legs", "slots": ["squat", "hinge", "lunge", "calves", "core", "squat", "hinge", "calves"] }
+  },
+
+  "schedule": {
+    "2": [["Monday", "full_a"], ["Thursday", "full_b"]],
+    "3": [["Monday", "full_a"], ["Wednesday", "full_b"], ["Friday", "full_c"]],
+    "4": [["Monday", "upper"], ["Tuesday", "lower"], ["Thursday", "upper"], ["Friday", "lower"]],
+    "5": [["Monday", "push"], ["Tuesday", "pull"], ["Wednesday", "legs"], ["Thursday", "upper"], ["Friday", "lower"]],
+    "6": [["Monday", "push"], ["Tuesday", "pull"], ["Wednesday", "legs"], ["Thursday", "push"], ["Friday", "pull"], ["Saturday", "legs"]]
+  },
+
+  "injuryConstraints": {
+    "knee": { "label": "Protect knees", "keywords": ["squat", "lunge", "leg press", "leg extension", "step-up", "jump"], "swaps": ["Glute bridge", "Hip thrust", "Hamstring curl", "Side-lying leg raise"] },
+    "lower_back": { "label": "Protect lower back", "keywords": ["deadlift", "good morning", "bent-over row", "back squat", "overhead press", "superman"], "swaps": ["Hip thrust", "Chest-supported dumbbell row", "Bird dog", "Dead bug"] },
+    "shoulder": { "label": "Protect shoulders", "keywords": ["overhead press", "shoulder press", "bench press", "dip", "upright row", "pull-up", "pike", "lateral raise"], "swaps": ["Landmine press", "Seated cable row", "Cable face pull", "Prone Y-raise"] },
+    "wrist": { "label": "Protect wrists", "keywords": ["push-up", "front squat", "ez-bar", "pike", "dip"], "swaps": ["Dumbbell floor press", "Hammer curl", "Dead bug", "Machine chest press"] },
+    "elbow": { "label": "Protect elbows", "keywords": ["skull crusher", "pushdown", "overhead dumbbell extension", "ez-bar curl", "dumbbell curl", "cable curl", "backpack curl", "dumbbell floor press", "close-grip bench", "diamond", "inverted row", "towel door row"], "swaps": ["Hammer curl", "Dumbbell kickback", "Isometric triceps press"] }
+  }
+}

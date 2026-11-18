@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
+import { toDisplay, useUnits } from "@/lib/units";
 import {
   addDays,
   cardioText,
@@ -32,6 +33,8 @@ const hasLoggedData = (s: WorkoutSession) =>
 const fmtDate = (d: string) => new Date(d + "T00:00:00").toLocaleDateString(undefined, { weekday: "short", month: "short", day: "numeric" });
 
 export default function HistoryPage() {
+  const { units } = useUnits();
+  const w = (kg: number | null | undefined) => toDisplay(kg, units);
   const [sessions, setSessions] = useState<WorkoutSession[]>([]);
   const [scores, setScores] = useState<ScoreReport[]>([]);
   const [plan, setPlan] = useState<WorkoutPlan | null>(null);
@@ -111,7 +114,7 @@ export default function HistoryPage() {
             <Tile label="Workouts" value={totals.workouts.toLocaleString()} />
             <Tile label="Calories burned" value={totals.kcal.toLocaleString()} unit="kcal" />
             <Tile label="Sets" value={totals.sets.toLocaleString()} />
-            <Tile label="Volume lifted" value={Math.round(totals.volume).toLocaleString()} unit="kg" />
+            <Tile label="Volume lifted" value={Math.round(w(totals.volume) ?? 0).toLocaleString()} unit={units} />
           </section>
 
           <section className="card">
@@ -146,8 +149,8 @@ export default function HistoryPage() {
                         <td className="py-2 text-fg">
                           {e.name} <span className={`ml-1 text-xs ${e.trend === "up" ? "text-good" : e.trend === "down" ? "text-bad" : "text-ink-400"}`}>{{ up: "▲", down: "▼", flat: "●", new: "new" }[e.trend]}</span>
                         </td>
-                        <td>{e.bestE1rm ? `${e.bestE1rm} kg e1RM` : `${e.totalReps} total`}</td>
-                        <td className="text-ink-400">{e.prevBestE1rm ? `${e.prevBestE1rm} kg` : e.prevTotalReps ?? "—"}</td>
+                        <td>{e.bestE1rm ? `${w(e.bestE1rm)} ${units} e1RM` : `${e.totalReps} total`}</td>
+                        <td className="text-ink-400">{e.prevBestE1rm ? `${w(e.prevBestE1rm)} ${units}` : e.prevTotalReps ?? "—"}</td>
                         <td className="text-xs text-ink-400">{e.suggestion}</td>
                       </tr>
                     ))}
@@ -205,6 +208,8 @@ function Tile({ label, value, unit }: { label: string; value: string; unit?: str
 }
 
 function SessionRow({ s, title, kcal }: { s: WorkoutSession; title?: string; kcal: number }) {
+  const { units } = useUnits();
+  const w = (kg: number | null | undefined) => toDisplay(kg, units);
   const hasNotes = !!s.notes || s.exercises.some((e) => e.notes);
   return (
     <details className="group">
@@ -234,7 +239,7 @@ function SessionRow({ s, title, kcal }: { s: WorkoutSession; title?: string; kca
               <span className="text-ink-400">
                 {e.sets
                   .filter((x) => x.done)
-                  .map((x) => `${x.weightKg ?? "BW"}×${x.reps}${e.unit === "reps" ? "" : unitShort(e.unit)}${x.negatives ? `+${x.negatives}n` : ""}`)
+                  .map((x) => `${w(x.weightKg) ?? "BW"}×${x.reps}${e.unit === "reps" ? "" : unitShort(e.unit)}${x.negatives ? `+${x.negatives}n` : ""}`)
                   .join(", ") || "skipped"}
                 {e.perSide && <span className="text-xs"> (each side)</span>}
               </span>
@@ -268,7 +273,7 @@ function SessionRow({ s, title, kcal }: { s: WorkoutSession; title?: string; kca
             s.waterL != null && `${s.waterL} L water`,
             s.sleepHours != null && `${s.sleepHours} h sleep`,
             s.sessionRpe && `RPE ${s.sessionRpe}`,
-            !s.cardio?.length && s.cardioMinutes && `${s.cardioMinutes} min cardio`, s.bodyweightKg && `BW ${s.bodyweightKg} kg`, `${Math.round(volume(s)).toLocaleString()} kg volume`]
+            !s.cardio?.length && s.cardioMinutes && `${s.cardioMinutes} min cardio`, s.bodyweightKg && `BW ${w(s.bodyweightKg)} ${units}`, `${Math.round(w(volume(s)) ?? 0).toLocaleString()} ${units} volume`]
             .filter(Boolean)
             .join(" · ")}
           <Link href={`/log?date=${s.date}`} className="ml-3 text-volt-bright hover:underline">

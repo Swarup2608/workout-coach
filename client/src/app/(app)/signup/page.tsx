@@ -16,6 +16,7 @@ function SignupForm() {
   const [name, setName] = useState("");
   // The landing page CTA passes ?email= so the visitor doesn't type it twice.
   const [email, setEmail] = useState(() => params.get("email") ?? "");
+  const [age, setAge] = useState("");
   const [password, setPassword] = useState("");
   const [confirm, setConfirm] = useState("");
   const [busy, setBusy] = useState(false);
@@ -26,16 +27,19 @@ function SignupForm() {
   }, [user, next, router]);
 
   const problem = passwordProblem(password);
+  const ageNum = Number(age);
+  const ageOk = /^\d+$/.test(age.trim()) && ageNum >= 16 && ageNum <= 90;
   const mismatch = confirm.length > 0 && confirm !== password;
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!ageOk) return setError("Enter your age (16–90)");
     if (problem) return setError(problem);
     if (password !== confirm) return setError("Passwords don't match");
     setBusy(true);
     setError(null);
     try {
-      await register(name.trim(), email.trim(), password);
+      await register(name.trim(), email.trim(), password, ageNum);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Sign up failed");
     } finally {
@@ -49,7 +53,7 @@ function SignupForm() {
         <BrandImage variant="stacked" size={120} />
       </div>
       <h1 className="h-display text-4xl">Create account</h1>
-      <p className="mt-1 text-sm text-ink-400">You start with the baseline weekly plan; change it any time.</p>
+      <p className="mt-1 text-sm text-ink-400">Next we&apos;ll ask a few questions to build your plan.</p>
       <form className="card mt-6 space-y-4" onSubmit={submit} noValidate>
         <div>
           <label className="label" htmlFor="name">Name</label>
@@ -58,6 +62,11 @@ function SignupForm() {
         <div>
           <label className="label" htmlFor="email">Email</label>
           <input id="email" type="email" className="input" autoComplete="email" required value={email} onChange={(e) => setEmail(e.target.value)} />
+        </div>
+        <div>
+          <label className="label" htmlFor="age">Age</label>
+          <input id="age" type="number" inputMode="numeric" className="input" min={16} max={90} step={1} required value={age} onChange={(e) => setAge(e.target.value)} aria-describedby="age-hint" />
+          <p id="age-hint" className={`mt-1 text-xs ${age && !ageOk ? "text-warn" : "text-ink-400"}`}>{age && !ageOk ? "Enter your age (16–90)" : "Used to tailor your plan."}</p>
         </div>
         <div>
           <label className="label" htmlFor="password">Password</label>
@@ -70,7 +79,7 @@ function SignupForm() {
           {mismatch && <p className="mt-1 text-xs text-warn">Passwords don&apos;t match</p>}
         </div>
         <ErrorNote error={error} />
-        <button className="btn btn-primary w-full" disabled={busy || !name.trim() || !email || !password || !confirm}>
+        <button className="btn btn-primary w-full" disabled={busy || !name.trim() || !email || !ageOk || !password || !confirm}>
           {busy && <Spinner />} Create account
         </button>
       </form>

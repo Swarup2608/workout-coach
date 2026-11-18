@@ -10,7 +10,7 @@ interface AuthCtx {
   user: AuthUser | null;
   loading: boolean;
   login: (email: string, password: string) => Promise<void>;
-  register: (name: string, email: string, password: string) => Promise<void>;
+  register: (name: string, email: string, password: string, age: number) => Promise<void>;
   logout: () => Promise<void>;
   /** Apply a fresh {user, csrfToken} from the API (e.g. after changing password or name) */
   apply: (r: AuthResponse) => void;
@@ -86,7 +86,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     signedOut,
     reload,
     login: async (email, password) => apply(await authApi.login(email, password)),
-    register: async (name, email, password) => apply(await authApi.register(name, email, password)),
+    register: async (name, email, password, age) => apply(await authApi.register(name, email, password, age)),
     logout: async () => {
       await authApi.logout().catch(() => {});
       signedOut();

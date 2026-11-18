@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { fromDisplay, toDisplay, useUnits } from "@/lib/units";
 import {
   CARDIO_TYPES,
   EQUIPMENT,
@@ -60,6 +61,10 @@ export default function LogPage() {
   const [date, setDate] = useState(today());
   const [plan, setPlan] = useState<WorkoutPlan | null>(null);
   const [profile, setProfile] = useState<Profile | null>(null);
+  const { units } = useUnits();
+  // Stored values are kg; in lb mode show and accept pounds. kg mode passes values through untouched.
+  const showW = (kg: number | null | undefined) => (units === "kg" ? (kg ?? null) : toDisplay(kg, units));
+  const readW = (v: string) => (units === "kg" ? numOrNull(v) : fromDisplay(numOrNull(v), units));
   const [prev, setPrev] = useState<Prev>({});
   const [week, setWeek] = useState<WorkoutSession[]>([]);
   const [existing, setExisting] = useState<WorkoutSession | null>(null);
@@ -403,8 +408,8 @@ export default function LogPage() {
           const options = e.planned?.alternatives.length ? e.planned.alternatives : null;
           const unitLabel = REP_UNITS.find((u) => u.value === e.unit)?.label ?? "Reps";
           const offPlanUnit = e.planned && e.planned.unit !== e.unit;
-          const kgMeans = EQUIPMENT.find((x) => x.value === e.equipment)?.kgMeans ?? "kg";
-          const kgHeader = { barbell: "kg total", dumbbell: "kg / db", cable: "kg stack", machine: "kg", bodyweight: "+kg", other: "kg" }[e.equipment];
+          const kgMeans = EQUIPMENT.find((x) => x.value === e.equipment)?.kgMeans ?? units;
+          const kgHeader = { barbell: `${units} total`, dumbbell: `${units} / db`, cable: `${units} stack`, machine: units, bodyweight: `+${units}`, other: units }[e.equipment];
           return (
             <div key={e.key} className="card">
               <div className="mb-3 flex flex-wrap items-start justify-between gap-2">
@@ -428,7 +433,7 @@ export default function LogPage() {
                     value={e.equipment}
                     onChange={(ev) => patch(e.key, (x) => ({ ...x, equipment: ev.target.value as Equipment }))}
                     aria-label={`Equipment for ${e.name}`}
-                    title={`kg = ${kgMeans}`}
+                    title={`${units} = ${kgMeans}`}
                   >
                     {EQUIPMENT.map((q) => (
                       <option key={q.value} value={q.value}>
@@ -481,7 +486,7 @@ export default function LogPage() {
                     <tr>
                       <th className="w-10 pb-2">Set</th>
                       <th className="pb-2">Previous</th>
-                      <th className="w-28 pb-2" title={`kg = ${kgMeans}`}>
+                      <th className="w-28 pb-2" title={`${units} = ${kgMeans}`}>
                         {kgHeader}
                       </th>
                       <th className="w-28 pb-2">
@@ -503,7 +508,7 @@ export default function LogPage() {
                       return (
                         <tr key={i} className={s.done ? "text-fg" : ""}>
                           <td className="py-1 font-display text-base font-bold">{i + 1}</td>
-                          <td className="py-1 text-xs text-ink-400">{ps ? `${ps.weightKg ?? "BW"} × ${ps.reps}${ps.negatives ? ` +${ps.negatives}n` : ""}` : "—"}</td>
+                          <td className="py-1 text-xs text-ink-400">{ps ? `${showW(ps.weightKg) ?? "BW"} × ${ps.reps}${ps.negatives ? ` +${ps.negatives}n` : ""}` : "—"}</td>
                           <td className="py-1 pr-2">
                             <input
                               type="number"
@@ -511,9 +516,9 @@ export default function LogPage() {
                               step="0.5"
                               min="0"
                               className="input"
-                              placeholder={ps?.weightKg != null ? String(ps.weightKg) : "BW"}
-                              value={s.weightKg ?? ""}
-                              onChange={(ev) => patchSet(e.key, i, { weightKg: numOrNull(ev.target.value) })}
+                              placeholder={ps?.weightKg != null ? String(showW(ps.weightKg)) : "BW"}
+                              value={showW(s.weightKg) ?? ""}
+                              onChange={(ev) => patchSet(e.key, i, { weightKg: readW(ev.target.value) })}
                             />
                           </td>
                           <td className="py-1 pr-2">
@@ -782,9 +787,9 @@ export default function LogPage() {
           </div>
           <div>
             <label className="label" htmlFor="bw">
-              Bodyweight (kg)
+              Bodyweight ({units})
             </label>
-            <input id="bw" type="number" step="0.1" className="input" value={bodyweight ?? ""} onChange={(e) => setBodyweight(numOrNull(e.target.value))} />
+            <input id="bw" type="number" step="0.1" className="input" value={showW(bodyweight) ?? ""} onChange={(e) => setBodyweight(readW(e.target.value))} />
           </div>
           <div>
             <label className="label" htmlFor="rpe">
@@ -811,7 +816,7 @@ export default function LogPage() {
       <div className="sticky bottom-4 z-10 flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-ink-600 bg-ink-800/95 px-5 py-3 backdrop-blur">
         <p className="text-sm">
           <span className="font-display text-xl font-bold text-fg">{doneSets}</span>/{totalSets} sets ·{" "}
-          <span className="font-display text-xl font-bold text-fg">{Math.round(volume).toLocaleString()}</span> kg ·{" "}
+          <span className="font-display text-xl font-bold text-fg">{Math.round(showW(volume) ?? 0).toLocaleString()}</span> {units} ·{" "}
           <span className="font-display text-xl font-bold text-fg">{kcal ?? "–"}</span> kcal
           <span className="ml-1 text-xs text-ink-400">{existing?.kcalClaude ? "(Claude)" : "(est.)"}</span>
           {eaten.kcal > 0 && (

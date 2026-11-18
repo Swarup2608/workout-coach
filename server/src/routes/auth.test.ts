@@ -1,126 +1,16 @@
 /**
- * End-to-end auth tests: the real Express app + a throwaway in-memory MongoDB.
- * The database files live in server/.mongo-test-<pid> (deleted afterwards), never in /tmp.
+ * End-to-end auth tests: the real Express app + a throwaway in-memory MongoDB (see test/harness.ts).
  */
-import { after, before, describe, it } from "node:test";
+import { describe, it } from "node:test";
 import assert from "node:assert/strict";
-import crypto from "node:crypto";
-import fs from "node:fs";
-import path from "node:path";
-import { execFileSync } from "node:child_process";
-import type { AddressInfo } from "node:net";
-import type { Server } from "node:http";
-import { MongoMemoryServer } from "mongodb-memory-server-core";
+import { Browser, PW, tokenFrom, useTestApp } from "../test/harness.js";
 
-// ── Test environment (set before any app module reads config) ──
-const projectDir = path.resolve(import.meta.dirname, "../..");
-const dbPath = path.join(projectDir, `.mongo-test-${process.pid}`);
-const systemMongod = (() => {
-  if (process.env.MONGOMS_SYSTEM_BINARY) return process.env.MONGOMS_SYSTEM_BINARY;
-  try {
-    return execFileSync("/bin/sh", ["-c", "command -v mongod"], { encoding: "utf8" }).trim() || undefined;
-  } catch {
-    return undefined; // falls back to downloading a mongod binary into node_modules/.cache
-  }
-})();
+const app = useTestApp("auth_test");
+const sent = app.sent;
+const col = new Proxy({} as ReturnType<typeof app.col>, { get: (_t, k) => (app.col() as any)[k] });
+const jwtSecretOf = () => app.jwtSecret();
 
-let mongo: MongoMemoryServer;
-let server: Server;
-let base = "";
-const sent: { to: string; subject: string; text: string }[] = [];
-let closeDb: () => Promise<void>;
-let col: typeof import("../db.js").col;
-let jwtSecret = "";
-
-before(async () => {
-  fs.mkdirSync(dbPath, { recursive: true });
-  mongo = await MongoMemoryServer.create({
-    instance: { dbPath, args: ["--nounixsocket"] },
-    binary: systemMongod ? { systemBinary: systemMongod } : { downloadDir: path.join(projectDir, "../node_modules/.cache/mongodb-binaries") },
-  });
-  jwtSecret = crypto.randomBytes(48).toString("base64url");
-  Object.assign(process.env, {
-    DOTENV_CONFIG_PATH: path.join(projectDir, ".env.does-not-exist"),
-    NODE_ENV: "test",
-    MONGODB_URI: mongo.getUri(),
-    MONGODB_DB: "auth_test",
-    JWT_ACCESS_SECRET: jwtSecret,
-    JWT_REFRESH_SECRET: crypto.randomBytes(48).toString("base64url"),
-    ENCRYPTION_KEY: crypto.randomBytes(32).toString("hex"),
-    CLIENT_ORIGIN: "http://localhost:3000",
-    APP_URL: "http://localhost:3000",
-    GMAIL_USER: "",
-    GMAIL_APP_PASSWORD: "",
-    EMAIL_FROM: "test@example.com",
-    REQUIRE_EMAIL_VERIFICATION: "true",
-    REFRESH_REUSE_GRACE_MS: "0",
-    ACCESS_TOKEN_TTL_SEC: "900",
-    REFRESH_TOKEN_TTL_SEC: "604800",
-    COOKIE_SAMESITE: "lax",
-    COOKIE_SECURE: "false",
-    COOKIE_DOMAIN: "",
-    TRUST_PROXY: "false",
-    ALLOW_PRIVATE_AI_URLS: "false",
-  });
-  const db = await import("../db.js");
-  const email = await import("../services/email.js");
-  const { createApp } = await import("../app.js");
-  email.setEmailTransport(async (e) => void sent.push(e));
-  await db.connectDb();
-  col = db.col;
-  closeDb = db.closeDb;
-  server = createApp().listen(0);
-  await new Promise((r) => server.once("listening", r));
-  base = `http://127.0.0.1:${(server.address() as AddressInfo).port}/api`;
-});
-
-after(async () => {
-  await new Promise((r) => server?.close(r));
-  await closeDb?.();
-  await mongo?.stop({ doCleanup: true, force: true });
-  fs.rmSync(dbPath, { recursive: true, force: true });
-});
-
-// ── A tiny browser: keeps cookies, sends the CSRF header like the web app ──
-class Browser {
-  cookies: Record<string, string> = {};
-  csrf = "";
-  async call(method: string, p: string, body?: unknown, opts: { csrf?: string | null; origin?: string; cookie?: string } = {}) {
-    const headers: Record<string, string> = { cookie: opts.cookie ?? Object.entries(this.cookies).map(([k, v]) => `${k}=${v}`).join("; ") };
-    if (body !== undefined) headers["content-type"] = "application/json";
-    const csrf = opts.csrf === undefined ? this.csrf : opts.csrf;
-    if (csrf) headers["x-csrf-token"] = csrf;
-    if (opts.origin) headers.origin = opts.origin;
-    const res = await fetch(base + p, { method, headers, body: body === undefined ? undefined : JSON.stringify(body) });
-    const setCookies = res.headers.getSetCookie();
-    for (const c of setCookies) {
-      const [kv] = c.split(";");
-      const i = kv.indexOf("=");
-      const k = kv.slice(0, i);
-      const v = kv.slice(i + 1);
-      if (v) this.cookies[k] = v;
-      else delete this.cookies[k];
-    }
-    const text = await res.text();
-    let json: any = null;
-    try {
-      json = JSON.parse(text);
-    } catch {
-      json = text;
-    }
-    if (json && typeof json === "object" && typeof json.csrfToken === "string") this.csrf = json.csrfToken;
-    return { status: res.status, body: json, setCookies };
-  }
-}
-
-const tokenFrom = (to: string, kind: "verify-email" | "reset-password") => {
-  const mail = [...sent].reverse().find((m) => m.to === to && m.text.includes(`/${kind}?token=`));
-  assert.ok(mail, `expected a ${kind} email to ${to}`);
-  return decodeURIComponent(mail.text.match(/token=([^\s]+)/)![1]);
-};
-
-const PW = "Str0ngPassw0rd";
-const alice = { name: "Alice", email: "alice@example.com", password: PW };
+const alice = { name: "Alice", email: "alice@example.com", password: PW, age: 30 };
 const a = new Browser();
 
 describe("auth", () => {
@@ -205,7 +95,7 @@ describe("auth", () => {
     assert.equal((await a.call("GET", "/plans", undefined, { cookie: `rs_at=${forged}` })).status, 401);
     const noneAlg = `${Buffer.from('{"alg":"none","typ":"JWT"}').toString("base64url")}.${a.cookies.rs_at.split(".")[1]}.`;
     assert.equal((await a.call("GET", "/plans", undefined, { cookie: `rs_at=${noneAlg}` })).status, 401, "alg=none rejected");
-    const expired = jwt.sign({ sub: claims.sub, tv: claims.tv, sid: claims.sid }, jwtSecret, { expiresIn: -10, issuer: "starkfitiq-api", audience: "starkfitiq-client" });
+    const expired = jwt.sign({ sub: claims.sub, tv: claims.tv, sid: claims.sid }, jwtSecretOf(), { expiresIn: -10, issuer: "starkfitiq-api", audience: "starkfitiq-client" });
     const r = await a.call("GET", "/plans", undefined, { cookie: `rs_at=${expired}` });
     assert.equal(r.status, 401);
     assert.equal(r.body.code, "TOKEN_EXPIRED");
@@ -241,7 +131,7 @@ describe("auth", () => {
 
   it("keeps each user's data private", async () => {
     const bob = new Browser();
-    assert.equal((await bob.call("POST", "/auth/register", { name: "Bob", email: "bob@example.com", password: PW })).status, 201);
+    assert.equal((await bob.call("POST", "/auth/register", { name: "Bob", email: "bob@example.com", password: PW, age: 30 })).status, 201);
     await bob.call("POST", "/auth/verify-email", { token: tokenFrom("bob@example.com", "verify-email") });
 
     const saved = await a.call("PUT", "/sessions", { date: "2026-11-09", exercises: [{ plannedId: null, name: "Bench press", sets: [{ weightKg: 60, reps: 8, done: true }] }] });
@@ -341,7 +231,7 @@ describe("auth", () => {
     assert.equal((await a.call("DELETE", "/auth/me", { password: "wrongpass1" })).status, 400);
     assert.equal((await a.call("DELETE", "/auth/me", { password: alice.password })).status, 204);
     assert.equal((await a.call("POST", "/auth/login", alice)).status, 401);
-    for (const c of [col.plans(), col.sessions(), col.scores(), col.chat(), col.refreshTokens(), col.emailTokens()])
+    for (const c of [col.plans(), col.sessions(), col.scores(), col.chat(), col.checkins(), col.refreshTokens(), col.emailTokens()])
       assert.equal(await c.countDocuments({ userId: id }), 0);
     assert.equal(await col.users().countDocuments({ _id: id }), 0);
   });

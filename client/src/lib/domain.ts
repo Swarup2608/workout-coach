@@ -255,8 +255,39 @@ export interface Constraint {
   swaps: string[];
 }
 
+export type GoalKey = "fat_loss" | "muscle_gain" | "maintain" | "strength" | "general";
+export type EquipmentSetup = "gym" | "home_dumbbells" | "bodyweight";
+export type Injury = "knee" | "lower_back" | "shoulder" | "wrist" | "elbow";
+export type Diet = "veg" | "eggetarian" | "non_veg" | "vegan";
+export type Units = "kg" | "lb";
+export type Sex = "male" | "female" | "other";
+export type ExperienceLevel = "Beginner" | "Intermediate" | "Advanced";
+export type SessionMinutes = 30 | 45 | 60 | 90;
+
+export const GOAL_KEYS: GoalKey[] = ["fat_loss", "muscle_gain", "maintain", "strength", "general"];
+export const GOAL_LABELS: Record<GoalKey, string> = {
+  fat_loss: "Fat loss",
+  muscle_gain: "Muscle gain / weight gain",
+  maintain: "Maintain weight",
+  strength: "Get stronger",
+  general: "General fitness",
+};
+export const EQUIPMENT_SETUPS: EquipmentSetup[] = ["gym", "home_dumbbells", "bodyweight"];
+export const INJURIES: Injury[] = ["knee", "lower_back", "shoulder", "wrist", "elbow"];
+export const DIETS: Diet[] = ["veg", "eggetarian", "non_veg", "vegan"];
+export const EXPERIENCE_LEVELS: ExperienceLevel[] = ["Beginner", "Intermediate", "Advanced"];
+export const SESSION_MINUTES: SessionMinutes[] = [30, 45, 60, 90];
+
+/** Steps 1–2 (account, basics) are done at signup; the flow runs 3–8. */
+export interface OnboardingState {
+  step: number;
+  completedAt: string | null;
+  skippedAt: string | null;
+}
+
 export interface Profile {
   name: string;
+  /** Human-readable goal; set from GOAL_LABELS[goalKey] when onboarding completes */
   goal: string;
   experience: string;
   startBodyweightKg: number | null;
@@ -264,6 +295,29 @@ export interface Profile {
   constraints: Constraint[];
   /** Link to the user's claude.ai Project used for no-API coaching */
   claudeProjectUrl?: string;
+  // ── Onboarding answers (all optional: older profiles don't have them) ──
+  age?: number | null;
+  sex?: Sex | null;
+  heightCm?: number | null;
+  /** Display unit only; weights are always stored in kg */
+  units?: Units;
+  goalKey?: GoalKey | null;
+  daysPerWeek?: number | null;
+  sessionMinutes?: SessionMinutes | null;
+  equipmentSetup?: EquipmentSetup | null;
+  injuries?: Injury[];
+  diet?: Diet | null;
+  /** Missing on accounts created before onboarding existed */
+  onboarding?: OnboardingState;
+}
+
+export interface Checkin {
+  /** The user's local date, YYYY-MM-DD */
+  date: string;
+  weightKg: number | null;
+  mood: 1 | 2 | 3 | 4 | 5 | null;
+  sleep: "poor" | "ok" | "good" | null;
+  updatedAt: string;
 }
 
 export interface ConstraintFlag {

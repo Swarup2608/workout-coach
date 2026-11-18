@@ -1,137 +1,167 @@
-<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="0 0 1440 900" role="img" aria-labelledby="title desc">
-  <title id="title">StarkFitIQ project architecture</title>
-  <desc id="desc">Animated data flow from the Next.js workout app through the Express API to domain services, MongoDB storage, and Claude coaching.</desc>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1280 700" width="1280" height="700" role="img" aria-labelledby="t d">
+  <title id="t">StarkFitIQ architecture</title>
+  <desc id="d">Animated architecture diagram. The Next.js web app calls the Express API over cookies and CSRF. The API's routes use domain services (starter plan from the workout library, plan parser, metrics, constraints, AI client) and a per-user repository on MongoDB. The AI client calls the user's own AI provider; separately, the user can copy a check-in to a Claude Project by hand and import the score.</desc>
   <defs>
-    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#0b1018"/><stop offset="1" stop-color="#111a27"/></linearGradient>
-    <linearGradient id="blue" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#2563eb"/><stop offset="1" stop-color="#38bdf8"/></linearGradient>
-    <linearGradient id="violet" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#7c3aed"/><stop offset="1" stop-color="#c084fc"/></linearGradient>
-    <linearGradient id="green" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#059669"/><stop offset="1" stop-color="#34d399"/></linearGradient>
-    <filter id="glow"><feGaussianBlur stdDeviation="4" result="blur"/><feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
-    <marker id="arrow-blue" markerWidth="10" markerHeight="10" refX="8" refY="5" orient="auto"><path d="M0 0L10 5L0 10Z" fill="#60a5fa"/></marker>
-    <marker id="arrow-green" markerWidth="10" markerHeight="10" refX="8" refY="5" orient="auto"><path d="M0 0L10 5L0 10Z" fill="#34d399"/></marker>
-    <marker id="arrow-purple" markerWidth="10" markerHeight="10" refX="8" refY="5" orient="auto"><path d="M0 0L10 5L0 10Z" fill="#c084fc"/></marker>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#07080d"/>
+      <stop offset="1" stop-color="#0f1122"/>
+    </linearGradient>
+    <linearGradient id="panel" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#161929"/>
+      <stop offset="1" stop-color="#0f111c"/>
+    </linearGradient>
+    <radialGradient id="g1" cx=".5" cy=".5" r=".5">
+      <stop offset="0" stop-color="#6366f1" stop-opacity=".35"/>
+      <stop offset="1" stop-color="#6366f1" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="g2" cx=".5" cy=".5" r=".5">
+      <stop offset="0" stop-color="#34d399" stop-opacity=".25"/>
+      <stop offset="1" stop-color="#34d399" stop-opacity="0"/>
+    </radialGradient>
+    <marker id="arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M0 0L10 5L0 10z" fill="#818cf8"/>
+    </marker>
+    <marker id="arrowG" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M0 0L10 5L0 10z" fill="#34d399"/>
+    </marker>
+    <marker id="arrowW" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M0 0L10 5L0 10z" fill="#d97757"/>
+    </marker>
+    <pattern id="grid" width="32" height="32" patternUnits="userSpaceOnUse">
+      <path d="M32 0H0V32" fill="none" stroke="#fff" stroke-opacity=".03"/>
+    </pattern>
+    <style>
+      .f { font-family: Inter, "SF Pro Display", -apple-system, "Segoe UI", Helvetica, Arial, sans-serif; }
+      .m { font-family: "JetBrains Mono", "SF Mono", Menlo, Consolas, monospace; }
+      .flow { stroke-dasharray: 8 10; animation: flow 1.1s linear infinite; }
+      .flowR { stroke-dasharray: 8 10; animation: flow 1.1s linear infinite reverse; }
+      .slow { stroke-dasharray: 3 9; animation: flow 2.4s linear infinite; }
+      @keyframes flow { to { stroke-dashoffset: -18; } }
+      .in { opacity: 0; animation: in .8s cubic-bezier(.2,.8,.2,1) forwards; }
+      @keyframes in { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: none; } }
+      .blink { animation: blink 2.4s ease-in-out infinite; }
+      @keyframes blink { 50% { opacity: .35; } }
+      .hl { animation: hl 9s ease-in-out infinite; }
+      @keyframes hl { 0%, 20%, 100% { fill: #1b1f33; } 6%, 14% { fill: #262b4a; } }
+      @media (prefers-reduced-motion: reduce) { * { animation: none !important; } .in { opacity: 1; } }
+    </style>
   </defs>
-  <rect width="1440" height="900" rx="28" fill="url(#bg)"/>
-  <g fill="#e5edf7" font-family="Inter,Arial,sans-serif">
-    <text x="64" y="76" font-size="15" font-weight="700" letter-spacing="3" fill="#60a5fa">WORKOUT COACH · SYSTEM MAP</text>
-    <text x="64" y="128" font-size="40" font-weight="750">StarkFitIQ</text>
-    <text x="64" y="160" font-size="17" fill="#98a9bf">Track training → understand progress → get coaching</text>
+
+  <rect width="1280" height="700" fill="url(#bg)"/>
+  <rect width="1280" height="700" fill="url(#grid)"/>
+  <circle cx="200" cy="120" r="300" fill="url(#g1)"/>
+  <circle cx="1120" cy="620" r="280" fill="url(#g2)"/>
+
+  <g class="f">
+    <text class="in" x="56" y="66" font-size="30" font-weight="800" fill="#f4f4f5" letter-spacing="-.5">How StarkFitIQ fits together</text>
+    <text class="in" style="animation-delay:.1s" x="56" y="94" font-size="15" fill="#a1a1aa">Next.js client · Express API · rule-based plans and deterministic metrics · MongoDB · bring-your-own AI</text>
   </g>
 
-  <!-- Connection paths sit behind the cards. -->
-  <g fill="none" stroke-linecap="round">
-    <path id="client-api" d="M350 370 C390 370 410 370 450 370" stroke="#60a5fa" stroke-width="3" marker-end="url(#arrow-blue)"/>
-    <path id="api-client" d="M450 410 C410 410 390 410 350 410" stroke="#60a5fa" stroke-width="2" stroke-dasharray="7 8" marker-end="url(#arrow-blue)" opacity=".65"/>
-    <path id="api-services" d="M770 350 C810 350 810 320 850 320" stroke="#34d399" stroke-width="3" marker-end="url(#arrow-green)"/>
-    <path id="services-store" d="M1010 430 C1010 465 1010 475 1010 510" stroke="#34d399" stroke-width="3" marker-end="url(#arrow-green)"/>
-    <path id="services-api" d="M850 280 C815 280 810 300 770 300" stroke="#34d399" stroke-width="2" stroke-dasharray="7 8" marker-end="url(#arrow-green)" opacity=".65"/>
-    <path id="services-claude" d="M1160 245 C1185 245 1190 245 1210 245" stroke="#c084fc" stroke-width="3" marker-end="url(#arrow-purple)"/>
-    <path id="client-project" d="M250 590 C250 680 1110 700 1210 555" stroke="#c084fc" stroke-width="2" stroke-dasharray="8 9" marker-end="url(#arrow-purple)" opacity=".65"/>
-    <path id="shared-client" d="M450 750 C390 750 320 690 300 590" stroke="#60a5fa" stroke-width="2" stroke-dasharray="6 8" marker-end="url(#arrow-blue)" opacity=".55"/>
-    <path id="shared-api" d="M610 660 C610 630 610 615 610 590" stroke="#60a5fa" stroke-width="2" stroke-dasharray="6 8" marker-end="url(#arrow-blue)" opacity=".55"/>
-  </g>
-
-  <!-- Animated packets traveling across the architecture. -->
-  <g filter="url(#glow)">
-    <circle r="6" fill="#93c5fd"><animateMotion dur="3.8s" repeatCount="indefinite"><mpath xlink:href="#client-api"/></animateMotion></circle>
-    <circle r="5" fill="#bfdbfe"><animateMotion dur="4.6s" begin="-2s" repeatCount="indefinite"><mpath xlink:href="#api-client"/></animateMotion></circle>
-    <circle r="6" fill="#6ee7b7"><animateMotion dur="4.2s" begin="-1s" repeatCount="indefinite"><mpath xlink:href="#api-services"/></animateMotion></circle>
-    <circle r="5" fill="#a7f3d0"><animateMotion dur="3.5s" begin="-1.7s" repeatCount="indefinite"><mpath xlink:href="#services-store"/></animateMotion></circle>
-    <circle r="6" fill="#d8b4fe"><animateMotion dur="4.8s" begin="-.8s" repeatCount="indefinite"><mpath xlink:href="#services-claude"/></animateMotion></circle>
-    <circle r="5" fill="#d8b4fe"><animateMotion dur="9s" begin="-4s" repeatCount="indefinite"><mpath xlink:href="#client-project"/></animateMotion></circle>
-    <circle r="4" fill="#93c5fd"><animateMotion dur="5.5s" begin="-2.4s" repeatCount="indefinite"><mpath xlink:href="#shared-api"/></animateMotion></circle>
-  </g>
-
-  <!-- Client -->
-  <g font-family="Inter,Arial,sans-serif">
-    <rect x="60" y="225" width="290" height="365" rx="22" fill="#111b29" stroke="#31527b" stroke-width="2"/>
-    <rect x="60" y="225" width="290" height="8" rx="4" fill="url(#blue)"/>
-    <text x="88" y="273" fill="#93c5fd" font-size="13" font-weight="700" letter-spacing="2">WEB APP · NEXT.JS</text>
-    <text x="88" y="312" fill="#f4f8ff" font-size="25" font-weight="700">Your training home</text>
-    <g fill="#b8c5d6" font-size="16">
-      <text x="92" y="355">▸ Dashboard &amp; scores</text>
-      <text x="92" y="391">▸ Workout log &amp; quick add</text>
-      <text x="92" y="427">▸ Plan &amp; day editor</text>
-      <text x="92" y="463">▸ History &amp; lift progress</text>
-      <text x="92" y="499">▸ Coach chat</text>
-      <text x="92" y="535">▸ Profile &amp; constraints</text>
+  <!-- ── Client ── -->
+  <g class="in f" style="animation-delay:.2s">
+    <rect x="56" y="140" width="300" height="400" rx="20" fill="url(#panel)" stroke="#2a2e45"/>
+    <text x="80" y="176" font-size="12" font-weight="700" fill="#818cf8" letter-spacing="2">WEB APP</text>
+    <text x="80" y="202" font-size="20" font-weight="800" fill="#fff">Next.js 16 · React 19</text>
+    <g font-size="14" fill="#e4e4e7">
+      <rect class="hl" style="animation-delay:0s" x="80" y="224" width="252" height="36" rx="10" fill="#1b1f33"/>
+      <text x="96" y="247">Onboarding · 8-step setup</text>
+      <rect class="hl" style="animation-delay:1.5s" x="80" y="268" width="252" height="36" rx="10" fill="#1b1f33"/>
+      <text x="96" y="291">Dashboard · daily check-in</text>
+      <rect class="hl" style="animation-delay:3s" x="80" y="312" width="252" height="36" rx="10" fill="#1b1f33"/>
+      <text x="96" y="335">Log · History · Plan</text>
+      <rect class="hl" style="animation-delay:4.5s" x="80" y="356" width="252" height="36" rx="10" fill="#1b1f33"/>
+      <text x="96" y="379">Coach chat (streaming)</text>
+      <rect class="hl" style="animation-delay:6s" x="80" y="400" width="252" height="36" rx="10" fill="#1b1f33"/>
+      <text x="96" y="423">Profile · kg/lb · AI key</text>
     </g>
-    <rect x="88" y="555" width="152" height="24" rx="12" fill="#1d3552"/>
-    <text x="103" y="572" fill="#bfdbfe" font-size="12" font-weight="600">Port 3000</text>
+    <text class="m" x="80" y="472" font-size="12" fill="#71717a">lib/api.ts · cookies + CSRF</text>
+    <text class="m" x="80" y="492" font-size="12" fill="#71717a">lib/units.ts · kg ⇄ lb</text>
+    <text class="m" x="80" y="512" font-size="12" fill="#71717a">lib/domain.ts · shared types</text>
   </g>
 
-  <!-- API -->
-  <g font-family="Inter,Arial,sans-serif">
-    <rect x="450" y="225" width="320" height="365" rx="22" fill="#111b29" stroke="#31527b" stroke-width="2"/>
-    <rect x="450" y="225" width="320" height="8" rx="4" fill="url(#blue)"/>
-    <text x="478" y="273" fill="#93c5fd" font-size="13" font-weight="700" letter-spacing="2">SERVER · EXPRESS</text>
-    <text x="478" y="312" fill="#f4f8ff" font-size="25" font-weight="700">App API</text>
-    <g fill="#b8c5d6" font-size="16">
-      <text x="482" y="355">▸ Plans &amp; day edits</text>
-      <text x="482" y="391">▸ Sessions &amp; imports</text>
-      <text x="482" y="427">▸ Metrics &amp; scores</text>
-      <text x="482" y="463">▸ Claude handoff</text>
-      <text x="482" y="499">▸ Streaming coach chat</text>
+  <!-- client ⇄ api -->
+  <g class="f">
+    <path class="flow" d="M360 300 H452" stroke="#818cf8" stroke-width="3" fill="none" marker-end="url(#arrow)"/>
+    <path class="flowR" d="M360 340 H452" stroke="#34d399" stroke-width="3" fill="none" marker-start="url(#arrowG)"/>
+    <text x="406" y="288" text-anchor="middle" font-size="11" fill="#a5b4fc">REST · SSE</text>
+    <text x="406" y="362" text-anchor="middle" font-size="11" fill="#6ee7b7">JSON</text>
+  </g>
+
+  <!-- ── API ── -->
+  <g class="in f" style="animation-delay:.35s">
+    <rect x="456" y="140" width="330" height="400" rx="20" fill="url(#panel)" stroke="#2a2e45"/>
+    <text x="480" y="176" font-size="12" font-weight="700" fill="#818cf8" letter-spacing="2">API</text>
+    <text x="480" y="202" font-size="20" font-weight="800" fill="#fff">Express 5 · Zod</text>
+    <rect x="480" y="222" width="282" height="64" rx="12" fill="#1b1f33" stroke="#2f3452"/>
+    <text x="496" y="246" font-size="14" font-weight="700" fill="#e4e4e7">Auth</text>
+    <text x="496" y="268" font-size="12" fill="#a1a1aa">Argon2id · JWT cookies · rotation · CSRF</text>
+    <rect x="480" y="296" width="282" height="140" rx="12" fill="#1b1f33" stroke="#2f3452"/>
+    <text x="496" y="320" font-size="14" font-weight="700" fill="#e4e4e7">Routes</text>
+    <g class="m" font-size="12" fill="#c7d2fe">
+      <text x="496" y="344">/profile  /profile/onboarding</text>
+      <text x="496" y="364">/checkins/:date  /plans</text>
+      <text x="496" y="384">/sessions  /metrics  /scores</text>
+      <text x="496" y="404">/handoff  /chat  /settings/ai</text>
+      <text x="496" y="424" fill="#71717a">every query scoped to the user</text>
     </g>
-    <rect x="478" y="555" width="152" height="24" rx="12" fill="#1d3552"/>
-    <text x="493" y="572" fill="#bfdbfe" font-size="12" font-weight="600">Port 4000</text>
+    <text x="480" y="468" font-size="12" fill="#a1a1aa">helmet · strict CORS · rate limits</text>
+    <text x="480" y="488" font-size="12" fill="#a1a1aa">bundled with esbuild</text>
+    <circle class="blink" cx="760" cy="172" r="5" fill="#34d399"/>
   </g>
 
-  <!-- Domain services -->
-  <g font-family="Inter,Arial,sans-serif">
-    <rect x="850" y="145" width="310" height="285" rx="22" fill="#10221f" stroke="#246753" stroke-width="2"/>
-    <rect x="850" y="145" width="310" height="8" rx="4" fill="url(#green)"/>
-    <text x="878" y="193" fill="#6ee7b7" font-size="13" font-weight="700" letter-spacing="2">SERVER SERVICES</text>
-    <text x="878" y="232" fill="#f4f8ff" font-size="24" font-weight="700">Coaching engine</text>
-    <g fill="#c1d8d0" font-size="15">
-      <text x="882" y="274">Plan parser + muscle rules</text>
-      <text x="882" y="307">Weekly metrics + calories</text>
-      <text x="882" y="340">Constraint checks + swaps</text>
-      <text x="882" y="373">Readable prompts + imports</text>
-      <text x="882" y="406">Offline scoring fallback</text>
+  <!-- api → services -->
+  <path class="flow" d="M790 250 H880" stroke="#818cf8" stroke-width="3" fill="none" marker-end="url(#arrow)"/>
+  <!-- api → db -->
+  <path class="flow" d="M620 544 V600" stroke="#34d399" stroke-width="3" fill="none" marker-end="url(#arrowG)"/>
+
+  <!-- ── Services ── -->
+  <g class="in f" style="animation-delay:.5s">
+    <rect x="884" y="140" width="340" height="300" rx="20" fill="url(#panel)" stroke="#2a2e45"/>
+    <text x="908" y="176" font-size="12" font-weight="700" fill="#818cf8" letter-spacing="2">DOMAIN SERVICES</text>
+    <text x="908" y="202" font-size="20" font-weight="800" fill="#fff">Rules first, AI optional</text>
+    <g font-size="13">
+      <rect x="908" y="220" width="292" height="44" rx="10" fill="#10261f" stroke="#1f5a45"/>
+      <text x="922" y="240" font-weight="700" fill="#a7f3d0">starterPlan.ts</text>
+      <text x="922" y="256" font-size="11" fill="#6ee7b7">answers + workouts.json → your week</text>
+      <rect x="908" y="272" width="142" height="40" rx="10" fill="#1b1f33" stroke="#2f3452"/>
+      <text x="922" y="297" fill="#e4e4e7">planParser</text>
+      <rect x="1058" y="272" width="142" height="40" rx="10" fill="#1b1f33" stroke="#2f3452"/>
+      <text x="1072" y="297" fill="#e4e4e7">metrics</text>
+      <rect x="908" y="320" width="142" height="40" rx="10" fill="#1b1f33" stroke="#2f3452"/>
+      <text x="922" y="345" fill="#e4e4e7">constraints</text>
+      <rect x="1058" y="320" width="142" height="40" rx="10" fill="#1b1f33" stroke="#2f3452"/>
+      <text x="1072" y="345" fill="#e4e4e7">day import</text>
+      <rect x="908" y="368" width="292" height="44" rx="10" fill="#2a1a14" stroke="#6b3a28"/>
+      <text x="922" y="388" font-weight="700" fill="#f5c4b1">ai.ts</text>
+      <text x="922" y="404" font-size="11" fill="#e8a58b">per-user key · AES-256-GCM · SSRF-checked</text>
     </g>
   </g>
 
-  <!-- JSON store -->
-  <g font-family="Inter,Arial,sans-serif">
-    <rect x="850" y="510" width="310" height="145" rx="22" fill="#10221f" stroke="#246753" stroke-width="2"/>
-    <text x="878" y="551" fill="#6ee7b7" font-size="13" font-weight="700" letter-spacing="2">LOCAL PERSISTENCE</text>
-    <text x="878" y="590" fill="#f4f8ff" font-size="22" font-weight="700">server/data/db.json</text>
-    <text x="878" y="621" fill="#c1d8d0" font-size="14">Profile · plans · sessions · scores · chat</text>
+  <!-- ai → provider -->
+  <path class="flow" d="M1054 444 V506" stroke="#d97757" stroke-width="3" fill="none" marker-end="url(#arrowW)"/>
+  <g class="in f" style="animation-delay:.65s">
+    <rect x="884" y="510" width="340" height="80" rx="18" fill="#1d1410" stroke="#6b3a28"/>
+    <text x="908" y="542" font-size="16" font-weight="800" fill="#fbd5c5">Your AI provider</text>
+    <text x="908" y="566" font-size="12" fill="#e8a58b">Claude · OpenAI · Gemini · Groq · Mistral · OpenRouter</text>
   </g>
 
-  <!-- AI options -->
-  <g font-family="Inter,Arial,sans-serif">
-    <rect x="1210" y="155" width="185" height="180" rx="22" fill="#21182d" stroke="#68448b" stroke-width="2"/>
-    <rect x="1210" y="155" width="185" height="8" rx="4" fill="url(#violet)"/>
-    <text x="1233" y="200" fill="#d8b4fe" font-size="12" font-weight="700" letter-spacing="1.5">OPTIONAL</text>
-    <text x="1233" y="235" fill="#f4f8ff" font-size="20" font-weight="700">Claude API</text>
-    <text x="1233" y="270" fill="#d3c4e2" font-size="14">Direct scoring</text>
-    <text x="1233" y="294" fill="#d3c4e2" font-size="14">and chat</text>
-    <rect x="1210" y="445" width="185" height="190" rx="22" fill="#21182d" stroke="#68448b" stroke-width="2"/>
-    <rect x="1210" y="445" width="185" height="8" rx="4" fill="url(#violet)"/>
-    <text x="1233" y="490" fill="#d8b4fe" font-size="12" font-weight="700" letter-spacing="1.5">NO API KEY</text>
-    <text x="1233" y="525" fill="#f4f8ff" font-size="20" font-weight="700">Claude Project</text>
-    <text x="1233" y="560" fill="#d3c4e2" font-size="14">Copy check-in,</text>
-    <text x="1233" y="584" fill="#d3c4e2" font-size="14">paste reply back</text>
-    <text x="1233" y="613" fill="#a78bfa" font-size="12">User controls each step</text>
+  <!-- ── MongoDB ── -->
+  <g class="in f" style="animation-delay:.6s">
+    <rect x="456" y="604" width="330" height="84" rx="18" fill="#0f1f1a" stroke="#1f5a45"/>
+    <ellipse cx="496" cy="632" rx="18" ry="6" fill="none" stroke="#34d399" stroke-width="2"/>
+    <path d="M478 632 v20 a18 6 0 0 0 36 0 v-20" fill="none" stroke="#34d399" stroke-width="2"/>
+    <text x="528" y="630" font-size="16" font-weight="800" fill="#a7f3d0">MongoDB</text>
+    <text class="m" x="528" y="652" font-size="11" fill="#6ee7b7">users · profiles · plans</text>
+    <text class="m" x="528" y="670" font-size="11" fill="#6ee7b7">sessions · scores · checkins</text>
   </g>
 
-  <!-- Domain code (one copy per app) -->
-  <g font-family="Inter,Arial,sans-serif">
-    <rect x="450" y="680" width="710" height="145" rx="22" fill="#111b29" stroke="#31527b" stroke-width="2"/>
-    <rect x="450" y="680" width="8" height="145" rx="4" fill="url(#blue)"/>
-    <text x="482" y="722" fill="#93c5fd" font-size="13" font-weight="700" letter-spacing="2">DOMAIN CODE (ONE COPY PER APP)</text>
-    <text x="482" y="762" fill="#f4f8ff" font-size="23" font-weight="700">server/src/domain.ts · client/lib/domain.ts</text>
-    <text x="482" y="795" fill="#b8c5d6" font-size="15">Domain types · date helpers · set and calorie math · weekly stats</text>
-  </g>
-
-  <g font-family="Inter,Arial,sans-serif" fill="#7f91a8" font-size="12">
-    <text x="372" y="352">REST + JSON</text>
-    <text x="372" y="437">SSE chat</text>
-    <text x="786" y="332">validate + compute</text>
-    <text x="1027" y="475">read / write</text>
-    <text x="1126" y="218">API mode</text>
-    <text x="675" y="705">same domain rules in browser and server</text>
+  <!-- Claude Project manual handoff -->
+  <path class="slow" d="M206 544 V574" stroke="#d97757" stroke-width="2.5" fill="none" marker-end="url(#arrowW)" opacity=".9"/>
+  <path class="slow" d="M344 605 H420 V470 H450" stroke="#d97757" stroke-width="2.5" fill="none" marker-end="url(#arrowW)" opacity=".9"/>
+  <text class="f" x="372" y="596" font-size="10" fill="#e8a58b">import</text>
+  <g class="f">
+    <rect x="70" y="580" width="270" height="50" rx="12" fill="#1d1410" stroke="#6b3a28" stroke-dasharray="4 4"/>
+    <text x="86" y="601" font-size="13" font-weight="700" fill="#fbd5c5">Claude Project (no API key)</text>
+    <text x="86" y="619" font-size="11" fill="#e8a58b">copy check-in → paste reply → import score</text>
   </g>
 </svg>

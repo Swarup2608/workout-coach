@@ -4,8 +4,10 @@ import type {
   ApiStatus,
   AuthResponse,
   ChatMessage,
+  Checkin,
   ConstraintFlag,
   Equipment,
+  ExperienceLevel,
   Profile,
   PlannedExercise,
   RepUnit,
@@ -102,8 +104,15 @@ export interface DeviceSession {
   current: boolean;
 }
 
+/** Onboarding answers the server accepts (each optional; validated per field). */
+export type OnboardingAnswers = Partial<
+  Pick<Profile, "age" | "sex" | "heightCm" | "startBodyweightKg" | "targetBodyweightKg" | "units" | "goalKey" | "daysPerWeek" | "sessionMinutes" | "equipmentSetup" | "injuries" | "diet">
+> & { experience?: ExperienceLevel };
+
+export type OnboardingRequest = { step: number; answers: OnboardingAnswers } | { complete: true } | { skip: true } | { restart: true };
+
 export const authApi = {
-  register: (name: string, email: string, password: string) => req<AuthResponse>("/auth/register", json("POST", { name, email, password })),
+  register: (name: string, email: string, password: string, age: number) => req<AuthResponse>("/auth/register", json("POST", { name, email, password, age })),
   login: (email: string, password: string) => req<AuthResponse>("/auth/login", json("POST", { email, password })),
   me: () => req<AuthResponse>("/auth/me"),
   updateMe: (name: string) => req<AuthResponse>("/auth/me", json("PATCH", { name })),
@@ -130,6 +139,9 @@ export const api = {
   status: () => req<ApiStatus>("/status"),
   profile: () => req<Profile>("/profile"),
   saveProfile: (p: Profile) => req<Profile>("/profile", json("PUT", p)),
+  onboarding: (body: OnboardingRequest) => req<{ profile: Profile; plan?: WorkoutPlan }>("/profile/onboarding", json("PATCH", body)),
+  checkin: (date: string) => req<Checkin | null>(`/checkins/${date}`),
+  saveCheckin: (date: string, body: Partial<Pick<Checkin, "weightKg" | "mood" | "sleep">>) => req<Checkin>(`/checkins/${date}`, json("PUT", body)),
 
   plans: () => req<WorkoutPlan[]>("/plans"),
   activePlan: () => req<WorkoutPlan | null>("/plans/active"),

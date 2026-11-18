@@ -10,6 +10,9 @@ import { buildChatContext, scorePlan, scoreWeek, streamChat } from "../services/
 import { aiForUser, aiLabel } from "../services/ai.js";
 import { parseReply, planPack, reportFromReply, weekPack } from "../services/handoff.js";
 import { dayPrompt, mergeDay, parseDay } from "../services/dayImport.js";
+import { ProfileSchema } from "./profileSchema.js";
+import { onboarding } from "./onboarding.js";
+import { checkins } from "./checkins.js";
 
 /** Mounted behind requireAuth: req.user is always set, and all data goes through that user's repo. */
 export const api = Router();
@@ -38,29 +41,16 @@ api.get("/status", (req, res) => {
 });
 
 // ── Profile ──────────────────────────────────────────────────
-const ConstraintSchema = z.object({
-  id: z.string().default(() => newId()),
-  label: z.string().min(1),
-  reason: z.string().default(""),
-  keywords: z.array(z.string()),
-  swaps: z.array(z.string()),
-});
-const ProfileSchema = z.object({
-  name: z.string(),
-  goal: z.string(),
-  experience: z.string(),
-  startBodyweightKg: z.number().nullable(),
-  targetBodyweightKg: z.number().nullable(),
-  constraints: z.array(ConstraintSchema),
-  claudeProjectUrl: z.string().url().or(z.literal("")).optional(),
-});
-
 api.get("/profile", wrap(async (req, res) => res.json(await repoOf(req).profile())));
 api.put("/profile", wrap(async (req, res) => {
-  const profile = ProfileSchema.parse(req.body);
-  await repoOf(req).saveProfile(profile);
+  const repo = repoOf(req);
+  // Fields the body leaves out (e.g. onboarding state from an older page) are kept, not wiped.
+  const profile = { ...(await repo.profile()), ...ProfileSchema.parse(req.body) };
+  await repo.saveProfile(profile);
   res.json(profile);
 }));
+api.use(onboarding);
+api.use(checkins);
 
 // ── Plans ────────────────────────────────────────────────────
 api.get("/plans", wrap(async (req, res) => res.json(await repoOf(req).plans())));

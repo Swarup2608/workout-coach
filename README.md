@@ -1,5 +1,5 @@
 <div align="center">
-  <img src="docs/repscore-hero.gif" alt="StarkFitIQ — AI Workout Coach animated banner" width="100%" />
+  <img src="docs/starkfitiq-hero.svg" alt="StarkFitIQ — AI workout coach: animated banner with a week score ring, onboarding progress and weekly training volume" width="100%" />
   <br />
   <p><strong>Plan your training. Track every rep. Score your week. Get stronger.</strong></p>
   <p>
@@ -17,11 +17,15 @@
 StarkFitIQ is an AI workout coach that understands your training plan, workout history, goals and constraints. Log sets and reps, review your progress, score each training week and get practical coaching recommendations.
 
 <div align="center">
-  <img src="docs/repscore-workflow.gif" alt="StarkFitIQ animated workflow: log workout, review metrics, get AI coaching and a weekly score" width="100%" />
+  <img src="docs/starkfitiq-workflow.svg" alt="StarkFitIQ workflow: sign up, guided setup, rule-based starter plan, log and check in, weekly score and AI coaching" width="100%" />
 </div>
 
 ## What you can do
 
+- **Guided onboarding** — a short setup after sign-up (goal, body, training, equipment, injuries, diet, optional AI key) that resumes where you left off.
+- **Rule-based starter plan** — your answers pick a split and exercises from a built-in library; injuries remove exercises that load that joint. No AI needed.
+- **Daily check-in** — log today's weight, mood and sleep from the dashboard in a few seconds.
+- **kg or lb** — choose your unit once; every weight in the app follows it.
 - **Track workouts** — record exercises, sets, reps, load, RPE, cardio and daily activity.
 - **Build and review plans** — paste a Markdown workout plan and turn it into structured training days and exercises.
 - **Score every week** — evaluate adherence, progressive overload, rep-range quality, muscle balance and recovery.
@@ -31,12 +35,33 @@ StarkFitIQ is an AI workout coach that understands your training plan, workout h
 
 ## How it works
 
-1. Add your profile, goals and training constraints.
-2. Import or edit your workout plan.
+1. Sign up, then finish the guided setup to get a starter plan built around you (or skip it and keep the baseline plan).
+2. Check in daily and import or edit your workout plan any time.
 3. Log each training session as you go.
 4. Review deterministic metrics calculated by the app.
 5. Ask Claude to interpret the metrics and return a structured coaching report.
 6. Import the report to update your score history and next-week adjustments.
+
+## Onboarding
+
+<div align="center">
+  <img src="docs/onboarding/screens/4-ai-coach-diet-skipped.png" alt="Onboarding stepper: completed steps in green, a skipped step in red, current step highlighted" width="100%" />
+</div>
+
+▶ **[Watch the onboarding demo](docs/onboarding/onboarding-demo.webm)** (sign-up → setup → your plan → daily check-in, about 1 minute).
+
+- **Sign-up** asks for name, email, age and password, so setup opens with **2 of 8 steps already done**.
+- **Dashboard welcome card** for new users: *Continue setup* or *Skip for now*. Skipping keeps the baseline plan; you can finish later from **Profile → Finish setup**.
+- **Eight steps**: Account ✓ · Basics ✓ · Goal · Body (kg/lb) · Training · Equipment & limits · Diet (optional) · AI coach (optional). Progress is saved after every step. The stepper and segmented bar show done steps in **green**, skipped optional steps in **red**.
+- **Starter plan (no AI):** goal sets sets × reps, rest and cardio; days per week picks the split (2–6 days); session length caps the exercises per day; experience and equipment filter the library; injuries (knee, lower back, shoulder, wrist, elbow) exclude exercises that stress that joint and add matching constraints. Same answers always give the same plan. The library is `server/src/seed/workouts.json`.
+- **"Here's your week"** shows the plan, which becomes your active plan; the old one stays in plan history. **Profile → Redo setup** builds a fresh one.
+- **Daily check-in** appears on the dashboard on every visit until today's check-in is saved (weight, mood or sleep — any one is enough), then returns tomorrow.
+
+| Welcome card | Your week | Daily check-in |
+| --- | --- | --- |
+| ![Dashboard welcome card](docs/onboarding/screens/1-dashboard-welcome.png) | ![Generated starter plan](docs/onboarding/screens/5-plan-reveal.png) | ![Daily check-in card](docs/onboarding/screens/6-daily-checkin.png) |
+
+Full design and implementation notes: [docs/onboarding.md](docs/onboarding.md).
 
 ## Scoring model
 
@@ -55,7 +80,7 @@ Mid-week scoring only counts training days that have passed. Scores stay grounde
 ## Tech stack
 
 - **Frontend:** Next.js 16, React 19, Tailwind CSS 4, TypeScript
-- **Backend:** Express API
+- **Backend:** Express API, bundled with esbuild
 - **AI:** each user's own provider: Anthropic (Claude), OpenAI, Gemini, Groq, Mistral, OpenRouter or any OpenAI-compatible API
 - **Storage:** MongoDB (Atlas)
 - **Auth:** Argon2id, JWT access + refresh tokens in httpOnly cookies, Gmail SMTP (nodemailer) for email
@@ -72,22 +97,30 @@ workout-coach/
 │       ├── db.ts / repo.ts          # MongoDB collections / per-user data access
 │       ├── auth/                    # Argon2id, JWT cookies, CSRF, email tokens, key encryption
 │       ├── services/
+│       │   ├── starterPlan.ts       # Rule-based starter plan from onboarding answers
 │       │   ├── planParser.ts        # Markdown plan → structured plan
 │       │   ├── metrics.ts           # Deterministic training metrics
 │       │   ├── constraints.ts       # Constraint rules and exercise swaps
 │       │   ├── ai.ts                # Per-user AI provider client
 │       │   ├── email.ts             # Gmail SMTP emails
 │       │   └── claude.ts            # AI scoring and streaming chat prompts
-│       ├── routes/                  # auth.ts, settings.ts, api.ts (REST + SSE)
-│       └── seed/baseline-plan.md    # Initial workout plan
+│       ├── routes/                  # auth.ts, settings.ts, api.ts (REST + SSE),
+│       │                            # onboarding.ts, checkins.ts, profileSchema.ts
+│       ├── scripts/demoServer.ts    # Throwaway API for recording the onboarding demo
+│       ├── test/harness.ts          # Shared in-memory MongoDB + app for API tests
+│       └── seed/
+│           ├── baseline-plan.md     # Plan new accounts start with
+│           └── workouts.json        # Exercise library, split templates, injury rules
 └── client/                         # Next.js app (port 3000)
     └── src/
         ├── app/                     # Pages: Dashboard, Log, History, Plan, Coach, Profile,
-        │                            # login, signup, forgot/reset password, verify email
+        │                            # Onboarding, login, signup, forgot/reset password, verify email
         │                            # (+ icon.png / apple-icon.png = browser tab icons)
-        ├── components/              # Nav, Logo, auth provider, settings, UI
+        ├── components/              # Nav, Logo, auth provider, settings, UI,
+        │                            # SetupCard, CheckinCard, onboarding/ (steps, stepper, plan reveal)
         ├── lib/domain.ts            # Client's domain types and helpers
         ├── lib/api.ts               # API client (cookies, CSRF, silent refresh)
+        ├── lib/units.ts             # kg/lb conversion and the per-user unit preference
         └── assets/StarkFitIq.png    # Logo
 ```
 
@@ -106,7 +139,7 @@ In `server/.env`, paste the three generated secrets and set `MONGODB_URI` to you
 npm run dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) and create an account. Set `GMAIL_USER` and `GMAIL_APP_PASSWORD` first: the verification email is sent to your inbox, open its link to verify and you're in. The API runs at [http://localhost:4000](http://localhost:4000). The server refuses to start if any secret is missing or weak.
+Open [http://localhost:3000](http://localhost:3000) and create an account (you'll land on the dashboard with a setup card; see [Onboarding](#onboarding)). Set `GMAIL_USER` and `GMAIL_APP_PASSWORD` first: the verification email is sent to your inbox, open its link to verify and you're in. The API runs at [http://localhost:4000](http://localhost:4000). The server refuses to start if any secret is missing or weak.
 
 Have data in the old `server/data/db.json`? Sign up first, then copy it into your account:
 
@@ -122,6 +155,7 @@ npm run import-json -w server -- you@example.com ./data/db.json
 | `/landing-2` | Everyone | Alternate light landing page (cream + forest green) |
 | `/login`, `/signup`, `/forgot-password`, `/reset-password`, `/verify-email` | Everyone | Auth pages |
 | `/dashboard`, `/log`, `/history`, `/plan`, `/chat`, `/profile` | Signed in + verified | The app |
+| `/onboarding` | Signed in + verified | Guided setup and starter plan |
 
 Branding lives in `client/src/assets/`: `StarkFitIq Icon.png` (icon only: nav bars, footers, browser-tab icon) and `StarkFitIq.png` (full logo with name and tagline: sign-in/sign-up pages). Landing photos in `assets/landing/` are cropped from the design mockups; replace them with full-resolution photos when you have them. Set `NEXT_PUBLIC_GITHUB_URL` / `NEXT_PUBLIC_DOCS_URL` in `client/.env.local` for the landing page links.
 
@@ -171,7 +205,7 @@ Manage constraints from **Profile**. Each rule can match exercise keywords and p
 
 | Method              | Endpoint                         | Purpose                                   |
 | ------------------- | -------------------------------- | ----------------------------------------- |
-| POST                | `/api/auth/register`             | Create account (sets auth cookies)        |
+| POST                | `/api/auth/register`             | Create account: name, email, password, age (16–90) |
 | POST                | `/api/auth/login`                | Sign in (sets auth cookies)               |
 | POST                | `/api/auth/refresh`              | Rotate refresh token, new access token    |
 | POST                | `/api/auth/logout`               | Sign out this device                      |
@@ -186,7 +220,9 @@ Manage constraints from **Profile**. Each rule can match exercise keywords and p
 | GET / PUT / DELETE  | `/api/settings/ai`               | Your AI provider (key never returned)     |
 | POST                | `/api/settings/ai/test`          | Test the saved key                        |
 | GET                 | `/api/status`                    | Your AI connection status and model       |
-| GET / PUT           | `/api/profile`                   | Read or update profile                    |
+| GET / PUT           | `/api/profile`                   | Read or update profile (fields left out are kept) |
+| PATCH               | `/api/profile/onboarding`        | Save a step's answers, `complete` (builds and activates the starter plan), `skip` or `restart` |
+| GET / PUT           | `/api/checkins/:date`            | Today's check-in (`YYYY-MM-DD`, the user's local date), one per day |
 | GET / POST          | `/api/plans`                     | List plans or upload Markdown             |
 | PUT                 | `/api/plans/:id/days/:day`       | Edit a plan day                           |
 | POST                | `/api/plans/:id/activate`        | Activate a plan                           |
@@ -211,17 +247,30 @@ Additional day-import endpoints are available at `GET /api/day-import/prompt?dat
 npm run dev        # Start API and web app with hot reload
 npm run build      # Build server and client
 npm start          # Run production builds
-npm test           # Auth end-to-end tests (in-memory MongoDB) + parser, constraint and metrics tests
+npm test           # API end-to-end tests (auth, profile, onboarding, check-ins; in-memory MongoDB)
+                   # + starter-plan, parser, constraint and metrics tests
 npm run typecheck  # TypeScript checks
 npm run secrets -w server       # Generate JWT and encryption secrets
 npm run import-json -w server -- <email> [db.json]  # Copy old JSON data into an account
+```
+
+### Re-recording the onboarding demo
+
+The demo runs against a throwaway stack: a separate local database (`starkfitiq_onboarding_demo`, dropped on start and stop), email verification off, and emails printed instead of sent. It uses its own build folder, so a running `npm run dev` is unaffected.
+
+```bash
+cd server && npx tsx src/scripts/demoServer.ts        # API on :4100 (needs local mongod)
+cd client && NEXT_DIST_DIR=.next-demo NEXT_PUBLIC_API_URL=http://localhost:4100/api npx next build \
+  && NEXT_DIST_DIR=.next-demo npx next start -p 3100    # web on :3100
+npx playwright install chromium                        # first time only
+node docs/onboarding/record-demo.mjs                   # writes docs/onboarding/onboarding-demo.webm + screens/
 ```
 
 The auth tests start a throwaway MongoDB: they use `mongod` from your PATH if installed (e.g. `brew install mongodb-community`), otherwise download one into `node_modules/.cache` on the first run. Its data folder is `server/.mongo-test-*`, deleted after the run. They never touch your Atlas database.
 
 ## Data storage
 
-Data lives in **MongoDB** (`MONGODB_URI`, database `MONGODB_DB`). Collections: `users`, `refresh_tokens`, `profiles`, `plans`, `sessions`, `scores`, `chat_messages`. All training data carries a `userId` and is accessed only through `server/src/repo.ts`, which scopes every query to the signed-in user. Indexes are created on startup.
+Data lives in **MongoDB** (`MONGODB_URI`, database `MONGODB_DB`). Collections: `users`, `refresh_tokens`, `profiles`, `plans`, `sessions`, `scores`, `chat_messages`, `checkins`. Weights are always stored in kg; the kg/lb setting only changes display and input. All training data carries a `userId` and is accessed only through `server/src/repo.ts`, which scopes every query to the signed-in user. Indexes are created on startup.
 
 ---
 

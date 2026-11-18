@@ -1,7 +1,9 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import type { Constraint, Profile } from "@/lib/domain";
+import { useRouter } from "next/navigation";
+import type { Constraint, Profile, Units } from "@/lib/domain";
+import { fromDisplay, setUnitsLocally, toDisplay } from "@/lib/units";
 import { api } from "@/lib/api";
 import { ErrorNote, Spinner } from "@/components/ui";
 import { AiProviderSettings } from "@/components/AiProviderSettings";
@@ -12,7 +14,9 @@ const fromCsv = (s: string) => s.split(",").map((x) => x.trim()).filter(Boolean)
 const numOrNull = (v: string) => (v === "" ? null : Number(v));
 
 export default function ProfilePage() {
+  const router = useRouter();
   const [p, setP] = useState<Profile | null>(null);
+  const [restarting, setRestarting] = useState(false);
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -33,7 +37,9 @@ export default function ProfilePage() {
     setSaving(true);
     setError(null);
     try {
-      setP(await api.saveProfile(p));
+      const next = await api.saveProfile(p);
+      setP(next);
+      setUnitsLocally(next.units ?? "kg");
       setSaved(true);
     } catch (e) {
       setError(e instanceof Error ? e.message : "Save failed");
@@ -42,11 +48,37 @@ export default function ProfilePage() {
     }
   };
 
+  const units: Units = p.units ?? "kg";
+  const setupDone = !p.onboarding || !!p.onboarding.completedAt;
+  const openSetup = async () => {
+    setRestarting(true);
+    setError(null);
+    try {
+      await api.onboarding({ restart: true });
+      router.push("/onboarding");
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Could not open setup");
+      setRestarting(false);
+    }
+  };
+
   return (
     <div className="space-y-6">
       <div>
         <p className="text-sm text-ink-400">Used by every score and chat reply</p>
         <h1 className="h-display text-4xl">Profile & constraints</h1>
+      </div>
+
+      <div className="card flex flex-wrap items-center justify-between gap-4">
+        <div>
+          <h2 className="font-bold">{setupDone ? "Setup" : "Finish setup"}</h2>
+          <p className="text-sm text-ink-400">
+            {setupDone ? "Answer the setup questions again to get a fresh starter plan. Your current plan stays in history." : "A few questions left before we build a plan around you."}
+          </p>
+        </div>
+        <button className="btn btn-ghost" onClick={openSetup} disabled={restarting}>
+          {restarting && <Spinner />} {setupDone ? "Redo setup" : "Finish setup"}
+        </button>
       </div>
 
       <div className="card grid gap-4 md:grid-cols-2">
@@ -75,13 +107,46 @@ export default function ProfilePage() {
           />
           <p className="mt-1 text-xs text-ink-400">Open your project on claude.ai and copy the address bar. “Copy check-in & open Claude” opens this page.</p>
         </div>
+        <fieldset className="md:col-span-2">
+          <legend className="label">Weight unit</legend>
+          <div className="flex gap-2">
+            {(["kg", "lb"] as Units[]).map((u) => (
+              <button
+                key={u}
+                type="button"
+                aria-pressed={units === u}
+                onClick={() => set("units", u)}
+                className={`rounded-full border px-4 py-1.5 text-sm ${units === u ? "border-volt-bright bg-volt-bright/10 text-fg" : "border-ink-700 hover:border-volt-bright/50"}`}
+              >
+                {u}
+              </button>
+            ))}
+          </div>
+          <p className="mt-1 text-xs text-ink-400">Changes how weights are shown and entered everywhere. Save to apply.</p>
+        </fieldset>
         <div>
-          <label className="label" htmlFor="sbw">Start bodyweight (kg)</label>
-          <input id="sbw" type="number" step="0.1" className="input" value={p.startBodyweightKg ?? ""} onChange={(e) => set("startBodyweightKg", numOrNull(e.target.value))} />
+          <label className="label" htmlFor="sbw">Start bodyweight ({units})</label>
+          <input
+            key={`sbw-${units}`}
+            id="sbw"
+            type="number"
+            step="0.1"
+            className="input"
+            defaultValue={toDisplay(p.startBodyweightKg, units) ?? ""}
+            onChange={(e) => set("startBodyweightKg", fromDisplay(numOrNull(e.target.value), units))}
+          />
         </div>
         <div>
-          <label className="label" htmlFor="tbw">Target bodyweight (kg)</label>
-          <input id="tbw" type="number" step="0.1" className="input" value={p.targetBodyweightKg ?? ""} onChange={(e) => set("targetBodyweightKg", numOrNull(e.target.value))} />
+          <label className="label" htmlFor="tbw">Target bodyweight ({units})</label>
+          <input
+            key={`tbw-${units}`}
+            id="tbw"
+            type="number"
+            step="0.1"
+            className="input"
+            defaultValue={toDisplay(p.targetBodyweightKg, units) ?? ""}
+            onChange={(e) => set("targetBodyweightKg", fromDisplay(numOrNull(e.target.value), units))}
+          />
         </div>
       </div>
 

@@ -3,7 +3,7 @@
 StarkFitIQ is a personal workout tracker and coaching app. It records training and daily health details, compares progress with a weekly plan, and turns saved logs into coaching feedback.
 
 <p align="center">
-  <img src="docs/project-overview.svg" alt="Animated architecture diagram showing the StarkFitIQ client, API, domain logic, MongoDB store, and Claude coaching paths" width="100%" />
+  <img src="docs/project-overview.svg" alt="Animated architecture diagram: Next.js web app, Express API, domain services (starter plan, parser, metrics, constraints, AI client), MongoDB, your AI provider, and the manual Claude Project handoff" width="100%" />
 </p>
 
 ## What it contains

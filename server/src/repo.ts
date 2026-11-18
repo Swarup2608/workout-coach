@@ -1,4 +1,4 @@
-import type { ChatMessage, Profile, ScoreReport, WorkoutPlan, WorkoutSession } from "./domain.js";
+import type { ChatMessage, Checkin, Profile, ScoreReport, WorkoutPlan, WorkoutSession } from "./domain.js";
 import { col } from "./db.js";
 
 /** Never leak Mongo internals or the owner id to clients. */
@@ -79,6 +79,12 @@ export function userRepo(userId: string) {
     chat: () => col.chat().find(own, hide).sort({ createdAt: 1 }).toArray() as Promise<ChatMessage[]>,
     addChat: (m: ChatMessage) => col.chat().insertOne({ ...m, userId }),
     clearChat: () => col.chat().deleteMany(own),
+
+    // ── Daily check-ins (one per local date) ──
+    checkin: (date: string) => col.checkins().findOne({ ...own, date }, hide) as Promise<Checkin | null>,
+    async upsertCheckin(c: Checkin) {
+      await col.checkins().replaceOne({ ...own, date: c.date }, { ...c, userId }, { upsert: true });
+    },
   };
 }
 
@@ -92,6 +98,7 @@ export async function deleteAllUserData(userId: string) {
     col.sessions().deleteMany({ userId }),
     col.scores().deleteMany({ userId }),
     col.chat().deleteMany({ userId }),
+    col.checkins().deleteMany({ userId }),
     col.refreshTokens().deleteMany({ userId }),
     col.emailTokens().deleteMany({ userId }),
   ]);

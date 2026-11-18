@@ -4,6 +4,7 @@ import { z } from "zod";
 import { col, type UserDoc } from "../db.js";
 import { deleteAllUserData } from "../repo.js";
 import { seedNewUser } from "../seed/index.js";
+import { Age } from "./profileSchema.js";
 import { newId } from "../util/id.js";
 import { dummyHash, hashPassword, needsRehash, verifyPassword } from "../auth/password.js";
 import { requireAuth } from "../auth/middleware.js";
@@ -77,7 +78,7 @@ async function sendVerification(user: UserDoc) {
 
 // ── Register ─────────────────────────────────────────────────
 auth.post("/register", registerPerIp, wrap(async (req, res) => {
-  const { name, email, password } = z.object({ name: Name, email: Email, password: NewPassword }).parse(req.body);
+  const { name, email, password, age } = z.object({ name: Name, email: Email, password: NewPassword, age: Age }).parse(req.body);
   const nowD = new Date();
   const user: UserDoc = { _id: newId(), email, name, passwordHash: await hashPassword(password), emailVerified: false, tokenVersion: 0, createdAt: nowD, updatedAt: nowD };
   try {
@@ -86,7 +87,7 @@ auth.post("/register", registerPerIp, wrap(async (req, res) => {
     if ((e as { code?: number }).code === 11000) return res.status(409).json({ error: "An account with this email already exists" });
     throw e;
   }
-  await seedNewUser(user._id, name);
+  await seedNewUser(user._id, name, age);
   await sendVerification(user);
   const { csrfToken } = await startSession(res, req, user);
   respond(res, user, csrfToken, 201);
