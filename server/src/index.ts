@@ -21,7 +21,7 @@ try {
 const server = createApp().listen(config.port, () => {
   console.log(`StarkFitIQ API → http://localhost:${config.port}/api`);
   console.log(`MongoDB connected (db "${config.mongoDb}"). AI keys are per user: Profile → AI provider.`);
-  console.log(config.resendApiKey ? `Emails sent via Resend from ${config.emailFrom}` : "No RESEND_API_KEY: emails are printed here instead of sent (dev mode).");
+  console.log(`Emails sent via Gmail from ${config.emailFrom}`);
 });
 
 for (const sig of ["SIGINT", "SIGTERM"] as const)

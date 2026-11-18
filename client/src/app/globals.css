@@ -18,8 +18,10 @@
   --text: #f2f4f7;
   --text-2: #c4ccd5;
   --muted: #a3acb6;
-  --accent: #8b93ff; /* text, lines, icons on dark */
-  --accent-fill: #4f57f0; /* buttons and filled surfaces */
+  --accent: #8b93ff;
+  /* text, lines, icons on dark */
+  --accent-fill: #4f57f0;
+  /* buttons and filled surfaces */
   --on-accent: #ffffff;
   --accent-soft: rgba(139, 147, 255, 0.12);
   --accent-line: rgba(139, 147, 255, 0.42);
@@ -36,7 +38,7 @@
   --shadow: rgba(0, 0, 0, 0.85);
   --grid-line: rgba(255, 255, 255, 0.05);
   --outline-text: rgba(255, 255, 255, 0.32);
-  --giant: rgba(255, 255, 255, 0.12);
+  --giant: rgba(255, 255, 255, 0.3);
   --hero-shade: linear-gradient(90deg, rgba(7, 8, 10, 0.92) 0%, rgba(7, 8, 10, 0.6) 45%, rgba(7, 8, 10, 0.2) 100%);
   --cta-shade: radial-gradient(ellipse at 50% 60%, rgba(7, 8, 10, 0.55), rgba(7, 8, 10, 0.94) 70%);
   --photo-filter: grayscale(0.4) contrast(1.05);
@@ -49,7 +51,7 @@
 [data-theme="light"] {
   color-scheme: light;
   --bg: #f5f6f8;
-  --bg-2: #eceef2;
+  --bg-2: #f2f2f2;
   --card: #ffffff;
   --card-2: #f5f6f8;
   --line: rgba(11, 13, 16, 0.09);
@@ -76,7 +78,7 @@
   --grid-line: rgba(11, 13, 16, 0.06);
   --outline-text: rgba(11, 13, 16, 0.28);
   --giant: rgba(11, 13, 16, 0.12);
-  --hero-shade: linear-gradient(90deg, rgba(245, 246, 248, 0.96) 0%, rgba(245, 246, 248, 0.8) 45%, rgba(245, 246, 248, 0.25) 100%);
+  --hero-shade: linear-gradient(90deg, rgba(245, 246, 248, 0.78) 0%, rgba(245, 246, 248, 0.5) 45%, rgba(245, 246, 248, 0.1) 100%);
   --cta-shade: radial-gradient(ellipse at 50% 60%, rgba(245, 246, 248, 0.7), rgba(245, 246, 248, 0.96) 70%);
   --photo-filter: grayscale(0.2) contrast(1.02);
   --surface-700: #dfe3e9;
@@ -85,7 +87,8 @@
 }
 
 :root {
-  --on-media: #ffffff; /* text on photos / video stays white in both themes */
+  --on-media: #ffffff;
+  /* text on photos / video stays white in both themes */
   --on-media-2: #d5dbe1;
   --r-lg: 28px;
   --ease: cubic-bezier(0.2, 0.8, 0.2, 1);
@@ -158,12 +161,15 @@ body {
 .btn {
   @apply inline-flex items-center justify-center gap-2 rounded-full px-5 py-2 text-sm font-semibold transition disabled:cursor-not-allowed disabled:opacity-50;
 }
+
 .btn-primary {
   @apply bg-volt font-bold text-on-accent;
 }
+
 .btn-primary:not(:disabled):hover {
   box-shadow: 0 14px 40px -12px var(--accent-glow);
 }
+
 .btn-ghost {
   @apply border border-ink-600 text-ink-200 hover:border-volt-bright/60 hover:bg-volt-bright/10 hover:text-fg;
 }
@@ -183,10 +189,12 @@ body {
   cursor: pointer;
   transition: border-color 0.3s, background 0.3s;
 }
+
 .theme-toggle:hover {
   border-color: var(--accent-line);
   background: var(--accent-soft);
 }
+
 .tt-icon {
   position: absolute;
   display: grid;
@@ -195,6 +203,7 @@ body {
   opacity: 0;
   transition: transform 0.5s var(--ease), opacity 0.3s;
 }
+
 .tt-icon.on {
   transform: none;
   opacity: 1;
@@ -230,27 +239,34 @@ body {
 .prose-chat :where(p, ul, ol, table, pre) {
   @apply my-2;
 }
+
 .prose-chat ul {
   @apply list-disc pl-5;
 }
+
 .prose-chat ol {
   @apply list-decimal pl-5;
 }
+
 .prose-chat table {
   @apply w-full border-collapse text-xs;
 }
+
 .prose-chat th,
 .prose-chat td {
   @apply border border-ink-600 px-2 py-1 text-left;
 }
+
 .prose-chat code {
   @apply rounded bg-ink-700 px-1 text-[0.85em];
 }
+
 .prose-chat strong {
   @apply text-fg;
 }
 
 @media (prefers-reduced-motion: reduce) {
+
   .theme-anim,
   .theme-anim * {
     transition: none !important;

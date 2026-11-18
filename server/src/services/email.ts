@@ -1,3 +1,4 @@
+import nodemailer from "nodemailer";
 import { config } from "../config.js";
 
 export interface Email {
@@ -9,29 +10,29 @@ export interface Email {
 
 type Transport = (e: Email) => Promise<void>;
 
-/** Resend (https://resend.com): one HTTPS call, no SDK. */
-const resend: Transport = async (e) => {
-  const res = await fetch("https://api.resend.com/emails", {
-    method: "POST",
-    headers: { Authorization: `Bearer ${config.resendApiKey}`, "Content-Type": "application/json" },
-    body: JSON.stringify({ from: config.emailFrom, to: [e.to], subject: e.subject, html: e.html, text: e.text }),
-    signal: AbortSignal.timeout(15_000),
+/** Gmail SMTP with an App Password (Google Account → Security → 2-Step Verification → App passwords). */
+function gmailTransport(): Transport {
+  const smtp = nodemailer.createTransport({
+    service: "gmail",
+    auth: { user: config.gmailUser, pass: config.gmailAppPassword },
+    connectionTimeout: 15_000,
+    greetingTimeout: 15_000,
+    socketTimeout: 30_000,
   });
-  if (!res.ok) throw new Error(`Resend error ${res.status}: ${(await res.text()).slice(0, 300)}`);
-};
+  return async (e) => {
+    await smtp.sendMail({ from: config.emailFrom, to: e.to, subject: e.subject, html: e.html, text: e.text });
+  };
+}
 
-/** Development without RESEND_API_KEY: print the email so links can be clicked from the terminal. */
-const consoleTransport: Transport = async (e) => {
-  console.log(`\n── Email (dev, not sent) ──────────────────\nTo: ${e.to}\nSubject: ${e.subject}\n\n${e.text}\n───────────────────────────────────────────\n`);
-};
-
-let transport: Transport = config.resendApiKey ? resend : consoleTransport;
+/** Created on first send, so tests that swap the transport never need Gmail credentials. */
+let transport: Transport | undefined;
 
 /** Tests swap in a capturing transport. */
 export const setEmailTransport = (t: Transport) => (transport = t);
 
 /** Fire-and-forget so response timing never reveals whether an email was sent. Failures are logged. */
 export function sendEmail(e: Email) {
+  transport ??= gmailTransport();
   transport(e).catch((err) => console.error(`Email to ${e.to} failed:`, (err as Error).message));
 }
 

@@ -36,12 +36,17 @@ export const config = {
   /** Set when running behind a reverse proxy (Render, Fly, Nginx) so rate limiting sees real client IPs */
   trustProxy: env("TRUST_PROXY", "false") === "true",
 
-  // ── Email (Resend) ──
+  // ── Email (Gmail SMTP) ──
   /** Public URL of the web app, used in email links */
   appUrl: env("APP_URL", env("CLIENT_ORIGIN", "http://localhost:3000").split(",")[0].trim()).replace(/\/+$/, ""),
-  /** Without a key, emails are printed to the server console (development only) */
-  resendApiKey: env("RESEND_API_KEY"),
-  emailFrom: env("EMAIL_FROM", "StarkFitIQ <onboarding@resend.dev>"),
+  /** Required in every environment: all emails are sent through this Gmail account */
+  gmailUser: env("GMAIL_USER"),
+  /** 16-character Google App Password (spaces are ignored), not the normal account password */
+  gmailAppPassword: env("GMAIL_APP_PASSWORD").replace(/\s+/g, ""),
+  /** Gmail only sends as the account itself (or a verified "Send mail as" alias) */
+  get emailFrom() {
+    return env("EMAIL_FROM") || `StarkFitIQ <${this.gmailUser}>`;
+  },
   /** Block the app (not sign-in) until the email address is verified */
   requireEmailVerification: env("REQUIRE_EMAIL_VERIFICATION", "true") === "true",
   verifyTtlSec: 24 * 60 * 60,
@@ -76,7 +81,8 @@ export function assertConfig() {
   }
   if (config.cookieSameSite === "none" && !config.cookieSecure) problems.push("COOKIE_SAMESITE=none requires COOKIE_SECURE=true");
   if (!["lax", "strict", "none"].includes(config.cookieSameSite)) problems.push("COOKIE_SAMESITE must be lax, strict or none");
-  if (config.isProd && !config.resendApiKey) problems.push("RESEND_API_KEY is required in production (verification and password-reset emails)");
+  if (!config.gmailUser) problems.push("GMAIL_USER is required (Gmail address that sends verification and password-reset emails)");
+  if (!config.gmailAppPassword) problems.push("GMAIL_APP_PASSWORD is required (Google App Password: https://myaccount.google.com/apppasswords)");
   if (config.isProd && !/^https:\/\//.test(config.appUrl)) problems.push("APP_URL must be the https:// address of the web app in production");
   if (problems.length) {
     console.error("\nServer config is incomplete (server/.env):\n" + problems.map((p) => `  • ${p}`).join("\n"));

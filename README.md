@@ -58,7 +58,7 @@ Mid-week scoring only counts training days that have passed. Scores stay grounde
 - **Backend:** Express API
 - **AI:** each user's own provider: Anthropic (Claude), OpenAI, Gemini, Groq, Mistral, OpenRouter or any OpenAI-compatible API
 - **Storage:** MongoDB (Atlas)
-- **Auth:** Argon2id, JWT access + refresh tokens in httpOnly cookies, Resend for email
+- **Auth:** Argon2id, JWT access + refresh tokens in httpOnly cookies, Gmail SMTP (nodemailer) for email
 - **Domain code:** each app has its own copy, `server/src/domain.ts` and `client/src/lib/domain.ts` (types, date helpers, score and calorie math). When you change an API type, update both
 
 ## Project structure
@@ -76,7 +76,7 @@ workout-coach/
 │       │   ├── metrics.ts           # Deterministic training metrics
 │       │   ├── constraints.ts       # Constraint rules and exercise swaps
 │       │   ├── ai.ts                # Per-user AI provider client
-│       │   ├── email.ts             # Resend emails (console in dev)
+│       │   ├── email.ts             # Gmail SMTP emails
 │       │   └── claude.ts            # AI scoring and streaming chat prompts
 │       ├── routes/                  # auth.ts, settings.ts, api.ts (REST + SSE)
 │       └── seed/baseline-plan.md    # Initial workout plan
@@ -106,7 +106,7 @@ In `server/.env`, paste the three generated secrets and set `MONGODB_URI` to you
 npm run dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) and create an account. Without `RESEND_API_KEY`, the verification email is printed in the `npm run dev` terminal: open its link to verify and you're in. The API runs at [http://localhost:4000](http://localhost:4000). The server refuses to start if any secret is missing or weak.
+Open [http://localhost:3000](http://localhost:3000) and create an account. Set `GMAIL_USER` and `GMAIL_APP_PASSWORD` first: the verification email is sent to your inbox, open its link to verify and you're in. The API runs at [http://localhost:4000](http://localhost:4000). The server refuses to start if any secret is missing or weak.
 
 Have data in the old `server/data/db.json`? Sign up first, then copy it into your account:
 
@@ -130,7 +130,7 @@ Branding lives in `client/src/assets/`: `StarkFitIq Icon.png` (icon only: nav ba
 - **Sign up, sign in, sign out, sign out everywhere, change password, revoke a device, delete account** (Profile → Account & security).
 - **Email verification:** a link is emailed at sign-up (expires in 24 h, resendable, single use). The app stays locked until it's clicked (`REQUIRE_EMAIL_VERIFICATION`).
 - **Forgot password:** "Forgot password?" on the sign-in page emails a one-time link (expires in 1 h). The response is identical whether or not the email exists. Resetting signs out every device and sends a "password changed" notice.
-- **Email** goes through [Resend](https://resend.com) (`RESEND_API_KEY`, `EMAIL_FROM` on a verified domain). In development without a key, emails are printed in the server terminal. Link tokens are 256-bit random values stored only as SHA-256 hashes, auto-deleted by a TTL index, and removed from the address bar once read.
+- **Email** goes through Gmail SMTP (`GMAIL_USER` plus a Google App Password in `GMAIL_APP_PASSWORD`). Link tokens are 256-bit random values stored only as SHA-256 hashes, auto-deleted by a TTL index, and removed from the address bar once read.
 - **Passwords** are hashed with **Argon2id** (64 MiB, 3 passes) and rehashed automatically if settings get stronger.
 - **JWT access token** (15 min) and **refresh token** (7 days) are stored in `httpOnly`, `SameSite`, `Secure` (in production) cookies, never readable by JavaScript. The refresh cookie is only sent to `/api/auth`.
 - **Refresh-token rotation with reuse detection:** every refresh token works once and is stored only as a SHA-256 hash in MongoDB (auto-expired by a TTL index). Replaying an old one revokes that whole sign-in.

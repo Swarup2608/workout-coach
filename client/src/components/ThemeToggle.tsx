@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useLayoutEffect, useState } from "react";
 
 type Theme = "light" | "dark";
 const KEY = "sfiq-theme";
@@ -12,6 +12,25 @@ function readSaved(): Theme | null {
   } catch {
     return null;
   }
+}
+
+function preferred(): Theme {
+  return readSaved() ?? (window.matchMedia("(prefers-color-scheme: light)").matches ? "light" : "dark");
+}
+
+/**
+ * Pins the page to dark while mounted (landing + blog are dark-only), then hands
+ * back the user's saved / OS theme on unmount so app pages keep both modes.
+ * The saved preference is never touched.
+ */
+export function useForceDarkTheme() {
+  useLayoutEffect(() => {
+    const root = document.documentElement;
+    root.dataset.theme = "dark";
+    return () => {
+      root.dataset.theme = preferred();
+    };
+  }, []);
 }
 
 /** Light/dark switch. The choice is remembered; until then the OS setting is followed. */

@@ -15,7 +15,8 @@ export const viewport: Viewport = {
 };
 
 // Applies the saved theme (or the OS setting) before first paint, so there is no flash.
-const themeScript = `(function(){var t;try{t=localStorage.getItem('sfiq-theme')}catch(e){}if(t!=='light'&&t!=='dark')t=window.matchMedia('(prefers-color-scheme: light)').matches?'light':'dark';document.documentElement.dataset.theme=t})()`;
+// The landing page and the blog (/disciplines) are dark-only.
+const themeScript = `(function(){var p=location.pathname,t;if(p==='/'||p==='/disciplines'||p.indexOf('/disciplines/')===0){document.documentElement.dataset.theme='dark';return}try{t=localStorage.getItem('sfiq-theme')}catch(e){}if(t!=='light'&&t!=='dark')t=window.matchMedia('(prefers-color-scheme: light)').matches?'light':'dark';document.documentElement.dataset.theme=t})()`;
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (

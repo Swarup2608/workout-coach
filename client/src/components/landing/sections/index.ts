@@ -1,0 +1,10 @@
+export { Hero } from "./Hero";
+export { Marquee } from "./Marquee";
+export { Features } from "./Features";
+export { Gallery } from "./Gallery";
+export { Story } from "./Story";
+export { GoalPicker } from "./GoalPicker";
+export { Film } from "./Film";
+export { Pricing } from "./Pricing";
+export { FAQ } from "./FAQ";
+export { CTA } from "./CTA";
