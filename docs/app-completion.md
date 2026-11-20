@@ -277,7 +277,7 @@ Each step ends with `npm run typecheck`, `npm test` and `npm run build` passing.
 
 ## Build status
 
-Everything above is built. Verified with `npm run typecheck` (server and client), `npm test` (88 passing, including new suites for the live workout timer, coach actions, today/progress/exercises, readiness and PRs) and a production `next build`. The Playwright recorder in [workflow/record-demo.mjs](workflow/record-demo.mjs) walks the whole loop against a throwaway stack and produced the video and screenshots.
+Everything above is built. Verified with `npm run typecheck` (server and client), `npm test` (88 passing, including new suites for the live workout timer, coach actions, today/progress/exercises, readiness and PRs) and a production `next build`. The video and screenshots in [workflow/](workflow/) walk the whole loop.
 
 Differences from the plan above:
 

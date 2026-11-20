@@ -9,8 +9,7 @@
     "start": "node dist/index.js",
     "typecheck": "tsc --noEmit",
     "test": "tsx --test src/**/*.test.ts",
-    "secrets": "node scripts/secrets.mjs",
-    "import-json": "tsx src/scripts/importJson.ts"
+    "secrets": "node scripts/secrets.mjs"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^1.8.0",

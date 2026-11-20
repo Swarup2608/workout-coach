@@ -16,9 +16,21 @@
 
 StarkFitIQ is an AI workout coach that understands your training plan, workout history, goals and constraints. Log sets and reps, review your progress, score each training week and get practical coaching recommendations.
 
+It is a web app (Next.js client, Express 5 + MongoDB API) where each user brings their own AI key, and every AI feature also works without one through copy and paste. The full daily training loop is built: onboarding, starter plan, check-in, live workout, summary, progress and a coach on every page. Nutrition and AI-generated plans are next; see [Status and roadmap](#status-and-roadmap).
+
 <div align="center">
   <img src="docs/starkfitiq-workflow.svg" alt="StarkFitIQ workflow: sign up, guided setup, rule-based starter plan, log and check in, weekly score and AI coaching" width="100%" />
 </div>
+
+## Videos
+
+| Video | Format | File |
+| --- | --- | --- |
+| Full product demo | 16:9 | [docs/demo/starkfitiq-full-demo.mp4](docs/demo/starkfitiq-full-demo.mp4) |
+| Promo ad, 60 s | 16:9 | [voice-over](docs/ad/starkfitiq-ad-60s-16x9.mp4) · [with music](docs/ad/starkfitiq-ad-60s-16x9-music.mp4) |
+| Promo ad, 30 s | 9:16 (phone) | [voice-over](docs/ad/starkfitiq-ad-30s-9x16.mp4) · [with music](docs/ad/starkfitiq-ad-30s-9x16-music.mp4) |
+| Daily loop walkthrough | 16:9 | [docs/workflow/workflow-demo.webm](docs/workflow/workflow-demo.webm) |
+| Onboarding walkthrough | 16:9 | [docs/onboarding/onboarding-demo.webm](docs/onboarding/onboarding-demo.webm) |
 
 ## What you can do
 
@@ -36,7 +48,7 @@ StarkFitIQ is an AI workout coach that understands your training plan, workout h
 - **Build and review plans** — paste a Markdown workout plan and turn it into structured training days and exercises.
 - **Score every week** — evaluate adherence, progressive overload, rep-range quality, muscle balance and recovery.
 - **Review plan quality** — check weekly muscle volume, recovery days, session length and constraint safety.
-- **Chat with your coach** — discuss your plan, recent logs, progress and next training decisions with context.
+- **Quick Add** — describe your day in plain language and turn it into a saved log (food, steps, water, sleep, training).
 - **Respect constraints** — flag exercises that conflict with your profile and suggest safer alternatives.
 
 ## How it works
@@ -110,10 +122,29 @@ The app calculates the ground-truth metrics first. Claude reviews those metrics 
 
 Mid-week scoring only counts training days that have passed. Scores stay grounded in app metrics; the AI adds interpretation, coaching and actionable adjustments.
 
+## Status and roadmap
+
+Measured against the product spec (18 P0 pages): **13 done, 3 partial, 2 missing**. Full audit and plan: [PRODUCT_PLAN.md](PRODUCT_PLAN.md).
+
+| Area | Status |
+| --- | --- |
+| Accounts, onboarding, rule-based starter plan, daily check-in + readiness | Done |
+| Live workout, rest timer, summary, PRs, exercise library and detail, swaps | Done |
+| Progress, coach chat on every page with Apply/undo, profile and settings (kg/lb, cm/in, theme) | Done |
+| Sign-up (email only; no Google or phone OTP), Today (no calorie/protein rings yet), plan (no drag reschedule) | Partial |
+| Progressive overload, per-set effort rating, adaptive plan, readiness auto-adjusting the session | Partial |
+| Nutrition page, Add food, food database (Indian dishes), calorie and macro targets | Missing |
+| AI plan generator, photo-to-macros, missed-session reshuffle | Missing |
+| PWA / offline, data export, billing, per-user AI usage caps | Missing |
+
+**Next up (Phase 1, in order):** AI plan generator (building on the rule-based plan and `workouts.json`), per-set effort and missed-session reshuffle, stored progressive-overload targets, the nutrition module, readiness that adjusts the session, calorie/protein rings on Today, photo-to-macros and adaptive plans, then hardening (tests for AI routes, usage caps, safety guardrails).
+
+**Open decisions:** PWA vs React Native (recommended: PWA first), whether Pro includes built-in AI or users keep their own keys, and the food data source (recommended: a small self-built Indian dataset for the MVP).
+
 ## Tech stack
 
 - **Frontend:** Next.js 16, React 19, Tailwind CSS 4, TypeScript
-- **Backend:** Express API, bundled with esbuild
+- **Backend:** Express 5 API, bundled with esbuild
 - **AI:** each user's own provider: Anthropic (Claude), OpenAI, Gemini, Groq, Mistral, OpenRouter or any OpenAI-compatible API
 - **Storage:** MongoDB (Atlas)
 - **Auth:** Argon2id, JWT access + refresh tokens in httpOnly cookies, Gmail SMTP (nodemailer) for email
@@ -144,13 +175,12 @@ workout-coach/
 │       │                            # onboarding.ts, checkins.ts, profileSchema.ts,
 │       │                            # workout.ts (live timer, summary), insights.ts (today,
 │       │                            # progress, exercises), coach.ts (actions, prompts, notes)
-│       ├── scripts/demoServer.ts    # Throwaway API for recording demos
 │       ├── test/harness.ts          # Shared in-memory MongoDB + app for API tests
 │       └── seed/
 │           ├── baseline-plan.md     # Plan new accounts start with
 │           └── workouts.json        # Exercise library, split templates, injury rules
 └── client/                         # Next.js app (port 3000)
-    └── src/
+    ├── src/
         ├── app/                     # Pages: Today (/dashboard), Plan, Progress, Exercises (+ detail),
         │                            # Live workout, Workout summary, Check-in, Log, History, Coach,
         │                            # Profile, Onboarding, login, signup, forgot/reset password, verify email
@@ -162,8 +192,18 @@ workout-coach/
         ├── lib/domain.ts            # Client's domain types and helpers
         ├── lib/api.ts               # API client (cookies, CSRF, silent refresh)
         ├── lib/units.ts             # kg/lb conversion and the per-user unit preference
-        └── assets/StarkFitIq.png    # Logo
+        └── assets/landing/          # Landing page videos and images
+    └── public/
+        ├── brand/                   # Logo PNGs used by components/Logo.tsx
+        └── media/                   # Stock photos (landing page, exercise images)
+docs/
+├── demo/, ad/                       # Product demo and promo ad videos
+├── onboarding/, workflow/           # Walkthrough videos and screenshots
+├── app-completion.md, onboarding.md # Design and build notes
+└── *.svg                            # README / overview banners and diagrams
 ```
+
+More background: [PRODUCT_PLAN.md](PRODUCT_PLAN.md) (spec vs reality and roadmap).
 
 ## Quick start
 
@@ -181,25 +221,18 @@ npm run dev
 ```
 
 Open [http://localhost:3000](http://localhost:3000) and create an account (you'll land on the dashboard with a setup card; see [Onboarding](#onboarding)). Set `GMAIL_USER` and `GMAIL_APP_PASSWORD` first: the verification email is sent to your inbox, open its link to verify and you're in. The API runs at [http://localhost:4000](http://localhost:4000). The server refuses to start if any secret is missing or weak.
-
-Have data in the old `server/data/db.json`? Sign up first, then copy it into your account:
-
-```bash
-npm run import-json -w server -- you@example.com ./data/db.json
-```
-
 ## Pages
 
 | URL | Who | What |
 | --- | --- | --- |
 | `/` | Everyone | Landing page (black + gold, the site-wide theme) |
-| `/landing-2` | Everyone | Alternate light landing page (cream + forest green) |
+| `/disciplines`, `/disciplines/[slug]` | Everyone | Training disciplines blog |
 | `/login`, `/signup`, `/forgot-password`, `/reset-password`, `/verify-email` | Everyone | Auth pages |
 | `/dashboard` (Today), `/plan`, `/progress`, `/exercises`, `/exercises/[slug]`, `/checkin`, `/log`, `/history`, `/chat`, `/profile` | Signed in + verified | The app (coach chat bar on every page; bottom tab bar on phones) |
 | `/workout/live`, `/workout/summary/[id]` | Signed in + verified | Live workout with timer; post-workout summary |
 | `/onboarding` | Signed in + verified | Guided setup and starter plan |
 
-Branding lives in `client/src/assets/`: `StarkFitIq Icon.png` (icon only: nav bars, footers, browser-tab icon) and `StarkFitIq.png` (full logo with name and tagline: sign-in/sign-up pages). Landing photos in `assets/landing/` are cropped from the design mockups; replace them with full-resolution photos when you have them. Set `NEXT_PUBLIC_GITHUB_URL` / `NEXT_PUBLIC_DOCS_URL` in `client/.env.local` for the landing page links.
+Branding lives in `client/public/brand/` (horizontal, stacked and mark logos, each in dark- and light-background variants), rendered by `components/Logo.tsx`; the browser-tab icons are `client/src/app/icon.png` and `apple-icon.png`. Landing videos and images are in `client/src/assets/landing/`, stock photos in `client/public/media/`. Set `NEXT_PUBLIC_GITHUB_URL` / `NEXT_PUBLIC_DOCS_URL` in `client/.env.local` for the landing page links.
 
 ## Accounts and security
 
@@ -309,22 +342,7 @@ npm test           # API end-to-end tests (auth, profile, onboarding, check-ins,
                    # + starter-plan, parser, constraint, metrics, readiness and PR tests
 npm run typecheck  # TypeScript checks
 npm run secrets -w server       # Generate JWT and encryption secrets
-npm run import-json -w server -- <email> [db.json]  # Copy old JSON data into an account
 ```
-
-### Re-recording the onboarding demo
-
-The demo runs against a throwaway stack: a separate local database (`starkfitiq_onboarding_demo`, dropped on start and stop), email verification off, and emails printed instead of sent. It uses its own build folder, so a running `npm run dev` is unaffected.
-
-```bash
-cd server && npx tsx src/scripts/demoServer.ts        # API on :4100 (needs local mongod)
-cd client && NEXT_DIST_DIR=.next-demo NEXT_PUBLIC_API_URL=http://localhost:4100/api npx next build \
-  && NEXT_DIST_DIR=.next-demo npx next start -p 3100    # web on :3100
-npx playwright install chromium                        # first time only
-node docs/onboarding/record-demo.mjs                   # writes docs/onboarding/onboarding-demo.webm + screens/
-```
-
-The workflow demo works the same way with its own database: start the API with `DEMO_DB=starkfitiq_workflow_demo npx tsx src/scripts/demoServer.ts`, build and start the client as above, then run `node docs/workflow/record-demo.mjs` (writes `docs/workflow/workflow-demo.webm` + `screens/`). It creates a demo user with a few weeks of history through the API first.
 
 The auth tests start a throwaway MongoDB: they use `mongod` from your PATH if installed (e.g. `brew install mongodb-community`), otherwise download one into `node_modules/.cache` on the first run. Its data folder is `server/.mongo-test-*`, deleted after the run. They never touch your Atlas database.
 

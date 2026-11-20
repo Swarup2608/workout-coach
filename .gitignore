@@ -10,3 +10,7 @@ next-env.d.ts
 server/.mongo-test-*
 .DS_Store
 client/.shots
+
+# Demo / ad build artefacts
+docs/.voice-cache/
+docs/**/.build/

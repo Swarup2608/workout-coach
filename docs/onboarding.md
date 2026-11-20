@@ -448,4 +448,4 @@ Known gaps:
 - The unit preference cache is keyed by the signed-in user; signing out or switching accounts resets it, so one user's unit never shows for another.
 - Progress UI: a segmented bar ("N of 8 steps completed") plus a clickable stepper. Green = done (steps 1–2 always), red = an optional step that was skipped, ring = current, grey = to do. The dashboard setup card uses the same segmented bar.
 - Starter plan never repeats an exercise within a day when it can avoid it: if a slot's own pattern has nothing safe and unused left, it borrows from a related movement (e.g. a squat slot tries lunge, hinge, calves) before using the static fallback. A test covers every combination with zero or one injury. A few wrist- and elbow-friendly bodyweight exercises were added for that.
-- Demo: `docs/onboarding/onboarding-demo.webm` and `docs/onboarding/screens/*.png`, recorded with Playwright by `docs/onboarding/record-demo.mjs` against `server/src/scripts/demoServer.ts` (see README → "Re-recording the onboarding demo").
+- Demo: `docs/onboarding/onboarding-demo.webm` and `docs/onboarding/screens/*.png`.

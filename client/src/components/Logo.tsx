@@ -50,8 +50,7 @@ export function BrandImage({
 }
 
 /**
- * Horizontal logo, sized by height. `tone="light"` keeps the old meaning (for light backgrounds),
- * so landing-2 keeps working; the default follows the theme.
+ * Horizontal logo, sized by height. `tone="light"` is for light backgrounds; the default follows the theme.
  */
 export function Logo({ size = 28, tone = "auto", className = "" }: { size?: number; tone?: Tone; className?: string; accent?: string }) {
   return (
