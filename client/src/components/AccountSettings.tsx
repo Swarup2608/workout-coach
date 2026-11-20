@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import { authApi, type DeviceSession } from "@/lib/api";
 import { useAuth } from "@/components/AuthProvider";
 import { ErrorNote, Spinner } from "@/components/ui";
+import { Icon } from "@/components/Icons";
 import { PasswordInput, passwordProblem } from "@/components/PasswordInput";
 
 const device = (ua: string) => {
@@ -111,7 +112,7 @@ export function AccountSettings() {
       <div>
         <div className="mb-2 flex items-center justify-between">
           <h3 className="text-xs font-semibold uppercase tracking-wider text-ink-400">Signed-in devices</h3>
-          <button className="text-xs text-ink-400 hover:text-bad" onClick={logoutAll} disabled={!!busy}>
+          <button className="btn btn-danger btn-sm" onClick={logoutAll} disabled={!!busy}>
             Sign out everywhere
           </button>
         </div>
@@ -126,7 +127,7 @@ export function AccountSettings() {
                   {s.ip || "unknown IP"} · active {new Date(s.lastActiveAt).toLocaleString()}
                 </p>
               </div>
-              <button className="text-xs text-ink-400 hover:text-bad" onClick={() => revoke(s)} disabled={!!busy}>
+              <button className="btn btn-ghost btn-sm" onClick={() => revoke(s)} disabled={!!busy}>
                 {s.current ? "Sign out" : "Revoke"}
               </button>
             </li>
@@ -140,9 +141,15 @@ export function AccountSettings() {
 
       <div className="rounded-xl border border-bad/40 bg-bad/5 p-4">
         {!showDelete ? (
-          <button className="text-sm text-bad hover:underline" onClick={() => setShowDelete(true)}>
-            Delete my account…
-          </button>
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div>
+              <p className="text-sm font-semibold text-fg">Delete account</p>
+              <p className="text-xs text-ink-400">Permanently remove your account and all of its data.</p>
+            </div>
+            <button type="button" className="btn btn-danger" onClick={() => setShowDelete(true)}>
+              <Icon name="trash" size={16} /> Delete my account
+            </button>
+          </div>
         ) : (
           <form className="space-y-3" onSubmit={deleteAccount}>
             <p className="text-sm">
@@ -153,7 +160,7 @@ export function AccountSettings() {
               <PasswordInput id="pw-delete" autoComplete="current-password" value={deletePw} onChange={setDeletePw} />
             </div>
             <div className="flex gap-2">
-              <button className="btn bg-bad text-white hover:bg-bad/80" disabled={!!busy || !deletePw}>
+              <button className="btn btn-danger-solid" disabled={!!busy || !deletePw}>
                 {busy === "delete" && <Spinner />} Delete permanently
               </button>
               <button type="button" className="btn btn-ghost" onClick={() => setShowDelete(false)}>

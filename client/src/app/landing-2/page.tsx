@@ -248,7 +248,7 @@ function Results() {
             <dt className="sr-only">{s.l}</dt>
             <dd className="text-3xl font-extrabold">
               {s.v}
-              {s.star && <span className="text-[#e7b416]"> ★</span>}
+              {s.star && <Star className="ml-1 inline-block h-6 w-6 align-[-0.1em] text-[#e7b416]" />}
             </dd>
             <dd className="mt-1 text-xs" style={{ color: C.muted }}>{s.l}</dd>
           </div>

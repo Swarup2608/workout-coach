@@ -24,7 +24,13 @@ StarkFitIQ is an AI workout coach that understands your training plan, workout h
 
 - **Guided onboarding** — a short setup after sign-up (goal, body, training, equipment, injuries, diet, optional AI key) that resumes where you left off.
 - **Rule-based starter plan** — your answers pick a split and exercises from a built-in library; injuries remove exercises that load that joint. No AI needed.
-- **Daily check-in** — log today's weight, mood and sleep from the dashboard in a few seconds.
+- **Today screen** — today's workout with a Start button, readiness from your check-in, training streak and a coach tip.
+- **Live workout with a start-to-finish timer** — the clock runs from server timestamps, so it survives reloads and a locked phone. Pause, resume, finish (even half-done, with a warning) or discard. A rest timer starts when you tick a set, with a beep, vibration and a background notification.
+- **Workout summary** — time, sets, volume, personal records, "vs last time" per exercise, and a coach note (AI automatically after Finish, or a prompt to paste into Claude without a key).
+- **Coach chat on every page** — a bar at the bottom of each signed-in page. The coach knows which page you're on, and can propose changes (swap an exercise, change sets, move a workout, set rest) that only happen when you tap **Apply today** or **Apply to plan**, with undo.
+- **Exercise library and detail** — 82 built-in exercises plus your own, searchable and filtered to your equipment and injuries; each with how-to steps, form cues, common mistakes, photo, YouTube link, your history chart and safer alternatives.
+- **Progress** — bodyweight trend, strength (estimated 1RM) charts, personal records, a training calendar and totals.
+- **Daily check-in** — weight, mood, sleep, energy, soreness and stress; two or more answers give a readiness verdict (ready to push / train as planned / go lighter).
 - **kg or lb** — choose your unit once; every weight in the app follows it.
 - **Track workouts** — record exercises, sets, reps, load, RPE, cardio and daily activity.
 - **Build and review plans** — paste a Markdown workout plan and turn it into structured training days and exercises.
@@ -36,11 +42,38 @@ StarkFitIQ is an AI workout coach that understands your training plan, workout h
 ## How it works
 
 1. Sign up, then finish the guided setup to get a starter plan built around you (or skip it and keep the baseline plan).
-2. Check in daily and import or edit your workout plan any time.
-3. Log each training session as you go.
-4. Review deterministic metrics calculated by the app.
-5. Ask Claude to interpret the metrics and return a structured coaching report.
-6. Import the report to update your score history and next-week adjustments.
+2. Check in each morning and get today's readiness.
+3. Tap **Start workout**: log sets with the timer and rest timer running, then **Finish** to see your summary.
+4. Ask the coach anything from any page, and apply its suggested changes with one tap.
+5. Watch strength, bodyweight and records on **Progress**; score each week with the app's metrics plus AI interpretation.
+
+## The daily loop
+
+<div align="center">
+  <img src="docs/workflow/screens/5-live-workout.png" alt="Live workout: elapsed timer, set rows with weight and reps, two sets ticked, rest timer counting down" width="100%" />
+</div>
+
+▶ **[Watch the workflow demo](docs/workflow/workflow-demo.webm)** (check-in → plan → live workout → coach → summary → exercises → progress → phone, about 1½ minutes).
+
+| Today | Check-in → readiness | This week |
+| --- | --- | --- |
+| ![Today screen with readiness and streak](docs/workflow/screens/3-today-ready.png) | ![Daily check-in with energy, soreness and stress](docs/workflow/screens/2-checkin.png) | ![Plan week view with a day preview](docs/workflow/screens/4-plan-week.png) |
+
+| Coach on every page | Finish with sets left | Workout summary |
+| --- | --- | --- |
+| ![Coach chat panel during a workout](docs/workflow/screens/6-coach-dock.png) | ![Warning listing sets not done](docs/workflow/screens/7-finish-warning.png) | ![Summary with time, sets, volume and vs last time](docs/workflow/screens/8-summary.png) |
+
+| Exercise library | Exercise detail | Progress |
+| --- | --- | --- |
+| ![Exercise library filtered to equipment and injuries](docs/workflow/screens/9-exercises.png) | ![Exercise detail with steps, cues and YouTube link](docs/workflow/screens/10-exercise-detail.png) | ![Progress with bodyweight and strength charts](docs/workflow/screens/11-progress.png) |
+
+| Profile | Phone: Today | Phone: coach |
+| --- | --- | --- |
+| ![Profile with sections and workout preferences](docs/workflow/screens/12-profile.png) | ![Phone layout with bottom tab bar and coach bar](docs/workflow/screens/13-phone-today.png) | ![Coach chat as a bottom sheet on a phone](docs/workflow/screens/14-phone-coach.png) |
+
+**Without an AI key** every AI feature still works through copy and paste: the coach, the summary note and the weekly score hand you a ready-made prompt (with your plan, logs and scores) to paste into Claude, and you can paste the reply back, including any suggested changes as Apply cards.
+
+Full design and build notes: [docs/app-completion.md](docs/app-completion.md).
 
 ## Onboarding
 
@@ -98,6 +131,9 @@ workout-coach/
 │       ├── auth/                    # Argon2id, JWT cookies, CSRF, email tokens, key encryption
 │       ├── services/
 │       │   ├── starterPlan.ts       # Rule-based starter plan from onboarding answers
+│       │   ├── exerciseLibrary.ts   # Exercise library: how-to text, images, alternatives, rest
+│       │   ├── records.ts           # Personal records and "vs last time"
+│       │   ├── readiness.ts         # Readiness score from the daily check-in
 │       │   ├── planParser.ts        # Markdown plan → structured plan
 │       │   ├── metrics.ts           # Deterministic training metrics
 │       │   ├── constraints.ts       # Constraint rules and exercise swaps
@@ -105,19 +141,24 @@ workout-coach/
 │       │   ├── email.ts             # Gmail SMTP emails
 │       │   └── claude.ts            # AI scoring and streaming chat prompts
 │       ├── routes/                  # auth.ts, settings.ts, api.ts (REST + SSE),
-│       │                            # onboarding.ts, checkins.ts, profileSchema.ts
-│       ├── scripts/demoServer.ts    # Throwaway API for recording the onboarding demo
+│       │                            # onboarding.ts, checkins.ts, profileSchema.ts,
+│       │                            # workout.ts (live timer, summary), insights.ts (today,
+│       │                            # progress, exercises), coach.ts (actions, prompts, notes)
+│       ├── scripts/demoServer.ts    # Throwaway API for recording demos
 │       ├── test/harness.ts          # Shared in-memory MongoDB + app for API tests
 │       └── seed/
 │           ├── baseline-plan.md     # Plan new accounts start with
 │           └── workouts.json        # Exercise library, split templates, injury rules
 └── client/                         # Next.js app (port 3000)
     └── src/
-        ├── app/                     # Pages: Dashboard, Log, History, Plan, Coach, Profile,
-        │                            # Onboarding, login, signup, forgot/reset password, verify email
+        ├── app/                     # Pages: Today (/dashboard), Plan, Progress, Exercises (+ detail),
+        │                            # Live workout, Workout summary, Check-in, Log, History, Coach,
+        │                            # Profile, Onboarding, login, signup, forgot/reset password, verify email
         │                            # (+ icon.png / apple-icon.png = browser tab icons)
         ├── components/              # Nav, Logo, auth provider, settings, UI,
-        │                            # SetupCard, CheckinCard, onboarding/ (steps, stepper, plan reveal)
+        │                            # SetupCard, CheckinCard, onboarding/ (steps, stepper, plan reveal),
+        │                            # coach/ (chat provider, dock, thread, action cards),
+        │                            # workout/ (clock, rest alerts, live pill), MobileTabs, LineChart
         ├── lib/domain.ts            # Client's domain types and helpers
         ├── lib/api.ts               # API client (cookies, CSRF, silent refresh)
         ├── lib/units.ts             # kg/lb conversion and the per-user unit preference
@@ -154,7 +195,8 @@ npm run import-json -w server -- you@example.com ./data/db.json
 | `/` | Everyone | Landing page (black + gold, the site-wide theme) |
 | `/landing-2` | Everyone | Alternate light landing page (cream + forest green) |
 | `/login`, `/signup`, `/forgot-password`, `/reset-password`, `/verify-email` | Everyone | Auth pages |
-| `/dashboard`, `/log`, `/history`, `/plan`, `/chat`, `/profile` | Signed in + verified | The app |
+| `/dashboard` (Today), `/plan`, `/progress`, `/exercises`, `/exercises/[slug]`, `/checkin`, `/log`, `/history`, `/chat`, `/profile` | Signed in + verified | The app (coach chat bar on every page; bottom tab bar on phones) |
+| `/workout/live`, `/workout/summary/[id]` | Signed in + verified | Live workout with timer; post-workout summary |
 | `/onboarding` | Signed in + verified | Guided setup and starter plan |
 
 Branding lives in `client/src/assets/`: `StarkFitIq Icon.png` (icon only: nav bars, footers, browser-tab icon) and `StarkFitIq.png` (full logo with name and tagline: sign-in/sign-up pages). Landing photos in `assets/landing/` are cropped from the design mockups; replace them with full-resolution photos when you have them. Set `NEXT_PUBLIC_GITHUB_URL` / `NEXT_PUBLIC_DOCS_URL` in `client/.env.local` for the landing page links.
@@ -178,6 +220,8 @@ Deploying client and API on **different sites** (e.g. `app.vercel.app` + `api.on
 ## AI coaching options
 
 ### Use your Claude Project — no API credits required
+
+Every AI feature has a no-key path. The coach chat bar, the workout summary's **Get coach note** and the weekly score all give you a ready-made prompt to copy into Claude, and **Paste reply back** turns any suggested changes in Claude's reply into Apply cards.
 
 StarkFitIQ can prepare a Markdown check-in containing your profile, plan, logged sets, metrics and the expected response format.
 
@@ -222,7 +266,20 @@ Manage constraints from **Profile**. Each rule can match exercise keywords and p
 | GET                 | `/api/status`                    | Your AI connection status and model       |
 | GET / PUT           | `/api/profile`                   | Read or update profile (fields left out are kept) |
 | PATCH               | `/api/profile/onboarding`        | Save a step's answers, `complete` (builds and activates the starter plan), `skip` or `restart` |
-| GET / PUT           | `/api/checkins/:date`            | Today's check-in (`YYYY-MM-DD`, the user's local date), one per day |
+| GET / PUT           | `/api/checkins/:date`            | Today's check-in (`YYYY-MM-DD`, the user's local date), one per day; returns readiness |
+| GET                 | `/api/checkins?from&to`          | Check-in history                          |
+| GET                 | `/api/today?date=`               | Today screen in one call (plan day, live workout, check-in, streak, tip) |
+| GET                 | `/api/progress?range=&date=`     | Bodyweight, strength series, PRs, calendar, totals |
+| GET                 | `/api/exercises[/:slug]`         | Exercise library / detail with history and alternatives |
+| GET                 | `/api/sessions/live`             | The workout in progress (and whether it's stale) |
+| POST                | `/api/sessions/start`            | Start a live workout from a plan day or empty (`custom`) |
+| PATCH               | `/api/sessions/:id`              | Autosave sets, rest timer, RPE, notes, duration |
+| POST                | `/api/sessions/:id/pause` · `resume` · `finish` · `discard` | Timer controls (server timestamps) |
+| GET                 | `/api/sessions/:id/summary`      | Workout summary: PRs, vs last time, rule-based note |
+| POST                | `/api/sessions/:id/coach-note`   | AI coach note, or a prompt to paste when there's no key |
+| POST                | `/api/coach/prompt`              | Ready-made prompt for chat or a coach note (no-key path) |
+| POST                | `/api/coach/actions/apply`       | Apply a coach-proposed change (`today` or `plan`) |
+| POST                | `/api/coach/actions/:id/undo`    | Undo an applied change                    |
 | GET / POST          | `/api/plans`                     | List plans or upload Markdown             |
 | PUT                 | `/api/plans/:id/days/:day`       | Edit a plan day                           |
 | POST                | `/api/plans/:id/activate`        | Activate a plan                           |
@@ -237,7 +294,7 @@ Manage constraints from **Profile**. Each rule can match exercise keywords and p
 | GET                 | `/api/handoff/plan`              | Build a plan-review check-in              |
 | GET                 | `/api/handoff/context`           | Build coach-chat context                  |
 | POST                | `/api/scores/import`             | Import an AI score report                 |
-| GET / POST / DELETE | `/api/chat`                      | Chat history, streaming message and clear |
+| GET / POST / DELETE | `/api/chat`                      | Chat history, streaming message (optional `page` context) and clear |
 
 Additional day-import endpoints are available at `GET /api/day-import/prompt?date=` and `POST /api/day-import`. Everything except `/api/auth/register|login|refresh|logout|verify-email|forgot-password|reset-password` and `/api/health` requires a signed-in user (app data also needs a verified email); writes also need the `X-CSRF-Token` header returned by login/refresh/me.
 
@@ -247,8 +304,9 @@ Additional day-import endpoints are available at `GET /api/day-import/prompt?dat
 npm run dev        # Start API and web app with hot reload
 npm run build      # Build server and client
 npm start          # Run production builds
-npm test           # API end-to-end tests (auth, profile, onboarding, check-ins; in-memory MongoDB)
-                   # + starter-plan, parser, constraint and metrics tests
+npm test           # API end-to-end tests (auth, profile, onboarding, check-ins, live workout timer,
+                   # coach actions, today/progress/exercises; in-memory MongoDB)
+                   # + starter-plan, parser, constraint, metrics, readiness and PR tests
 npm run typecheck  # TypeScript checks
 npm run secrets -w server       # Generate JWT and encryption secrets
 npm run import-json -w server -- <email> [db.json]  # Copy old JSON data into an account
@@ -266,11 +324,13 @@ npx playwright install chromium                        # first time only
 node docs/onboarding/record-demo.mjs                   # writes docs/onboarding/onboarding-demo.webm + screens/
 ```
 
+The workflow demo works the same way with its own database: start the API with `DEMO_DB=starkfitiq_workflow_demo npx tsx src/scripts/demoServer.ts`, build and start the client as above, then run `node docs/workflow/record-demo.mjs` (writes `docs/workflow/workflow-demo.webm` + `screens/`). It creates a demo user with a few weeks of history through the API first.
+
 The auth tests start a throwaway MongoDB: they use `mongod` from your PATH if installed (e.g. `brew install mongodb-community`), otherwise download one into `node_modules/.cache` on the first run. Its data folder is `server/.mongo-test-*`, deleted after the run. They never touch your Atlas database.
 
 ## Data storage
 
-Data lives in **MongoDB** (`MONGODB_URI`, database `MONGODB_DB`). Collections: `users`, `refresh_tokens`, `profiles`, `plans`, `sessions`, `scores`, `chat_messages`, `checkins`. Weights are always stored in kg; the kg/lb setting only changes display and input. All training data carries a `userId` and is accessed only through `server/src/repo.ts`, which scopes every query to the signed-in user. Indexes are created on startup.
+Data lives in **MongoDB** (`MONGODB_URI`, database `MONGODB_DB`). Collections: `users`, `refresh_tokens`, `profiles`, `plans`, `sessions`, `scores`, `chat_messages`, `checkins`, `coach_actions` (applied coach changes with undo snapshots). A live workout is a session with `status: "in_progress"` and `startedAt` / `pausedMs` timestamps; scoring ignores it until it's finished. Weights are always stored in kg; the kg/lb setting only changes display and input. All training data carries a `userId` and is accessed only through `server/src/repo.ts`, which scopes every query to the signed-in user. Indexes are created on startup.
 
 ---
 

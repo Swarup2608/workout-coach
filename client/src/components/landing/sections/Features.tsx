@@ -1,7 +1,7 @@
 "use client";
 
 /* eslint-disable @next/next/no-img-element */
-import { SYSTEM, SplitText, vars } from "../lib";
+import { PHOTOS, SYSTEM, SplitText, vars } from "../lib";
 
 function FIcon({ d, color = "var(--accent)" }: { d: string; color?: string }) {
   return (
@@ -27,13 +27,9 @@ export function Features() {
         </div>
 
         <div className="bento">
-          <article className="f-card f-wide" data-reveal>
-            <div className="f-photo">
-              <img src={SYSTEM.setBySet} alt="Logging a workout set by set" loading="lazy" />
-              <span className="f-chip mono">SET 3 · 8 × 100 KG</span>
-              <span className="f-chip f-chip-2 mono">RPE 8</span>
-            </div>
-            <div className="f-body">
+          <article className="f-card f-photo-card" data-reveal>
+            <img src={SYSTEM.setBySet} alt="Logging a workout set by set" loading="lazy" data-speed="0.6" />
+            <div className="f-overlay">
               <FIcon d="M9 11l3 3L22 4M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11" />
               <h3 className="h3 disp">Set-by-set logging</h3>
               <p>Your planned exercises are ready when you open the day. Tick off sets, adjust reps and load, add cardio and notes — or build a custom workout from scratch.</p>
@@ -46,9 +42,6 @@ export function Features() {
               <FIcon d="M3 12h4l3-8 4 16 3-8h4" color="var(--ice)" />
               <h3 className="h3 disp">Weekly score</h3>
               <p>Adherence, rep-range quality, overload, muscle balance and recovery roll into one number for the week.</p>
-              <div className="meter">
-                <i style={{ width: "84%" }} />
-              </div>
             </div>
           </article>
 
@@ -76,6 +69,15 @@ export function Features() {
               <FIcon d="M13 2L3 14h9l-1 8 10-12h-9z" color="var(--ice)" />
               <h3 className="h3 disp">Quick Add</h3>
               <p>Describe your day in plain words — “squats 5×5 at 100, 30 min bike, chicken and rice” — and it becomes a saved log.</p>
+            </div>
+          </article>
+
+          <article className="f-card f-photo-card" data-reveal>
+            <img src={PHOTOS.barbellFloor} alt="" loading="lazy" data-speed="0.6" />
+            <div className="f-overlay">
+              <FIcon d="M3 3v18h18M7 15l4-4 3 3 5-6" color="var(--pulse)" />
+              <h3 className="h3 disp">Progress &amp; records</h3>
+              <p>Charts for every lift, bodyweight and weekly score, with personal records flagged the moment you hit them.</p>
             </div>
           </article>
         </div>

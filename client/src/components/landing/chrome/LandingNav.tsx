@@ -16,19 +16,15 @@ const LINKS: [string, string][] = [
 export function LandingNav() {
   const { user } = useAuth();
   const [scrolled, setScrolled] = useState(false);
-  const [hidden, setHidden] = useState(false);
   const [open, setOpen] = useState(false);
   const cta = useMagnetic(0.3);
   // Landing + blog pages are dark-only.
   useForceDarkTheme();
 
   useEffect(() => {
-    let last = 0;
     const onScroll = () => {
       const y = window.scrollY;
       setScrolled(y > 40);
-      setHidden(y > 400 && y > last);
-      last = y;
     };
     window.addEventListener("scroll", onScroll, { passive: true });
     return () => window.removeEventListener("scroll", onScroll);
@@ -43,7 +39,7 @@ export function LandingNav() {
   const ctaLabel = user ? "Open dashboard" : "Get started";
 
   return (
-    <header className={`nav ${scrolled ? "is-scrolled" : ""} ${hidden && !open ? "is-hidden" : ""} ${open ? "is-open" : ""}`}>
+    <header className={`nav ${scrolled ? "is-scrolled" : ""} ${open ? "is-open" : ""}`}>
       <nav className="nav-inner" aria-label="Main">
         <a href="/" className="nav-brand" onClick={(e) => go(e, "#top")} aria-label="StarkFitIQ home">
           <Logo size={34} />

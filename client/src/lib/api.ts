@@ -2,6 +2,13 @@ import type {
   AiProviderId,
   AiSettings,
   ApiStatus,
+  AppliedAction,
+  CoachAction,
+  ExerciseInfo,
+  PageContext,
+  ProgressData,
+  TodayData,
+  WorkoutSummary,
   AuthResponse,
   ChatMessage,
   Checkin,
@@ -141,7 +148,42 @@ export const api = {
   saveProfile: (p: Profile) => req<Profile>("/profile", json("PUT", p)),
   onboarding: (body: OnboardingRequest) => req<{ profile: Profile; plan?: WorkoutPlan }>("/profile/onboarding", json("PATCH", body)),
   checkin: (date: string) => req<Checkin | null>(`/checkins/${date}`),
-  saveCheckin: (date: string, body: Partial<Pick<Checkin, "weightKg" | "mood" | "sleep">>) => req<Checkin>(`/checkins/${date}`, json("PUT", body)),
+  saveCheckin: (date: string, body: Partial<Pick<Checkin, "weightKg" | "mood" | "sleep" | "soreness" | "energy" | "stress">>) =>
+    req<Checkin>(`/checkins/${date}`, json("PUT", body)),
+  checkins: (from: string, to: string) => req<Checkin[]>(`/checkins?from=${from}&to=${to}`),
+
+  today: (date: string) => req<TodayData>(`/today?date=${date}`),
+  progress: (range: number, date: string) => req<ProgressData>(`/progress?range=${range}&date=${date}`),
+  exercises: () => req<ExerciseInfo[]>("/exercises"),
+  exercise: (slug: string) =>
+    req<{
+      exercise: ExerciseInfo;
+      history: { date: string; sets: WorkoutSession["exercises"][number]["sets"]; unit: RepUnit }[];
+      series: { date: string; e1rm: number; best: string }[];
+      alternatives: ExerciseInfo[];
+      injuryWarning: string[];
+      restSec: number;
+    }>(`/exercises/${encodeURIComponent(slug)}`),
+
+  // ── Live workout ──
+  liveSession: () => req<{ session: WorkoutSession | null; stale: boolean; lastActivityAt: string | null }>("/sessions/live"),
+  startWorkout: (date: string, planDay: Weekday | "custom", title?: string) =>
+    req<{ session: WorkoutSession; resumed: boolean }>("/sessions/start", json("POST", { date, planDay, title })),
+  patchSession: (id: string, body: Partial<Pick<WorkoutSession, "title" | "notes" | "restEndsAt" | "sessionRpe" | "durationMin">> & { exercises?: SessionInput["exercises"] }) =>
+    req<WorkoutSession>(`/sessions/${id}`, json("PATCH", body)),
+  pauseWorkout: (id: string) => req<WorkoutSession>(`/sessions/${id}/pause`, json("POST")),
+  resumeWorkout: (id: string) => req<WorkoutSession>(`/sessions/${id}/resume`, json("POST")),
+  finishWorkout: (id: string, endedAt?: string) => req<WorkoutSession>(`/sessions/${id}/finish`, json("POST", endedAt ? { endedAt } : {})),
+  discardWorkout: (id: string) => req<void>(`/sessions/${id}/discard`, json("POST")),
+  summary: (id: string) => req<WorkoutSummary>(`/sessions/${id}/summary`),
+  coachNote: (id: string) =>
+    req<{ note: WorkoutSession["coachNote"]; prompt: string | null }>(`/sessions/${id}/coach-note`, json("POST")),
+
+  // ── Coach ──
+  coachPrompt: (body: { kind: "chat" | "coach-note"; message?: string; page?: PageContext; sessionId?: string }) =>
+    req<{ text: string }>("/coach/prompt", json("POST", body)),
+  applyAction: (action: CoachAction, scope: "today" | "plan") => req<AppliedAction>("/coach/actions/apply", json("POST", { action, scope, date: today() })),
+  undoAction: (id: string) => req<{ ok: true }>(`/coach/actions/${id}/undo`, json("POST")),
 
   plans: () => req<WorkoutPlan[]>("/plans"),
   activePlan: () => req<WorkoutPlan | null>("/plans/active"),
@@ -177,8 +219,8 @@ export const api = {
 };
 
 /** Streams a chat reply from the SSE endpoint. */
-export async function streamChat(message: string, onDelta: (text: string) => void): Promise<ChatMessage> {
-  const res = await authFetch("/chat", { method: "POST", body: JSON.stringify({ message }) });
+export async function streamChat(message: string, onDelta: (text: string) => void, page?: PageContext): Promise<ChatMessage> {
+  const res = await authFetch("/chat", { method: "POST", body: JSON.stringify({ message, page }) });
   if (!res.ok || !res.body) throw new Error(`Chat failed (${res.status})`);
   const reader = res.body.getReader();
   const decoder = new TextDecoder();

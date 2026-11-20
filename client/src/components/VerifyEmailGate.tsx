@@ -35,7 +35,7 @@ export function VerifyEmailGate() {
 
   return (
     <div className="mx-auto mt-10 max-w-md">
-      <h1 className="h-display text-4xl">Check your inbox</h1>
+      <h1 className="t-workout text-fg text-4xl">Check your inbox</h1>
       <div className="card mt-6 space-y-4">
         <p className="text-sm leading-relaxed">
           We sent a verification link to <strong className="text-fg">{user?.email}</strong>. Click it to start using StarkFitIQ. The link expires in 24 hours.

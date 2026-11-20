@@ -90,6 +90,8 @@ export interface LoggedSet {
   /** Extra negative-only (eccentric) reps after the full reps: "10+2" = reps 10, negatives 2 */
   negatives?: number | null;
   done: boolean;
+  /** When the set was ticked during a live workout (pacing stats) */
+  completedAt?: string | null;
 }
 
 /** "20 kg × 10 + 2 neg" style text for one set. */
@@ -243,9 +245,32 @@ export interface WorkoutSession {
   waterL?: number | null;
   sleepHours?: number | null;
   notes: string;
+  // ── Live workout timer (missing on sessions logged by hand) ──
+  /** undefined = completed (older data and hand-logged days) */
+  status?: "in_progress" | "completed";
+  startedAt?: string | null;
+  endedAt?: string | null;
+  /** Total paused time, ms */
+  pausedMs?: number;
+  /** Set while paused */
+  pausedAt?: string | null;
+  /** When the current rest countdown ends */
+  restEndsAt?: string | null;
+  /** Short coach note shown on the workout summary */
+  coachNote?: { text: string; source: "ai" | "rules"; createdAt: string } | null;
   createdAt: string;
   updatedAt: string;
 }
+
+/** Elapsed active time of a live (or finished) session, in ms. */
+export function sessionElapsedMs(s: Pick<WorkoutSession, "startedAt" | "endedAt" | "pausedMs" | "pausedAt">, nowMs: number): number {
+  if (!s.startedAt) return 0;
+  const start = Date.parse(s.startedAt);
+  const end = s.endedAt ? Date.parse(s.endedAt) : s.pausedAt ? Date.parse(s.pausedAt) : nowMs;
+  return Math.max(0, end - start - (s.pausedMs ?? 0));
+}
+
+export const isLive = (s: Pick<WorkoutSession, "status">) => s.status === "in_progress";
 
 export interface Constraint {
   id: string;
@@ -283,6 +308,11 @@ export interface OnboardingState {
   step: number;
   completedAt: string | null;
   skippedAt: string | null;
+  /**
+   * "Redo setup" after finishing: new answers are kept here, not on the profile, and only replace
+   * the old ones when the redo is completed. Skipping throws them away and the old setup stays.
+   */
+  redo?: { step: number; answers: Partial<Profile> } | null;
 }
 
 export interface Profile {
@@ -309,15 +339,169 @@ export interface Profile {
   diet?: Diet | null;
   /** Missing on accounts created before onboarding existed */
   onboarding?: OnboardingState;
+  // ── Display and workout preferences ──
+  heightUnit?: "cm" | "in";
+  /** Default rest between sets, seconds */
+  restDefaults?: { compound: number; isolation: number };
+  /** Rest per exercise name (lower-case), seconds */
+  restOverrides?: Record<string, number>;
+  timerSound?: boolean;
+  timerVibrate?: boolean;
+  keepAwake?: boolean;
+}
+
+export const DEFAULT_REST = { compound: 90, isolation: 60 };
+
+export type Scale5 = 1 | 2 | 3 | 4 | 5;
+
+export interface Readiness {
+  score: number; // 0–100
+  band: "push" | "normal" | "light";
+  label: string;
+  advice: string;
 }
 
 export interface Checkin {
   /** The user's local date, YYYY-MM-DD */
   date: string;
   weightKg: number | null;
-  mood: 1 | 2 | 3 | 4 | 5 | null;
+  mood: Scale5 | null;
   sleep: "poor" | "ok" | "good" | null;
+  /** 1 = fresh, 5 = very sore */
+  soreness?: Scale5 | null;
+  /** 1 = drained, 5 = full of energy */
+  energy?: Scale5 | null;
+  /** 1 = calm, 5 = very stressed */
+  stress?: Scale5 | null;
+  readiness?: Readiness | null;
   updatedAt: string;
+}
+
+// ── Exercise library ─────────────────────────────────────────
+export interface ExerciseInfo {
+  slug: string;
+  name: string;
+  /** Movement pattern, or "other" for the user's own exercises */
+  pattern: string;
+  muscle: MuscleGroup;
+  secondary: string[];
+  equipment: EquipmentSetup[];
+  stresses: Injury[];
+  level: "beginner" | "intermediate" | "advanced" | null;
+  unit: RepUnit;
+  steps: string[];
+  cues: string[];
+  mistakes: string[];
+  restSec: number;
+  /** Image path under the client's /public */
+  image: string;
+  youtubeUrl: string;
+  /** false = only in the user's plans/logs, not in the built-in library */
+  builtIn: boolean;
+  inPlan?: boolean;
+  lastDone?: string | null;
+}
+
+export const exerciseSlug = (name: string) =>
+  name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
+
+export interface PersonalRecord {
+  exercise: string;
+  date: string;
+  kind: "weight" | "e1rm" | "reps";
+  value: number;
+  /** "60 kg × 8" */
+  detail: string;
+  previous: number | null;
+}
+
+export interface ExerciseComparison {
+  name: string;
+  bestSet: string | null;
+  prevBestSet: string | null;
+  volume: number;
+  prevVolume: number | null;
+  trend: "up" | "same" | "down" | "new";
+}
+
+export interface WorkoutSummary {
+  session: WorkoutSession;
+  title: string;
+  durationMin: number | null;
+  setsDone: number;
+  setsPlanned: number;
+  volumeKg: number;
+  kcal: number | null;
+  prs: PersonalRecord[];
+  exercises: ExerciseComparison[];
+  /** From set tick times; null when the session wasn't timed */
+  workingMin: number | null;
+  restMin: number | null;
+  ruleNote: string;
+}
+
+export interface TodayData {
+  date: string;
+  weekday: Weekday;
+  plan: { id: string; name: string } | null;
+  planDay: PlanDay | null;
+  session: WorkoutSession | null;
+  /** Name of what was (or is being) trained today, e.g. "Upper body" */
+  sessionTitle: string | null;
+  live: WorkoutSession | null;
+  liveTitle: string | null;
+  checkin: Checkin | null;
+  streak: number;
+  tip: string | null;
+  estMinutes: number;
+}
+
+export interface ProgressData {
+  range: number;
+  bodyweight: { date: string; kg: number }[];
+  exercises: { name: string; slug: string; points: { date: string; e1rm: number; best: string }[] }[];
+  prs: PersonalRecord[];
+  calendar: { date: string; rpe: number | null; durationMin: number | null; title: string }[];
+  totals: { sessions: number; minutes: number; volumeKg: number; thisMonth: number; lastMonth: number };
+}
+
+// ── Coach actions (proposed in chat, applied on tap) ─────────
+export type CoachAction =
+  | { type: "swap_exercise"; from: string; to: string; day?: Weekday; reason?: string }
+  | { type: "change_sets_reps"; exercise: string; sets?: number; repMin?: number; repMax?: number; day?: Weekday; reason?: string }
+  | { type: "move_workout"; from: Weekday; to: Weekday; reason?: string }
+  | { type: "set_rest"; exercise: string; seconds: number; reason?: string }
+  | { type: "start_workout"; day?: Weekday | "custom"; reason?: string }
+  | { type: "add_note"; text: string; exercise?: string; reason?: string };
+
+/** Which Apply buttons an action offers. */
+export const actionScopes = (a: CoachAction): ("today" | "plan")[] =>
+  a.type === "swap_exercise" || a.type === "change_sets_reps" ? ["today", "plan"] : a.type === "move_workout" ? ["plan"] : ["today"];
+
+export function describeAction(a: CoachAction): string {
+  switch (a.type) {
+    case "swap_exercise":
+      return `Swap ${a.from} → ${a.to}${a.day ? ` (${a.day})` : ""}`;
+    case "change_sets_reps":
+      return `${a.exercise}: ${a.sets ? `${a.sets} sets` : ""}${a.sets && a.repMin ? " × " : ""}${a.repMin ? `${a.repMin}${a.repMax && a.repMax !== a.repMin ? `–${a.repMax}` : ""} reps` : ""}${a.day ? ` (${a.day})` : ""}`;
+    case "move_workout":
+      return `Swap ${a.from}'s and ${a.to}'s workouts`;
+    case "set_rest":
+      return `Rest ${a.seconds}s between sets of ${a.exercise}`;
+    case "start_workout":
+      return a.day === "custom" ? "Start an empty workout" : `Start ${a.day ? `${a.day}'s` : "today's"} workout`;
+    case "add_note":
+      return `Add note${a.exercise ? ` to ${a.exercise}` : ""}: "${a.text}"`;
+  }
+}
+
+export interface AppliedAction {
+  id: string;
+  action: CoachAction;
+  scope: "today" | "plan";
+  summary: string;
+  createdAt: string;
+  undoneAt: string | null;
 }
 
 export interface ConstraintFlag {
@@ -470,6 +654,14 @@ export interface ChatMessage {
   role: "user" | "assistant";
   content: string;
   createdAt: string;
+  /** What the user was looking at when they asked (from the coach dock) */
+  page?: string | null;
+}
+
+/** Where a chat message was sent from, e.g. { page: "exercise", detail: "Goblet squat" }. */
+export interface PageContext {
+  page: string;
+  detail?: string;
 }
 
 export interface ApiStatus {

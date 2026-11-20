@@ -26,7 +26,7 @@ export default function ForgotPasswordPage() {
 
   return (
     <div className="mx-auto mt-10 max-w-sm">
-      <h1 className="h-display text-4xl">Forgot password</h1>
+      <h1 className="t-workout text-fg text-4xl">Forgot password</h1>
       <p className="mt-1 text-sm text-ink-400">Enter your account email and we&apos;ll send you a reset link.</p>
       {done ? (
         <div className="card mt-6 space-y-3">
@@ -46,7 +46,7 @@ export default function ForgotPasswordPage() {
         </form>
       )}
       <p className="mt-4 text-center text-sm text-ink-400">
-        <Link href="/login" className="text-volt-bright hover:underline">Back to sign in</Link>
+        <Link href="/login" className="link">Back to sign in</Link>
       </p>
     </div>
   );

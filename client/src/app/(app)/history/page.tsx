@@ -21,6 +21,7 @@ import {
 } from "@/lib/domain";
 import { api, today } from "@/lib/api";
 import { ErrorNote, scoreColor } from "@/components/ui";
+import { Icon } from "@/components/Icons";
 
 const doneSets = (s: WorkoutSession) => s.exercises.reduce((a, e) => a + e.sets.filter((x) => x.done).length, 0);
 const volume = (s: WorkoutSession) => s.exercises.reduce((a, e) => a + exerciseVolume(e), 0);
@@ -94,7 +95,7 @@ export default function HistoryPage() {
     <div className="space-y-6">
       <div>
         <p className="text-sm text-ink-400">Every workout you&apos;ve logged</p>
-        <h1 className="h-display text-4xl">History</h1>
+        <h1 className="t-workout text-fg text-4xl">History</h1>
       </div>
 
       <ErrorNote error={error} />
@@ -227,7 +228,7 @@ function SessionRow({ s, title, kcal }: { s: WorkoutSession; title?: string; kca
           <span className="text-[10px] uppercase text-ink-400">{s.kcalClaude ? "Claude" : "est."}</span>
         </span>
         <span className="w-4 text-ink-400" title={hasNotes ? "Has notes" : undefined}>
-          {hasNotes ? "✎" : ""}
+          {hasNotes ? <Icon name="pencil" size={14} /> : ""}
         </span>
       </summary>
       <div className="space-y-2 px-5 pb-4 text-sm">
@@ -276,7 +277,7 @@ function SessionRow({ s, title, kcal }: { s: WorkoutSession; title?: string; kca
             !s.cardio?.length && s.cardioMinutes && `${s.cardioMinutes} min cardio`, s.bodyweightKg && `BW ${w(s.bodyweightKg)} ${units}`, `${Math.round(w(volume(s)) ?? 0).toLocaleString()} ${units} volume`]
             .filter(Boolean)
             .join(" · ")}
-          <Link href={`/log?date=${s.date}`} className="ml-3 text-volt-bright hover:underline">
+          <Link href={`/log?date=${s.date}`} className="ml-3 link">
             Edit
           </Link>
         </p>

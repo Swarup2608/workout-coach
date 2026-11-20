@@ -93,9 +93,16 @@
   --r-lg: 28px;
   --ease: cubic-bezier(0.2, 0.8, 0.2, 1);
   --pad: clamp(20px, 4vw, 48px);
-  --f-disp: "Unbounded", system-ui, sans-serif;
-  --f-body: "Inter", system-ui, sans-serif;
-  --f-mono: "JetBrains Mono", ui-monospace, monospace;
+  --sidebar-w: 15rem; /* desktop rail; 4.5rem when collapsed */
+  /* Type system (~80% Uncut Sans, ~17% Racing Sans One, ~3% Bungee) */
+  --f-body: "Uncut Sans", "Inter", system-ui, sans-serif; /* body, navigation, buttons, labels */
+  --f-disp: var(--f-body); /* card headings, metrics/numbers (bold Uncut Sans) */
+  --f-workout: "Racing Sans One", "Uncut Sans", system-ui, sans-serif; /* page headings (h1) and workout titles */
+  --f-badge: "Bungee", "Uncut Sans", system-ui, sans-serif; /* achievements, a few badges. Never regular headings. */
+  --f-mono: "JetBrains Mono", ui-monospace, monospace; /* code / paste boxes only */
+}
+:root[data-sidebar="collapsed"] {
+  --sidebar-w: 4.5rem;
 }
 
 /* Tailwind colour names used across the app, mapped onto the theme tokens.
@@ -104,6 +111,8 @@
   --font-display: var(--f-disp);
   --font-sans: var(--f-body);
   --font-mono: var(--f-mono);
+  --font-workout: var(--f-workout);
+  --font-badge: var(--f-badge);
   --font-landing2: "Manrope", "Inter", system-ui, sans-serif;
 
   --color-ink-950: var(--bg);
@@ -174,6 +183,22 @@ body {
   @apply border border-ink-600 text-ink-200 hover:border-volt-bright/60 hover:bg-volt-bright/10 hover:text-fg;
 }
 
+/* Destructive actions: outlined red, or solid red for the final confirm */
+.btn-danger {
+  @apply border border-bad/50 text-bad hover:border-bad hover:bg-bad/10;
+}
+.btn-danger-solid {
+  @apply bg-bad text-white hover:opacity-90;
+}
+.btn-sm {
+  @apply px-3 py-1 text-xs;
+}
+
+/* Text links: accent colour and always underlined, so they never read as plain text */
+.link {
+  @apply text-volt-bright underline decoration-volt-bright/40 underline-offset-2 transition hover:decoration-current;
+}
+
 /* Theme toggle (landing nav + app nav) */
 .theme-toggle {
   position: relative;
@@ -210,15 +235,26 @@ body {
 }
 
 .input {
-  @apply w-full rounded-lg border border-ink-600 bg-ink-800 px-3 py-2 text-sm text-fg placeholder:text-ink-400 focus:border-volt-bright focus:outline-none;
+  @apply w-full rounded-lg border border-ink-500 bg-ink-900 px-3 py-2 text-sm text-fg shadow-sm transition placeholder:text-ink-400 hover:border-ink-400 focus:border-volt-bright focus:outline-none focus:ring-2 focus:ring-volt-bright/25;
+}
+.input:disabled {
+  @apply cursor-not-allowed bg-ink-800 opacity-60;
 }
 
 .label {
-  @apply mb-1 block font-mono text-[11px] font-semibold uppercase tracking-[0.12em] text-ink-400;
+  @apply mb-1 block font-sans text-[11px] font-semibold uppercase tracking-[0.12em] text-ink-400;
 }
 
 .h-display {
   @apply font-display font-bold tracking-tight text-fg;
+}
+
+/* Role classes for the other type families */
+.t-workout {
+  @apply font-workout font-normal tracking-normal;
+}
+.t-badge {
+  @apply font-badge font-normal tracking-wide;
 }
 
 /* Accent gradient text (kept under its old name) */

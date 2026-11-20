@@ -33,6 +33,7 @@ export const OnboardingStateSchema = z.object({
   step: z.number().int().min(2).max(8),
   completedAt: z.string().nullable(),
   skippedAt: z.string().nullable(),
+  redo: z.object({ step: z.number().int().min(2).max(8), answers: z.object(answerFields).partial().strict() }).nullable().optional(),
 });
 
 export const ProfileSchema = z.object({
@@ -55,4 +56,10 @@ export const ProfileSchema = z.object({
   injuries: answerFields.injuries.optional(),
   diet: answerFields.diet.optional(),
   onboarding: OnboardingStateSchema.optional(),
+  heightUnit: z.enum(["cm", "in"]).optional(),
+  restDefaults: z.object({ compound: z.number().int().min(15).max(600), isolation: z.number().int().min(15).max(600) }).optional(),
+  restOverrides: z.record(z.string().max(120), z.number().int().min(15).max(600)).optional(),
+  timerSound: z.boolean().optional(),
+  timerVibrate: z.boolean().optional(),
+  keepAwake: z.boolean().optional(),
 });

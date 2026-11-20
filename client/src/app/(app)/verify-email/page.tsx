@@ -36,7 +36,7 @@ export default function VerifyEmailPage() {
 
   return (
     <div className="mx-auto mt-10 max-w-sm">
-      <h1 className="h-display text-4xl">Verify email</h1>
+      <h1 className="t-workout text-fg text-4xl">Verify email</h1>
       <div className="card mt-6 space-y-4">
         {state === "working" && (
           <p className="flex items-center gap-2 text-sm text-ink-400">

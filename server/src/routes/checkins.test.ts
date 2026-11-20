@@ -33,6 +33,15 @@ describe("check-ins", () => {
     assert.equal(await app.col().checkins().countDocuments({ date: "2026-11-18" }), 1);
   });
 
+  it("soreness, energy and stress give a readiness verdict; history lists the range", async () => {
+    const r = await a.call("PUT", "/checkins/2026-11-17", { sleep: "poor", energy: 1, soreness: 5, stress: 5 });
+    assert.equal(r.status, 200);
+    assert.equal(r.body.readiness.band, "light");
+    assert.equal((await a.call("PUT", "/checkins/2026-11-17", { energy: 6 })).status, 400);
+    const list = await a.call("GET", "/checkins?from=2026-11-10&to=2026-11-18");
+    assert.deepEqual(list.body.map((c: { date: string }) => c.date), ["2026-11-17", "2026-11-18"]);
+  });
+
   it("rejects an empty or invalid check-in", async () => {
     assert.equal((await a.call("PUT", "/checkins/2026-11-18", {})).status, 400);
     assert.equal((await a.call("PUT", "/checkins/2026-11-18", { weightKg: null, mood: null, sleep: null })).status, 400);

@@ -42,7 +42,7 @@ export default function ResetPasswordPage() {
 
   return (
     <div className="mx-auto mt-10 max-w-sm">
-      <h1 className="h-display text-4xl">New password</h1>
+      <h1 className="t-workout text-fg text-4xl">New password</h1>
       {done ? (
         <div className="card mt-6 space-y-4">
           <p className="text-sm text-good">Password changed. All devices were signed out.</p>
@@ -66,7 +66,7 @@ export default function ResetPasswordPage() {
           </div>
           <ErrorNote error={error} />
           {error?.includes("expired") && (
-            <Link href="/forgot-password" className="block text-sm text-volt-bright hover:underline">Request a new link</Link>
+            <Link href="/forgot-password" className="block text-sm link">Request a new link</Link>
           )}
           <button className="btn btn-primary w-full" disabled={busy || !password || !confirm}>
             {busy && <Spinner />} Set new password

@@ -52,7 +52,7 @@ function SignupForm() {
       <div className="mb-8 flex justify-center">
         <BrandImage variant="stacked" size={120} />
       </div>
-      <h1 className="h-display text-4xl">Create account</h1>
+      <h1 className="t-workout text-fg text-4xl">Create account</h1>
       <p className="mt-1 text-sm text-ink-400">Next we&apos;ll ask a few questions to build your plan.</p>
       <form className="card mt-6 space-y-4" onSubmit={submit} noValidate>
         <div>
@@ -85,7 +85,7 @@ function SignupForm() {
       </form>
       <p className="mt-4 text-center text-sm text-ink-400">
         Already have an account?{" "}
-        <Link href={`/login${next !== "/dashboard" ? `?next=${encodeURIComponent(next)}` : ""}`} className="text-volt-bright hover:underline">
+        <Link href={`/login${next !== "/dashboard" ? `?next=${encodeURIComponent(next)}` : ""}`} className="link">
           Sign in
         </Link>
       </p>

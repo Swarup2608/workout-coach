@@ -77,8 +77,11 @@ export function StepShell({
   onSkipStep,
   skipLabel = "Skip",
   onSkipSetup,
+  redo = false,
   asForm = true,
 }: {
+  /** Redoing a finished setup: "skip" becomes "cancel redo" (old answers are kept). */
+  redo?: boolean;
   title: string;
   subtitle?: string;
   children: React.ReactNode;
@@ -109,7 +112,7 @@ export function StepShell({
         : {})}
     >
       <div>
-        <h1 className="h-display text-3xl">{title}</h1>
+        <h1 className="t-workout text-fg text-3xl">{title}</h1>
         {subtitle && <p className="mt-1 text-sm text-ink-400">{subtitle}</p>}
       </div>
       {children}
@@ -132,10 +135,10 @@ export function StepShell({
         </div>
       </div>
       <p className="text-center text-xs text-ink-400">
-        <button type="button" className="underline-offset-2 hover:text-ink-200 hover:underline" onClick={onSkipSetup} disabled={busy}>
-          Skip setup for now
+        <button type="button" className="text-volt-bright underline underline-offset-2 hover:text-fg" onClick={onSkipSetup} disabled={busy}>
+          {redo ? "Cancel redo" : "Skip setup for now"}
         </button>{" "}
-        · you keep the starter plan and can finish from your profile.
+        {redo ? "· your current setup and plan stay exactly as they are." : "· you keep the starter plan and can finish from your profile."}
       </p>
     </Wrap>
   );

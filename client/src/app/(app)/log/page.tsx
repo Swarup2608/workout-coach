@@ -35,6 +35,8 @@ import { api, constraintHit, today } from "@/lib/api";
 import { ErrorNote, Spinner } from "@/components/ui";
 import { useConfirm } from "@/components/ConfirmDialog";
 import { QuickAdd } from "@/components/QuickAdd";
+import { Icon } from "@/components/Icons";
+import { DATE_PICKED, DATE_SHOWN } from "@/components/topbar/DateSelector";
 
 interface DraftExercise {
   key: string;
@@ -102,6 +104,17 @@ export default function LogPage() {
       })
       .catch((e) => setError(e.message));
   }, []);
+
+  // Keep the top-bar date selector and this page's date in step.
+  useEffect(() => {
+    const onPicked = (e: Event) => setDate((e as CustomEvent<string>).detail);
+    window.addEventListener(DATE_PICKED, onPicked);
+    return () => window.removeEventListener(DATE_PICKED, onPicked);
+  }, []);
+  useEffect(() => {
+    window.history.replaceState(null, "", `/log?date=${date}`);
+    window.dispatchEvent(new CustomEvent(DATE_SHOWN, { detail: date }));
+  }, [date]);
 
   const loadDate = useCallback(async () => {
     if (!plan) return;
@@ -314,17 +327,9 @@ export default function LogPage() {
             {day} · {chosenTitle}
             {workoutDay !== day && <span className="ml-2 rounded-full bg-volt/20 px-2 py-0.5 text-[11px] text-volt-bright">changed for today</span>}
           </p>
-          <h1 className="h-display text-4xl">Log workout</h1>
+          <h1 className="t-workout text-fg text-4xl">Log workout</h1>
         </div>
-        <div className="flex items-center gap-2">
-          <button className="btn btn-ghost" onClick={() => setDate(addDays(date, -1))} aria-label="Previous day">
-            ←
-          </button>
-          <input type="date" className="input w-auto" value={date} onChange={(e) => e.target.value && setDate(e.target.value)} />
-          <button className="btn btn-ghost" onClick={() => setDate(addDays(date, 1))} aria-label="Next day">
-            →
-          </button>
-        </div>
+        {/* Day is chosen with the date selector in the top bar (and the week strip below). */}
       </section>
 
       {/* Week strip */}
@@ -461,7 +466,7 @@ export default function LogPage() {
                     </select>
                   </label>
                   <button className={e.showNote ? "text-volt-bright" : "text-ink-400 hover:text-fg"} onClick={() => patch(e.key, (x) => ({ ...x, showNote: !x.showNote }))}>
-                    {e.notes ? "✎ Note" : "+ Note"}
+                    {e.notes ? <><Icon name="pencil" size={13} className="mr-1" />Note</> : "+ Note"}
                   </button>
                   <button className="text-ink-400 hover:text-bad" onClick={() => setExercises((xs) => xs.filter((x) => x.key !== e.key))}>
                     Remove
@@ -471,7 +476,7 @@ export default function LogPage() {
 
               {hit && (
                 <div className="mb-3 flex flex-wrap items-center gap-2 rounded-lg border border-warn/40 bg-warn/10 px-3 py-2 text-xs text-warn">
-                  <span>⚠ Conflicts with “{hit.label}”. Swap:</span>
+                  <span><Icon name="alert" size={14} className="mr-1" />Conflicts with “{hit.label}”. Swap:</span>
                   {swapsFor(e.name, hit).slice(0, 3).map((s) => (
                     <button key={s} className="rounded-full border border-warn/50 px-2 py-0.5 hover:bg-warn/20" onClick={() => patch(e.key, (x) => ({ ...x, name: s }))}>
                       {s}
@@ -580,7 +585,7 @@ export default function LogPage() {
               )}
 
               <div className="mt-2 flex gap-3 text-xs">
-                <button className="text-volt-bright hover:underline" onClick={() => patch(e.key, (x) => ({ ...x, sets: [...x.sets, emptySet()] }))}>
+                <button className="link" onClick={() => patch(e.key, (x) => ({ ...x, sets: [...x.sets, emptySet()] }))}>
                   + Add set
                 </button>
                 {p && (

@@ -40,7 +40,7 @@ function LoginForm() {
       <div className="mb-8 flex justify-center">
         <BrandImage variant="stacked" size={120} />
       </div>
-      <h1 className="h-display text-4xl">Sign in</h1>
+      <h1 className="t-workout text-fg text-4xl">Sign in</h1>
       <p className="mt-1 text-sm text-ink-400">Welcome back. Your plan, logs and scores are waiting.</p>
       <form className="card mt-6 space-y-4" onSubmit={submit} noValidate>
         <div>
@@ -50,7 +50,7 @@ function LoginForm() {
         <div>
           <div className="flex items-baseline justify-between">
             <label className="label" htmlFor="password">Password</label>
-            <Link href="/forgot-password" className="text-xs text-volt-bright hover:underline">Forgot password?</Link>
+            <Link href="/forgot-password" className="text-xs link">Forgot password?</Link>
           </div>
           <PasswordInput id="password" autoComplete="current-password" value={password} onChange={setPassword} />
         </div>
@@ -61,7 +61,7 @@ function LoginForm() {
       </form>
       <p className="mt-4 text-center text-sm text-ink-400">
         New here?{" "}
-        <Link href={`/signup${next !== "/dashboard" ? `?next=${encodeURIComponent(next)}` : ""}`} className="text-volt-bright hover:underline">
+        <Link href={`/signup${next !== "/dashboard" ? `?next=${encodeURIComponent(next)}` : ""}`} className="link">
           Create an account
         </Link>
       </p>

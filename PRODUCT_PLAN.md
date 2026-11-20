@@ -2,6 +2,10 @@
 
 Spec date: 17 Nov 2026. Audit date: 18 Nov 2026. Branch: master (landing-page work uncommitted).
 
+> **Update, 18 Nov 2026:** onboarding (Phase 1, step 1) is built: in-app welcome on the dashboard, 8-step onboarding, rule-based plan generation with a plan reveal page, a daily check-in (weight, mood, sleep) and kg/lb units. Details: [docs/onboarding.md](docs/onboarding.md). The tables below are updated; rows that changed say so.
+
+> **Update 2, 18 Nov 2026:** the daily training loop is built: coach chat on every page (with page context and Apply/undo for coach-proposed changes), Home / Today, plan week view with day preview, live workout with a start-to-finish timer and rest timer, workout summary with PRs, exercise library and detail, progress page, check-in with readiness, and a sectioned profile with cm/in. Every AI feature falls back to a copyable prompt without a key. Details and demo: [docs/app-completion.md](docs/app-completion.md), [docs/workflow/](docs/workflow/). Rows changed by this update are marked *(18 Nov, loop)*.
+
 ## Context
 
 The spec describes a mobile-style consumer fitness app: onboarding, then a daily loop of check-in, train, eat, progress, with 6 P0 AI features and 31 pages (18 P0).
@@ -24,7 +28,11 @@ Roughly **25-30% of the P0 scope is built**: auth, coach chat, set logging, week
 | Weekly score and report | Deterministic metrics (adherence, overload, rep quality, balance, recovery) plus AI verdict, offline fallback | server `metrics.ts`, `POST /scores/week`; client dashboard `ScoreReportCard` |
 | Theme | Light and dark, follows OS | `ThemeToggle.tsx` |
 | Landing and blog | Animated landing page, disciplines blog, pricing and FAQ sections (marketing only) | `components/landing/*`, `app/disciplines` |
-| Tests | Auth (348 lines), scoring, day-import | server `*.test.ts` |
+| Onboarding *(new)* | Age at signup, dashboard welcome card, 8-step resumable `/onboarding` (goal, body, training, equipment, injuries, diet, optional AI key), skip and redo | server `routes/onboarding.ts`; client `(app)/onboarding`, `SetupCard.tsx` |
+| Starter plan *(new)* | Rule-based (no AI): goal × days × session length × equipment × experience, injury exclusions, ~80-exercise library, plan reveal page | server `services/starterPlan.ts`, `seed/workouts.json`; client `onboarding/PlanReveal.tsx` |
+| Daily check-in *(new)* | Weight, mood, sleep; one per day; dashboard card until done | server `routes/checkins.ts`; client `CheckinCard.tsx` |
+| Units *(new)* | kg/lb per user, stored in kg, applied to onboarding, check-in, log, history, profile | client `lib/units.ts` |
+| Tests | Auth, profile, onboarding, check-ins, starter plan (every answer combination), scoring, day-import: 57 passing | server `*.test.ts`, shared `test/harness.ts` |
 
 ## 2. Gap analysis against the spec
 
@@ -32,49 +40,49 @@ Roughly **25-30% of the P0 scope is built**: auth, coach chat, set logging, week
 
 | # | Page | Pri | Status |
 |---|---|---|---|
-| 1 | Welcome | P0 | Partial (marketing landing only, no in-app welcome) |
-| 2 | Sign up / log in | P0 | Partial (email only; no Google, no phone OTP) |
-| 3 | Onboarding | P0 | **Missing** |
-| 4 | Plan reveal | P0 | **Missing** |
-| 5 | Home / Today | P0 | Partial (weekly score dashboard; no today card, readiness, rings, streak, coach tip) |
-| 6 | Workout plan | P0 | Partial (weekday list and edit; no calendar, no drag reschedule) |
+| 1 | Welcome | P0 | **Done** for web: welcome card on the dashboard for new users (no separate `/welcome` page, by decision) |
+| 2 | Sign up / log in | P0 | Partial (email only; no Google, no phone OTP). Signup now asks for age |
+| 3 | Onboarding | P0 | **Done**: 8 steps, steps 1–2 done at signup, saved per step, skip and redo |
+| 4 | Plan reveal | P0 | **Done**: "Here's your week" after onboarding (rule-based plan) |
+| 5 | Home / Today | P0 | Partial *(18 Nov, loop)*: today card with Start/Resume, readiness, streak, coach tip, week strip. Calorie and protein rings wait for nutrition |
+| 6 | Workout plan | P0 | Partial *(18 Nov, loop)*: "This week" view with status per day and day preview; edit/paste under "Manage plans". No drag reschedule |
 | 7 | Nutrition | P0 | **Missing** (food table inside the log page only) |
-| 8 | Progress | P0 | Partial (calories bar chart, scores; no strength charts, PRs, bodyweight trend) |
-| 9 | Coach | P0 | **Done** |
-| 10 | Workout preview | P0 | **Missing** |
-| 11 | Live workout | P0 | Partial (set logger and notes; no rest timer, no real swap) |
-| 12 | Workout summary | P0 | **Missing** |
-| 13 | Exercise library | P0 | **Missing** |
-| 14 | Exercise detail | P0 | **Missing** |
+| 8 | Progress | P0 | **Done** *(18 Nov, loop)*: bodyweight trend, e1RM charts per lift, PR list, calendar, totals (30/90/365 days) |
+| 9 | Coach | P0 | **Done**; *(18 Nov, loop)* also a chat bar at the bottom of every page with page context and Apply/undo action cards |
+| 10 | Workout preview | P0 | **Done** *(18 Nov, loop)*: plan day preview (sets × reps, last best set, Start) and the Today card |
+| 11 | Live workout | P0 | **Done** *(18 Nov, loop)*: server-timestamp timer (pause/resume/finish/discard, survives reloads), rest timer with beep/vibrate/notification, swap from library alternatives, add exercises, autosave, wake lock, empty workout |
+| 12 | Workout summary | P0 | **Done** *(18 Nov, loop)*: time, sets, volume, kcal, PRs, vs last time, RPE, coach note (AI auto + on demand, prompt without key) |
+| 13 | Exercise library | P0 | **Done** *(18 Nov, loop)*: 82 built-in + user exercises; search, muscle, movement, equipment, "safe for my injuries" |
+| 14 | Exercise detail | P0 | **Done** *(18 Nov, loop)*: steps, cues, mistakes, photo (stock by movement), YouTube link, history chart, alternatives, injury warning |
 | 15 | Add food | P0 | **Missing** (manual rows only) |
-| 23 | Daily check-in | P0 | **Missing** |
-| 27 | Profile | P0 | Partial (name, password, sessions, delete; thin profile model) |
-| 28 | Settings | P0 | Partial (theme and AI key only; no kg/lb) |
+| 23 | Daily check-in | P0 | **Done** *(18 Nov, loop)*: weight, mood, sleep, soreness, energy, stress → rule-based readiness verdict; `/checkin` page with 14-day strip |
+| 27 | Profile | P0 | **Done** *(18 Nov, loop)*: stats header, section nav, about you, training, workout preferences (rest times, sound, vibration, keep awake), constraints, AI, account |
+| 28 | Settings | P0 | **Done** *(18 Nov, loop)*: theme, AI key, kg/lb, cm/in |
 | 16-22, 24-26, 29-31 | P1/P2 pages | P1/P2 | All **missing**. Weekly report is partial (card on dashboard), privacy is partial (delete only) |
 
-Totals for the 18 P0 pages: 1 done, 9 partial, 8 missing.
+Totals for the 18 P0 pages: 13 done, 3 partial (sign up, Home / Today, Workout plan), 2 missing (Nutrition, Add food). Before the loop update: 4 done, 8 partial, 6 missing.
 
 ### P0 features
 
 | Feature | Status | Note |
 |---|---|---|
-| Plan generation from onboarding | Missing | Plans are pasted Markdown only |
+| Plan generation from onboarding | Partial | Rule-based starter plan from onboarding answers (no AI). The AI plan generator is still missing |
 | One-tap set logging | Done | |
-| Effort rating (per set) | Partial | Session-level RPE only |
-| Rest timer | Missing | |
+| Effort rating (per set) | Partial | Session-level RPE (now asked on the workout summary) |
+| Rest timer | **Done** *(18 Nov, loop)* | Per exercise (compound/isolation defaults, per-exercise overrides), ±15 s, survives reloads, background notification |
 | Progressive overload (auto next load + reason) | Partial | e1RM and hints are scored; nothing auto-adjusts |
-| Exercise swap | Partial | Constraint-based only |
-| Missed-session reshuffle | Missing | |
-| PR detection | Partial | e1RM computed, no PR flag or celebration |
+| Exercise swap | **Done** *(18 Nov, loop)* | Live workout swap from same-pattern, equipment- and injury-filtered alternatives; coach can propose swaps (today or plan) |
+| Missed-session reshuffle | Missing | Manual only: the coach can propose swapping two plan days |
+| PR detection | **Done** *(18 Nov, loop)* | Weight, e1RM and reps PRs; shown on the summary and Progress |
 | Calorie and macro targets | Missing | Only burn estimates exist |
 | Food logging (search, recent, favourites, quick-add) | Partial | Free-text rows via day-import |
 | Indian food database | Missing | No food DB at all |
 | Protein tracker | Missing | |
-| Strength charts, bodyweight trend, workout history calendar | Partial | History list only |
-| Daily check-in | Missing | |
-| Streaks and weekly goal ring | Missing | |
+| Strength charts, bodyweight trend, workout history calendar | **Done** *(18 Nov, loop)* | Progress page (bodyweight not smoothed yet) |
+| Daily check-in | **Done** *(18 Nov, loop)* | Six answers, rule-based readiness |
+| Streaks and weekly goal ring | Partial *(18 Nov, loop)* | Training streak (rest days keep it going); no weekly goal ring |
 | Accounts and sync | Done | |
-| Units (kg/lb) | Missing | kg hardcoded |
+| Units (kg/lb, cm/in) | Done | Per user, stored in kg and cm *(cm/in 18 Nov, loop)* |
 | Dark theme | Done | |
 
 ### P0 AI features (6)
@@ -83,9 +91,9 @@ Totals for the 18 P0 pages: 1 done, 9 partial, 8 missing.
 |---|---|
 | Plan generator | **Missing** |
 | Adaptive plan | Partial (scoring only, no rewrite) |
-| Readiness engine | **Missing** |
-| Coach chat | **Done** (no per-user usage cap, no output validation) |
-| Plan edits by chat (confirm before apply) | **Missing** (chat has no tool use) |
+| Readiness engine | Partial *(18 Nov, loop)*: rule-based verdict from the check-in, shown on Today with advice; no AI and the session is not auto-adjusted |
+| Coach chat | **Done** (no per-user usage cap, no output validation); on every page with page context *(18 Nov, loop)* |
+| Plan edits by chat (confirm before apply) | **Done** *(18 Nov, loop)*: the coach adds `coach-action` blocks; the app shows Apply today / Apply to plan / Dismiss, validates server-side, keeps an undo snapshot. Works with a pasted Claude reply too |
 | Photo-to-macros | **Missing** (no image input) |
 
 ### Platform and cross-cutting
@@ -95,7 +103,8 @@ Totals for the 18 P0 pages: 1 done, 9 partial, 8 missing.
 - Data export: missing. Delete exists but I did not verify which collections it clears.
 - Subscription and billing: missing (marketing pricing section only).
 - Observability, per-user AI cost caps, content moderation: missing.
-- Tests: no coverage for chat, plans, sessions or AI routes.
+- Tests: 88 passing. Covered: auth, profile, onboarding, check-ins and readiness, live workout timer, coach actions and prompts, today/progress/exercises, PRs. Still no coverage for AI calls or plan upload edge cases.
+- Dependencies: `npm audit` clean (tsup replaced with esbuild, 18 Nov).
 
 ---
 
@@ -109,30 +118,30 @@ These are open questions in the spec and they change the work below.
 1. **Platform:** keep the Next.js web app and make it a PWA (cheapest, matches the existing code) or start React Native (Expo). Recommendation: PWA first. It reuses the server and client, and gives offline and install.
 2. **Product direction:** the current "bring your own AI key" model conflicts with a consumer app where AI is built in and billed. Decide whether Pro includes AI or users keep supplying keys.
 3. **Food data source:** licensed API vs a self-built Indian dataset. Recommendation: seed a small self-built Indian dataset (dal, roti, paneer, idli, poha) for the MVP, add a licensed source later.
-4. **Exercise media:** license vs shoot. MVP can ship text form cues only.
+4. ~~**Exercise media:**~~ Decided 18 Nov: text cues + stock photos from `client/public/media` by movement + a YouTube link per exercise; optional per-exercise `image` / `youtubeId` in `workouts.json` later.
 
 ### Phase 1: P0 MVP (core loop)
 
 Build in this sequence, since each step feeds the next.
 
-1. **Profile model and onboarding** (goal, body stats, experience, schedule, equipment, diet, injuries). Extend `Profile` in `server/src/domain.ts` and `client lib/domain.ts`. Add `/onboarding` flow and an onboarding-completion event for the 70% metric.
-2. **Plan generator (AI #1)** with structured output and rule checks. Reuse the forced-tool-call pattern in `server/src/services/ai.ts` and the checks in `metrics.ts` and `constraints.ts`, but make them hard rejections at generation time (volume, frequency, injury exclusions). Then the **Plan reveal** page.
-3. **Exercise library and detail.** Seed exercise data (muscles, equipment, cues). Search and filter by muscle or equipment. Show the user's history per lift. Also supplies real **swap** alternatives.
-4. **Training loop upgrades.** Workout preview page, rest timer (background-safe), per-set effort rating, PR detection with flag, workout summary page with volume, PRs and duration, missed-session reshuffle.
+1. ~~**Profile model and onboarding**~~ **Done 18 Nov** (goal, body stats, experience, schedule, equipment, diet, injuries; `/onboarding`). Still to do: an onboarding-completion event for the 70% metric (`onboarding.completedAt` / `skippedAt` are stored and can feed it).
+2. **Plan generator (AI #1)** with structured output and rule checks. *A rule-based starter plan and the Plan reveal page already exist (18 Nov); the AI generator should build on the same profile fields and the `workouts.json` library, and can reuse the rule-based plan as a fallback.* Reuse the forced-tool-call pattern in `server/src/services/ai.ts` and the checks in `metrics.ts` and `constraints.ts`, but make them hard rejections at generation time (volume, frequency, injury exclusions). Then the **Plan reveal** page.
+3. ~~**Exercise library and detail.**~~ **Done 18 Nov.** Seed exercise data (muscles, equipment, cues). Search and filter by muscle or equipment. Show the user's history per lift. Also supplies real **swap** alternatives.
+4. **Training loop upgrades.** ~~Workout preview, rest timer, PR detection, workout summary~~ **done 18 Nov** (plus a start-to-finish workout timer and empty workouts). Still to do: per-set effort rating, missed-session reshuffle.
 5. **Progressive overload.** Turn the existing overload hints into a stored next-session load or reps with a one-line reason.
 6. **Nutrition module** (largest missing block):
    - Targets from body stats and goal (TDEE and macros, higher on training days).
    - Food DB with Indian dishes, plus search, recent, favourites and quick-add.
    - A real food-log endpoint, so entries stop living only inside the session doc.
    - Water and protein tracker. Nutrition page and Add-food page.
-7. **Daily check-in and readiness engine (AI #3).** Check-in page (sleep, soreness, energy, stress in under 10 seconds). Verdict of push, normal or go light, which adjusts the session and never raises intensity on low readiness.
-8. **Home / Today.** Today's workout card, readiness, calorie and protein rings, streak, weekly goal ring, coach tip.
-9. **Progress page.** Estimated 1RM charts per lift, smoothed bodyweight trend, workout history calendar, PR list.
+7. **Daily check-in and readiness engine (AI #3).** *Check-in page and rule-based readiness verdict done 18 Nov; still to do: auto-adjusting the session on low readiness, and an AI layer.* Check-in page (sleep, soreness, energy, stress in under 10 seconds). Verdict of push, normal or go light, which adjusts the session and never raises intensity on low readiness.
+8. **Home / Today.** ~~Today's workout card, readiness, streak, coach tip~~ **done 18 Nov**. Still to do: calorie and protein rings (after nutrition), weekly goal ring.
+9. ~~**Progress page.**~~ **Done 18 Nov** (bodyweight smoothing still to do).
 10. **Remaining P0 AI:**
-    - Plan edits by chat: add tool use to chat, show a diff, apply only after the user confirms.
+    - ~~Plan edits by chat~~ **done 18 Nov** (action cards with Apply/undo; no visual diff yet).
     - Photo-to-macros: add image input, editable estimate, confidence flag on mixed dishes.
     - Adaptive plan: rewrite upcoming weeks with a weekly load-change cap and a "what changed and why" view.
-11. **Settings and units** (kg/lb, cm/in) and a richer Profile page.
+11. ~~**Settings and units**~~ **Done 18 Nov**: kg/lb, cm/in, sectioned Profile with workout preferences.
 12. **Platform P0 hardening.** Tests for chat, plans, sessions and AI routes. Per-user AI usage caps. Safety guardrails (no diagnosis, doctor referral for pain) with tests.
 
 **Gate to Phase 2:** onboarding completion 70%, 3+ sessions per active user per week, D7 retention 40% (proposed targets, set from beta data).
@@ -155,7 +164,7 @@ Grocery list, challenges and friend leaderboards, form check, menu scanner, frid
 - Commit or stash the large uncommitted landing-page work (new `sections/`, `chrome/`, `blog/`, `disciplines`, two large mp4 files in `client/src/assets/landing`). Check whether the mp4 files belong in git or on a CDN.
 - Add Google OAuth and phone OTP to the P0 backlog if they stay P0; otherwise ask whether email-only is acceptable for the MVP, since the spec lists them as P0.
 - Fix the README claims about parser and constraint tests that have no test files.
-- Verify what `DELETE /auth/me` removes (profiles, plans, sessions, scores, chat) for DPDP compliance.
+- ~~Verify what `DELETE /auth/me` removes~~ Verified 18 Nov: profiles, plans, sessions, scores, chat, check-ins, coach actions, refresh and email tokens, and the user (covered by the auth test).
 
 ## 5. Verification (for each phase)
 

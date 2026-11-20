@@ -1,5 +1,5 @@
 import type { ChatMessage, Checkin, Profile, ScoreReport, WorkoutPlan, WorkoutSession } from "./domain.js";
-import { col } from "./db.js";
+import { col, type CoachActionDoc } from "./db.js";
 
 /** Never leak Mongo internals or the owner id to clients. */
 const hide = { projection: { _id: 0, userId: 0 } } as const;
@@ -55,6 +55,9 @@ export function userRepo(userId: string) {
     // ── Sessions ──
     sessions: () => col.sessions().find(own, hide).sort({ date: 1 }).toArray() as Promise<WorkoutSession[]>,
     sessionByDate: (date: string) => col.sessions().findOne({ ...own, date }, hide) as Promise<WorkoutSession | null>,
+    sessionById: (id: string) => col.sessions().findOne({ ...own, id }, hide) as Promise<WorkoutSession | null>,
+    /** The one in-progress (live) workout, if any. */
+    liveSession: () => col.sessions().findOne({ ...own, status: "in_progress" }, hide) as Promise<WorkoutSession | null>,
     upsertSession: (s: WorkoutSession) => col.sessions().replaceOne({ ...own, date: s.date }, { ...s, userId }, { upsert: true }),
     deleteSession: (id: string) => col.sessions().deleteOne({ ...own, id }),
     /** Stores the AI's per-day calorie estimates on matching logged days within [from, to]. */
@@ -85,6 +88,13 @@ export function userRepo(userId: string) {
     async upsertCheckin(c: Checkin) {
       await col.checkins().replaceOne({ ...own, date: c.date }, { ...c, userId }, { upsert: true });
     },
+    checkins: (from: string, to: string) =>
+      col.checkins().find({ ...own, date: { $gte: from, $lte: to } }, hide).sort({ date: 1 }).toArray() as Promise<Checkin[]>,
+
+    // ── Coach actions (undo snapshots) ──
+    addCoachAction: (a: CoachActionDoc) => col.coachActions().insertOne({ ...a, userId }),
+    coachAction: (id: string) => col.coachActions().findOne({ ...own, id }, hide) as Promise<CoachActionDoc | null>,
+    markActionUndone: (id: string, at: string) => col.coachActions().updateOne({ ...own, id }, { $set: { undoneAt: at } }),
   };
 }
 
@@ -99,6 +109,7 @@ export async function deleteAllUserData(userId: string) {
     col.scores().deleteMany({ userId }),
     col.chat().deleteMany({ userId }),
     col.checkins().deleteMany({ userId }),
+    col.coachActions().deleteMany({ userId }),
     col.refreshTokens().deleteMany({ userId }),
     col.emailTokens().deleteMany({ userId }),
   ]);

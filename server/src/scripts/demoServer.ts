@@ -1,5 +1,6 @@
 /**
- * Throwaway API for recording the onboarding demo (docs/onboarding/record-demo.mjs).
+ * Throwaway API for recording demos (docs/onboarding/record-demo.mjs, docs/workflow/record-demo.mjs).
+ * DEMO_DB picks the database name; it must contain "demo".
  * - Local MongoDB, separate database (dropped on start and on exit), never your real data.
  * - Email verification off, and emails are printed instead of sent (no Gmail traffic).
  * Usage: DEMO_API_PORT=4100 DEMO_CLIENT_ORIGIN=http://localhost:3100 npx tsx src/scripts/demoServer.ts
@@ -7,7 +8,7 @@
 export {};
 
 const port = Number(process.env.DEMO_API_PORT ?? 4100);
-const db = "starkfitiq_onboarding_demo";
+const db = process.env.DEMO_DB ?? "starkfitiq_onboarding_demo";
 
 // Set before config.ts loads: dotenv never overrides variables that already exist.
 Object.assign(process.env, {
@@ -30,7 +31,7 @@ const { createApp } = await import("../app.js");
 
 setEmailTransport(async (e) => console.log(`[demo] email to ${e.to} not sent: ${e.subject}`));
 const conn = await connectDb();
-if (conn.databaseName !== db) throw new Error(`Refusing to run: connected to ${conn.databaseName}`);
+if (conn.databaseName !== db || !db.includes("demo")) throw new Error(`Refusing to run: connected to ${conn.databaseName}`);
 await conn.dropDatabase();
 await closeDb();
 await connectDb(); // reconnect so indexes are recreated on the fresh database

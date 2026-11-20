@@ -40,7 +40,7 @@ Walking, gentle movement or complete rest
 
 [4′ International Chrome Super Curl Bar | York Barbell  – Revive and Lift](https://images.openai.com/static-rsc-4/T25eLNtSIOBfZd6JGpvnkIHxspy0PUtVtmoT2aFb1ptOeCA-XkkMua3cTP1BBYJaFDYZCkLkavV05zcjgvDsYzR9vDotujee3JFBOxp4ZI0-A-az_6NmzGr1oIyrlqYdlb24KaLYmXvqa9Y7sf07Ic-I3lOqdHiQrj07EKPw8vM?purpose=inline)
 
-[Preacher curl a un braccio con manubrio (curl alla panca Scott) - esercizio per brachiali e bicipiti - 💪 Muscoli.info](https://images.openai.com/static-rsc-4/O8rcuxXDyQxS0LWAQuNL2FCHmHHZBDU0jITZwvnVrVthpy1aw_xsN65P8QigOI_COJUcSnWXNnpRgZXq0lkf370ez1AHpghfMgwsxqE3AR0oTKQqOZyPmiNA6BIeofVGUmwAkot-wEFBWLXp8qG1SN1nqdmwMHo31QYy9NZuGjA?purpose=inline)
+[Preacher curl a un braccio con manubrio (curl alla panca Scott) - esercizio per brachiali e bicipiti - Muscoli.info](https://images.openai.com/static-rsc-4/O8rcuxXDyQxS0LWAQuNL2FCHmHHZBDU0jITZwvnVrVthpy1aw_xsN65P8QigOI_COJUcSnWXNnpRgZXq0lkf370ez1AHpghfMgwsxqE3AR0oTKQqOZyPmiNA6BIeofVGUmwAkot-wEFBWLXp8qG1SN1nqdmwMHo31QYy9NZuGjA?purpose=inline)
 
 [Cómo hacer crecer los bíceps - We Rise Project](https://images.openai.com/static-rsc-4/btRcn0zm13JGdBDlmBev2-vFpxqPAIermojCewWL0UyjIm_uQOTez4nSEeTzi0u3HvmEip5EKJhEK6OnmhRFk1unCCfgOCWm8X2mrNXe2e442IFY45pW1en2coLTygY2aDtmQcv84EUggHgT77bUB-_z8MCMR1Aw_TJnlmJoePo?purpose=inline)
 

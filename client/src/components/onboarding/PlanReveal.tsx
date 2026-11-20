@@ -12,7 +12,7 @@ export function PlanReveal({ plan }: { plan: WorkoutPlan }) {
     <div className="mt-6 space-y-5">
       <div className="card">
         <p className="text-sm text-volt-bright">Setup complete</p>
-        <h1 className="h-display mt-1 text-3xl">Here&apos;s your week</h1>
+        <h1 className="t-workout text-fg mt-1 text-3xl">Here&apos;s your week</h1>
         <p className="mt-1 text-sm text-ink-400">
           {plan.name} · {training} training days. It&apos;s now your active plan; edit any day from the Plan page.
         </p>

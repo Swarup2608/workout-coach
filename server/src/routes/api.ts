@@ -1,6 +1,6 @@
 import { Router, type Request, type Response, type NextFunction } from "express";
 import { z } from "zod";
-import { WEEKDAYS, addDays, computeWeekStats, estimateKcal, weekdayOf, weekStartOf, type ApiStatus, type Profile, type ScoreReport, type WorkoutSession } from "../domain.js";
+import { WEEKDAYS, addDays, computeWeekStats, estimateKcal, isLive, weekdayOf, weekStartOf, type ApiStatus, type Profile, type ScoreReport, type WorkoutSession } from "../domain.js";
 import { userRepo, type UserRepo } from "../repo.js";
 import { newId, now } from "../util/id.js";
 import { parsePlan } from "../services/planParser.js";
@@ -13,6 +13,9 @@ import { dayPrompt, mergeDay, parseDay } from "../services/dayImport.js";
 import { ProfileSchema } from "./profileSchema.js";
 import { onboarding } from "./onboarding.js";
 import { checkins } from "./checkins.js";
+import { workout } from "./workout.js";
+import { insights } from "./insights.js";
+import { coach, ACTION_GUIDE, pageLine, PageSchema } from "./coach.js";
 
 /** Mounted behind requireAuth: req.user is always set, and all data goes through that user's repo. */
 export const api = Router();
@@ -51,6 +54,9 @@ api.put("/profile", wrap(async (req, res) => {
 }));
 api.use(onboarding);
 api.use(checkins);
+api.use(workout);
+api.use(insights);
+api.use(coach);
 
 // ── Plans ────────────────────────────────────────────────────
 api.get("/plans", wrap(async (req, res) => res.json(await repoOf(req).plans())));
@@ -204,6 +210,14 @@ async function saveSessionBody(repo: UserRepo, body: SessionBody) {
       waterL: body.waterL,
       sleepHours: body.sleepHours,
       notes: body.notes,
+      // A hand save never resets a live timer or the summary's coach note.
+      status: existing?.status,
+      startedAt: existing?.startedAt,
+      endedAt: existing?.endedAt,
+      pausedMs: existing?.pausedMs,
+      pausedAt: existing?.pausedAt,
+      restEndsAt: existing?.restEndsAt,
+      coachNote: existing?.coachNote,
       createdAt: existing?.createdAt ?? now(),
       updatedAt: now(),
     };
@@ -270,10 +284,10 @@ api.get("/scores", wrap(async (req, res) => {
   res.json(await repoOf(req).scores(kind));
 }));
 
-/** Loads everything week maths needs in one go. */
+/** Loads everything week maths needs in one go. A live (unfinished) workout is left out of scoring. */
 async function loadAll(repo: UserRepo) {
-  const [plan, profile, sessions] = await Promise.all([repo.activePlan(), repo.profile(), repo.sessions()]);
-  return { plan, profile, sessions };
+  const [plan, profile, all] = await Promise.all([repo.activePlan(), repo.profile(), repo.sessions()]);
+  return { plan, profile, sessions: all.filter((s) => !isLive(s)), live: all.find(isLive) ?? null };
 }
 
 api.get("/metrics/week", wrap(async (req, res) => {
@@ -381,15 +395,20 @@ api.delete("/chat", wrap(async (req, res) => {
 }));
 
 api.post("/chat", wrap(async (req, res) => {
-  const { message } = z.object({ message: z.string().min(1).max(8000) }).parse(req.body);
+  const { message, page } = z.object({ message: z.string().min(1).max(8000), page: PageSchema.optional() }).parse(req.body);
   const repo = repoOf(req);
-  await repo.addChat({ id: newId(), role: "user", content: message, createdAt: now() });
-  const [{ plan, profile, sessions }, scores, history] = await Promise.all([loadAll(repo), repo.scores(), repo.chat()]);
+  await repo.addChat({ id: newId(), role: "user", content: message, createdAt: now(), page: page ? pageLine(page) : null });
+  const [{ plan, profile, sessions, live }, scores, history] = await Promise.all([loadAll(repo), repo.scores(), repo.chat()]);
 
   res.writeHead(200, { "Content-Type": "text/event-stream", "Cache-Control": "no-cache, no-transform", Connection: "keep-alive" });
   const send = (event: string, data: unknown) => res.write(`event: ${event}\ndata: ${JSON.stringify(data)}\n\n`);
 
-  const context = buildChatContext(profile, plan, scores, sessions);
+  const context = [
+    buildChatContext(profile, plan, scores, live ? [...sessions, live] : sessions),
+    live ? `LIVE WORKOUT IN PROGRESS: ${live.date} (${live.title ?? live.planDay ?? live.day}).` : "",
+    page ? `The user is looking at: ${pageLine(page)}.` : "",
+    ACTION_GUIDE,
+  ].filter(Boolean).join("\n\n");
   try {
     const full = await streamChat(aiForUser(req.user!), history, context, (t) => send("delta", t));
     const msg = { id: newId(), role: "assistant" as const, content: full, createdAt: now() };

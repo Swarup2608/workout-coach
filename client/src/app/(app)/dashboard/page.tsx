@@ -2,12 +2,18 @@
 
 import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
-import { WEEKDAYS, type Checkin, type Profile, type ScoreReport, type WeekMetrics, type WorkoutPlan } from "@/lib/domain";
+import { WEEKDAYS, type Checkin, type Profile, type ScoreReport, type TodayData, type WeekMetrics, type WorkoutPlan } from "@/lib/domain";
 import { api, today } from "@/lib/api";
 import { ProjectBridge } from "@/components/ProjectBridge";
 import { useAuth } from "@/components/AuthProvider";
 import { SetupCard } from "@/components/SetupCard";
-import { CheckinCard } from "@/components/CheckinCard";
+import { CheckinModal } from "@/components/CheckinModal";
+
+const CHECKIN_DISMISSED_KEY = "starkfit.checkinDismissed";
+import { useCoachContext } from "@/components/coach/CoachProvider";
+import { DATA_CHANGED } from "@/components/coach/actions";
+import { ActivityCard, InsightCard, MuscleCard, ReadinessCard, RecentCard, StatStrip, VolumeCard, WorkoutCard, addDays, sessionMinutes, sessionVolume, weekStartOf } from "@/components/dashboard/Widgets";
+import type { WorkoutSession } from "@/lib/domain";
 import { ErrorNote, ScoreReportCard, ScoreRing, Spinner, SubScoreBars, scoreColor } from "@/components/ui";
 
 export default function Dashboard() {
@@ -16,6 +22,7 @@ export default function Dashboard() {
   /** undefined = not loaded yet; null = no check-in today */
   const [checkin, setCheckin] = useState<Checkin | null | undefined>(undefined);
   const [justCheckedIn, setJustCheckedIn] = useState(false);
+  const [checkinOpen, setCheckinOpen] = useState(false);
   const [plan, setPlan] = useState<WorkoutPlan | null>(null);
   const [metrics, setMetrics] = useState<WeekMetrics | null>(null);
   const [weekScores, setWeekScores] = useState<ScoreReport[]>([]);
@@ -23,6 +30,14 @@ export default function Dashboard() {
   const [apiConnected, setApiConnected] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [todayData, setTodayData] = useState<TodayData | null>(null);
+  const [allSessions, setAllSessions] = useState<WorkoutSession[]>([]);
+  useCoachContext("Today", todayData?.planDay ? `${todayData.weekday}: ${todayData.planDay.isRest ? "rest day" : todayData.planDay.title}` : undefined);
+
+  const loadToday = useCallback(() => {
+    api.today(today()).then(setTodayData).catch(() => {});
+    api.sessions().then(setAllSessions).catch(() => {});
+  }, []);
 
   const load = useCallback(async () => {
     try {
@@ -36,6 +51,16 @@ export default function Dashboard() {
       setLoaded(true);
     }
   }, []);
+
+  useEffect(() => {
+    loadToday();
+    const reload = () => {
+      loadToday();
+      load();
+    };
+    window.addEventListener(DATA_CHANGED, reload);
+    return () => window.removeEventListener(DATA_CHANGED, reload);
+  }, [loadToday, load]);
 
   useEffect(() => {
     load();
@@ -64,29 +89,88 @@ export default function Dashboard() {
   // One card at a time: unfinished setup first, then today's check-in.
   const o = profile?.onboarding;
   const showSetup = !!o && !o.completedAt && !o.skippedAt;
-  const showCheckin = !!profile && !showSetup && checkin === null;
+  const needsCheckin = !!profile && !showSetup && checkin === null;
+
+  // Pop the check-in open once a day; closing it without saving won't re-open it until tomorrow.
+  useEffect(() => {
+    if (!needsCheckin) return;
+    let dismissed: string | null = null;
+    try {
+      dismissed = localStorage.getItem(CHECKIN_DISMISSED_KEY);
+    } catch {}
+    if (dismissed !== today()) setCheckinOpen(true);
+  }, [needsCheckin]);
+
+  const closeCheckin = () => {
+    setCheckinOpen(false);
+    try {
+      localStorage.setItem(CHECKIN_DISMISSED_KEY, today());
+    } catch {}
+  };
 
   return (
     <div className="space-y-6">
       {showSetup && <SetupCard profile={profile!} name={user?.name ?? profile!.name} onSkipped={setProfile} />}
-      {showCheckin && (
-        <CheckinCard
-          onSaved={(c) => {
-            setCheckin(c);
-            setJustCheckedIn(true);
-          }}
-        />
-      )}
+      <CheckinModal
+        open={checkinOpen}
+        initial={checkin ?? todayData?.checkin}
+        onClose={closeCheckin}
+        onSaved={(c) => {
+          setCheckin(c);
+          setCheckinOpen(false);
+          setJustCheckedIn(true);
+          loadToday();
+        }}
+      />
       {justCheckedIn && (
         <p className="card py-3 text-sm text-good" role="status">
-          Checked in today ✓
+          Checked in for today. Your readiness is updated below.
         </p>
+      )}
+      {needsCheckin && !checkinOpen && (
+        <div className="card flex flex-wrap items-center justify-between gap-3 py-4">
+          <p className="text-sm">You haven&apos;t checked in today. It takes 20 seconds.</p>
+          <button className="btn btn-primary" onClick={() => setCheckinOpen(true)}>Check in now</button>
+        </div>
+      )}
+
+      <header>
+        <h1 className="t-workout text-fg text-3xl md:text-4xl">
+          Good {new Date().getHours() < 12 ? "morning" : new Date().getHours() < 18 ? "afternoon" : "evening"}, {(user?.name ?? "").split(" ")[0] || "there"}
+        </h1>
+        <p className="text-sm text-ink-400">{new Date().toLocaleDateString(undefined, { weekday: "long", day: "numeric", month: "long", year: "numeric" })}</p>
+      </header>
+
+      {todayData && (
+        <>
+          <div className="grid gap-4 lg:grid-cols-2">
+            <ReadinessCard checkin={checkin ?? todayData.checkin} onCheckin={() => setCheckinOpen(true)} />
+            <WorkoutCard t={todayData} readiness={(checkin ?? todayData.checkin)?.readiness} />
+          </div>
+          <div className="grid gap-4 lg:grid-cols-3">
+            <ActivityCard weekStart={weekStartOf(today())} sessions={allSessions.filter((x) => x.date >= weekStartOf(today()))} planned={metrics?.plannedSessions} />
+            <VolumeCard all={allSessions} today={today()} />
+            <MuscleCard metrics={metrics} />
+          </div>
+          <StatStrip
+            volumeKg={allSessions.filter((x) => x.date >= weekStartOf(today())).reduce((a, x) => a + sessionVolume(x), 0)}
+            lastVolumeKg={allSessions.filter((x) => x.date >= addDays(weekStartOf(today()), -7) && x.date < weekStartOf(today())).reduce((a, x) => a + sessionVolume(x), 0)}
+            workouts={new Set(allSessions.filter((x) => x.date >= weekStartOf(today()) && sessionMinutes(x) > 0).map((x) => x.date)).size}
+            planned={metrics?.plannedSessions ?? 0}
+            minutes={allSessions.filter((x) => x.date >= weekStartOf(today())).reduce((a, x) => a + sessionMinutes(x), 0)}
+            streak={todayData.streak}
+          />
+          <div className="grid gap-4 lg:grid-cols-[3fr_2fr]">
+            <InsightCard text={todayData.tip} />
+            <RecentCard sessions={allSessions} />
+          </div>
+        </>
       )}
 
       <section className="flex flex-wrap items-end justify-between gap-4">
         <div>
           <p className="text-sm text-ink-400">{metrics ? `Week of ${metrics.weekStart}` : "Your training"}</p>
-          <h1 className="h-display text-4xl">Dashboard</h1>
+          <h2 className="h-display text-3xl">This week</h2>
         </div>
         <div className="flex gap-2">
           {apiConnected && plan && (
@@ -94,8 +178,8 @@ export default function Dashboard() {
               {busy && <Spinner />} Quick score
             </button>
           )}
-          <Link href="/log" className="btn btn-primary">
-            Log today
+          <Link href="/log" className="btn btn-ghost">
+            Log by hand
           </Link>
         </div>
       </section>
@@ -134,12 +218,12 @@ export default function Dashboard() {
               return (
                 <Link
                   key={d.day}
-                  href="/log"
+                  href={`/plan?day=${d.day}`}
                   className={`rounded-xl border p-3 text-center transition hover:border-ink-500 ${d.isRest ? "border-ink-700 bg-ink-800/40" : done ? "border-good/50 bg-good/10" : "border-ink-600"}`}
                   title={d.title}
                 >
                   <p className="font-display text-sm font-bold uppercase text-fg">{WEEKDAYS[i].slice(0, 3)}</p>
-                  <p className="mt-1 text-xs">{d.isRest ? "Rest" : done ? "✓" : "·"}</p>
+                  <p className="mt-1 text-xs">{d.isRest ? "Rest" : done ? "Done" : "·"}</p>
                 </Link>
               );
             })}
@@ -166,7 +250,7 @@ export default function Dashboard() {
             <ScoreRing score={weekScores.at(-1)!.overall} size={64} />
             <Trend scores={weekScores} />
           </div>
-          <Link href="/history" className="text-xs text-volt-bright hover:underline">
+          <Link href="/history" className="text-xs link">
             Full history →
           </Link>
         </div>

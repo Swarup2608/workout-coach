@@ -49,7 +49,7 @@ function MarqueeRow({ items }: { items: string[] }) {
         {repeated.map((t, i) => (
           <span key={i}>
             {t}
-            <i aria-hidden="true">✦</i>
+            <i aria-hidden="true" className="marquee-dot" />
           </span>
         ))}
       </div>

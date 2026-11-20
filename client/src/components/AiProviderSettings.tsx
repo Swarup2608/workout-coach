@@ -128,7 +128,7 @@ export function AiProviderSettings() {
           {preset.keyUrl && (
             <p className="mt-1 text-xs text-ink-400">
               Get a key at{" "}
-              <a href={preset.keyUrl} target="_blank" rel="noopener noreferrer" className="text-volt-bright hover:underline">
+              <a href={preset.keyUrl} target="_blank" rel="noopener noreferrer" className="link">
                 {new URL(preset.keyUrl).host}
               </a>
               . We make one tiny test request before saving.

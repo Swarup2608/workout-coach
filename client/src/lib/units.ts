@@ -70,3 +70,9 @@ export function useUnits(): { units: Units; setUnits: (u: Units) => void } {
   }, [userId]);
   return { units, setUnits: setUnitsLocally };
 }
+
+// ── Height: stored in cm, shown in cm or inches ──
+export const CM_PER_IN = 2.54;
+export const cmToDisplay = (cm: number | null | undefined, unit: "cm" | "in") =>
+  cm == null ? null : unit === "in" ? Math.round((cm / CM_PER_IN) * 10) / 10 : Math.round(cm);
+export const displayToCm = (v: number | null, unit: "cm" | "in") => (v == null || !Number.isFinite(v) ? null : unit === "in" ? Math.round(v * CM_PER_IN * 10) / 10 : v);

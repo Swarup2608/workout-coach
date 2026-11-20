@@ -55,13 +55,33 @@ describe("onboarding", () => {
 
   it("redo: restart then complete again does not duplicate constraints", async () => {
     const restarted = await a.call("PATCH", "/profile/onboarding", { restart: true });
-    assert.deepEqual(restarted.body.profile.onboarding, { step: 2, completedAt: null, skippedAt: null });
+    assert.ok(restarted.body.profile.onboarding.completedAt, "the finished setup still counts while redoing");
+    assert.deepEqual(restarted.body.profile.onboarding.redo, { step: 2, answers: {} });
     assert.equal(restarted.body.profile.goalKey, "muscle_gain", "answers are kept");
-    await a.call("PATCH", "/profile/onboarding", { step: 6, answers: { injuries: ["knee", "wrist"] } });
+    const mid = await a.call("PATCH", "/profile/onboarding", { step: 6, answers: { injuries: ["knee", "wrist"] } });
+    assert.deepEqual(mid.body.profile.injuries, ["knee"], "redo answers don't touch the profile yet");
+    assert.deepEqual(mid.body.profile.onboarding.redo.answers, { injuries: ["knee", "wrist"] });
     const r = await a.call("PATCH", "/profile/onboarding", { complete: true });
     const ids = r.body.profile.constraints.map((c: { id: string }) => c.id).filter((id: string) => id.startsWith("injury-"));
     assert.deepEqual(ids.sort(), ["injury-knee", "injury-wrist"]);
+    assert.deepEqual(r.body.profile.injuries, ["knee", "wrist"], "applied on completion");
+    assert.equal(r.body.profile.onboarding.redo, null);
     assert.equal((await a.call("GET", "/plans")).body.length, 3);
+  });
+
+  it("redo: skipping discards the draft and keeps the old setup and plan", async () => {
+    const before = await a.call("GET", "/profile");
+    const activeBefore = (await a.call("GET", "/plans/active")).body.id;
+    await a.call("PATCH", "/profile/onboarding", { restart: true });
+    await a.call("PATCH", "/profile/onboarding", { step: 3, answers: { goalKey: "fat_loss" } });
+    await a.call("PATCH", "/profile/onboarding", { step: 5, answers: { daysPerWeek: 2 } });
+    const r = await a.call("PATCH", "/profile/onboarding", { skip: true });
+    assert.equal(r.body.profile.goalKey, before.body.goalKey);
+    assert.equal(r.body.profile.daysPerWeek, before.body.daysPerWeek);
+    assert.equal(r.body.profile.onboarding.completedAt, before.body.onboarding.completedAt);
+    assert.equal(r.body.profile.onboarding.skippedAt, null, "not marked as skipped");
+    assert.equal(r.body.profile.onboarding.redo, null);
+    assert.equal((await a.call("GET", "/plans/active")).body.id, activeBefore);
   });
 
   it("removing an injury on redo removes its constraint but keeps other constraints", async () => {

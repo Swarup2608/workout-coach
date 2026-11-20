@@ -1,12 +1,18 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
-import { unitShort, type PlanDay, type PlannedExercise, type Profile, type ScoreReport, type WorkoutPlan } from "@/lib/domain";
-import { api, constraintHit } from "@/lib/api";
+import Link from "next/link";
+import { Suspense, useCallback, useEffect, useState } from "react";
+import { useSearchParams } from "next/navigation";
+import { WEEKDAYS, addDays, exerciseSlug, unitShort, weekStartOf, type WorkoutSession, type PlanDay, type PlannedExercise, type Profile, type ScoreReport, type WorkoutPlan } from "@/lib/domain";
+import { api, constraintHit, today } from "@/lib/api";
+import { useCoachContext } from "@/components/coach/CoachProvider";
+import { DATA_CHANGED } from "@/components/coach/actions";
 import { ProjectBridge } from "@/components/ProjectBridge";
 import { ErrorNote, ScoreReportCard, Spinner } from "@/components/ui";
+import { Icon } from "@/components/Icons";
 
-export default function PlanPage() {
+/** Upload, edit, activate and score plans (unchanged "Manage plans" tab). */
+function ManagePlans() {
   const [plans, setPlans] = useState<WorkoutPlan[]>([]);
   const [profile, setProfile] = useState<Profile | null>(null);
   const [report, setReport] = useState<ScoreReport | null>(null);
@@ -114,7 +120,7 @@ export default function PlanPage() {
       <section className="flex flex-wrap items-end justify-between gap-4">
         <div>
           <p className="text-sm text-ink-400">{active ? active.goal || "Active plan" : "No plan yet"}</p>
-          <h1 className="h-display text-4xl">{active?.name ?? "Workout plan"}</h1>
+          <h2 className="h-display text-3xl">{active?.name ?? "Workout plan"}</h2>
         </div>
         <div className="flex gap-2">
           <button className="btn btn-ghost" onClick={() => setShowUpload((v) => !v)}>
@@ -156,7 +162,7 @@ export default function PlanPage() {
           {active.days.map((d) => (
             <div key={d.day} className={`card ${d.isRest ? "opacity-70" : ""}`}>
               <div className="mb-3 flex items-center justify-between gap-3">
-                <h3 className="h-display text-xl">{d.day}</h3>
+                <h3 className="t-workout text-2xl text-fg">{d.day}</h3>
                 <div className="flex items-center gap-2">
                   <span className="text-xs text-ink-400">{d.isRest ? "Recovery" : `${d.exercises.reduce((a, e) => a + e.sets, 0)} sets`}</span>
                   <button className="btn btn-ghost px-2 py-1 text-xs" onClick={() => (editingDay?.day === d.day ? setEditingDay(null) : editDay(d))}>
@@ -213,7 +219,7 @@ export default function PlanPage() {
                       return (
                         <li key={e.id} className="flex items-start justify-between gap-2">
                           <span className={hit ? "text-warn" : ""}>
-                            {hit && "⚠ "}
+                            {hit && <Icon name="alert" size={14} className="mr-1" />}
                             {e.name}
                             <span className="ml-1.5 rounded bg-ink-700 px-1.5 text-[10px] uppercase text-ink-400">{e.muscle}</span>
                           </span>
@@ -248,10 +254,10 @@ export default function PlanPage() {
                     <span className="text-good">Active</span>
                   ) : (
                     <>
-                      <button className="text-volt-bright hover:underline" onClick={() => api.activatePlan(p.id).then(load)}>
+                      <button className="btn btn-ghost btn-sm" onClick={() => api.activatePlan(p.id).then(load)}>
                         Activate
                       </button>
-                      <button className="text-ink-400 hover:text-bad" onClick={() => api.deletePlan(p.id).then(load)}>
+                      <button className="btn btn-danger btn-sm" onClick={() => api.deletePlan(p.id).then(load)}>
                         Delete
                       </button>
                     </>
@@ -272,5 +278,134 @@ function NumberField({ id, label, value, onChange }: { id: string; label: string
       <label className="label" htmlFor={id}>{label}</label>
       <input id={id} type="number" min={1} className="input" value={value} onChange={(e) => onChange(Math.max(1, Number(e.target.value) || 1))} />
     </div>
+  );
+}
+
+export default function PlanPage() {
+  return (
+    <Suspense fallback={<div className="card">Loading…</div>}>
+      <PlanTabs />
+    </Suspense>
+  );
+}
+
+function PlanTabs() {
+  const params = useSearchParams();
+  const [tab, setTab] = useState<"week" | "manage">("week");
+  useCoachContext("Plan", tab === "week" ? "this week" : "managing plans");
+  return (
+    <div className="space-y-6">
+      <div className="flex flex-wrap items-end justify-between gap-3">
+        <div>
+          <p className="text-sm text-ink-400">Your training week</p>
+          <h1 className="t-workout text-fg text-4xl">Plan</h1>
+        </div>
+        <div role="tablist" className="flex rounded-xl border border-ink-700 p-1">
+          {(["week", "manage"] as const).map((t) => (
+            <button key={t} role="tab" aria-selected={tab === t} onClick={() => setTab(t)} className={`rounded-lg px-4 py-1.5 text-sm ${tab === t ? "bg-ink-700 text-fg" : "text-ink-400"}`}>
+              {t === "week" ? "This week" : "Manage plans"}
+            </button>
+          ))}
+        </div>
+      </div>
+      {tab === "week" ? <WeekView initialDay={params.get("day")} /> : <ManagePlans />}
+    </div>
+  );
+}
+
+type Prev = Awaited<ReturnType<typeof api.previous>>;
+
+function WeekView({ initialDay }: { initialDay: string | null }) {
+  const [plan, setPlan] = useState<WorkoutPlan | null | undefined>(undefined);
+  const [sessions, setSessions] = useState<WorkoutSession[]>([]);
+  const [prev, setPrev] = useState<Prev>({});
+  const [open, setOpen] = useState<string | null>(initialDay);
+  const t = today();
+  const ws = weekStartOf(t);
+
+  const load = useCallback(() => {
+    api.activePlan().then(setPlan).catch(() => setPlan(null));
+    api.sessions({ week: t }).then(setSessions).catch(() => {});
+    api.previous(addDays(t, 1)).then(setPrev).catch(() => {});
+  }, [t]);
+  useEffect(() => {
+    load();
+    window.addEventListener(DATA_CHANGED, load);
+    return () => window.removeEventListener(DATA_CHANGED, load);
+  }, [load]);
+
+  if (plan === undefined) return <div className="card">Loading…</div>;
+  if (!plan)
+    return (
+      <div className="card text-center">
+        <p>No active plan yet. Finish setup for a starter plan, or paste your own under Manage plans.</p>
+        <Link href="/workout/live?day=custom" className="btn btn-ghost mt-4">Start an empty workout</Link>
+      </div>
+    );
+
+  return (
+    <ul className="space-y-2">
+      {WEEKDAYS.map((wd, i) => {
+        const date = addDays(ws, i);
+        const d = plan.days.find((x) => x.day === wd);
+        const s = sessions.find((x) => x.date === date);
+        const done = !!s && s.status !== "in_progress" && (s.exercises.some((e) => e.sets.some((x) => x.done)) || !!s.durationMin);
+        const live = s?.status === "in_progress";
+        const status = live ? "In progress" : done ? `Done${s?.durationMin ? ` · ${s.durationMin} min` : ""}` : d?.isRest || !d ? "Rest" : date === t ? "Today" : date < t ? "Missed" : "Upcoming";
+        const tone = live ? "text-pulse" : done ? "text-good" : status === "Missed" ? "text-bad" : status === "Today" ? "text-volt-bright" : "text-ink-400";
+        const isOpen = open === wd;
+        return (
+          <li key={wd} className={`card p-0 ${date === t ? "border-volt/50" : ""}`}>
+            <button className="flex w-full items-center gap-4 p-4 text-left" onClick={() => setOpen(isOpen ? null : wd)} aria-expanded={isOpen}>
+              <div className="w-14 shrink-0">
+                <p className="font-display text-sm font-bold uppercase text-fg">{wd.slice(0, 3)}</p>
+                <p className="text-xs text-ink-400">{new Date(date + "T00:00:00").toLocaleDateString(undefined, { day: "numeric", month: "short" })}</p>
+              </div>
+              <p className="flex-1 truncate font-medium text-fg">{d?.isRest || !d ? "Rest day" : d.title}</p>
+              <span className={`text-xs ${tone}`}>{status}</span>
+              <span className="text-ink-400" aria-hidden>{isOpen ? "▴" : "▾"}</span>
+            </button>
+            {isOpen && (
+              <div className="border-t border-ink-700 p-4">
+                {d && !d.isRest ? (
+                  <>
+                    <ul className="divide-y divide-ink-700 text-sm">
+                      {d.exercises.map((e) => {
+                        const last = prev[e.name.toLowerCase()];
+                        const best = last?.sets.reduce<(typeof last.sets)[number] | null>((a, x) => (!a || (x.weightKg ?? 0) > (a.weightKg ?? 0) ? x : a), null);
+                        return (
+                          <li key={e.id} className="flex items-center justify-between gap-3 py-2">
+                            <Link href={`/exercises/${exerciseSlug(e.name)}`} className="text-fg hover:underline">{e.name}</Link>
+                            <span className="text-right text-ink-400">
+                              {e.sets} × {e.repMin}{e.repMax !== e.repMin ? `–${e.repMax}` : ""}{e.unit === "reps" ? "" : ` ${unitShort(e.unit)}`}
+                              {best && <span className="block text-xs">last best {best.weightKg != null ? `${best.weightKg} kg` : "BW"} × {best.reps}</span>}
+                            </span>
+                          </li>
+                        );
+                      })}
+                    </ul>
+                    {d.notes.length > 0 && <p className="mt-2 text-xs text-ink-400">{d.notes.join(" · ")}</p>}
+                    <div className="mt-4 flex flex-wrap gap-2">
+                      {done && s ? (
+                        <Link href={`/workout/summary/${s.id}`} className="btn btn-ghost">See summary</Link>
+                      ) : live ? (
+                        <Link href="/workout/live" className="btn btn-primary">Resume</Link>
+                      ) : (
+                        <Link href={`/workout/live?day=${wd}`} className="btn btn-primary">Start this workout</Link>
+                      )}
+                    </div>
+                  </>
+                ) : (
+                  <div className="flex flex-wrap items-center justify-between gap-3">
+                    <p className="text-sm text-ink-400">Rest and recover. Light walking and stretching help.</p>
+                    <Link href="/workout/live?day=custom" className="btn btn-ghost">Start empty workout</Link>
+                  </div>
+                )}
+              </div>
+            )}
+          </li>
+        );
+      })}
+    </ul>
   );
 }

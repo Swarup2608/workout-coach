@@ -45,7 +45,9 @@ interface Draft {
 const str = (n: number | null | undefined) => (n == null ? "" : String(n));
 const num = (s: string) => (s.trim() === "" || !Number.isFinite(Number(s)) ? null : Number(s));
 
-function draftFrom(p: Profile, accountName: string): Draft {
+function draftFrom(saved: Profile, accountName: string): Draft {
+  // During a redo, answers given so far live in onboarding.redo; the saved setup fills in the rest.
+  const p: Profile = { ...saved, ...(saved.onboarding?.redo?.answers ?? {}) };
   const units = p.units ?? "kg";
   return {
     name: accountName || p.name,
@@ -86,7 +88,7 @@ export default function OnboardingPage() {
         setProfile(p);
         setD(draftFrom(p, user?.name ?? ""));
         const o = p.onboarding;
-        const r = o && !o.completedAt ? o.step : 2;
+        const r = o?.redo ? o.redo.step : o && !o.completedAt ? o.step : 2;
         setReached(r);
         setStep(Math.min(TOTAL_STEPS, Math.max(3, r + 1)));
       })
@@ -136,8 +138,9 @@ export default function OnboardingPage() {
 
   const skipSetup = () =>
     run(async () => {
+      const redo = !!profile.onboarding?.redo;
       await api.onboarding({ skip: true });
-      router.push("/dashboard");
+      router.push(redo ? "/profile#training" : "/dashboard");
     });
 
   const changeUnits = (u: Units) => {
@@ -149,7 +152,7 @@ export default function OnboardingPage() {
     api.onboarding({ step: 4, answers: { units: u } }).catch(() => {});
   };
 
-  const common = { error, busy, onSkipSetup: skipSetup, onBack: step > 1 ? () => go(step - 1) : undefined };
+  const common = { error, busy, onSkipSetup: skipSetup, redo: !!profile.onboarding?.redo, onBack: step > 1 ? () => go(step - 1) : undefined };
   const def = STEPS[step - 1];
   const ageN = num(d.age);
   const heightN = num(d.heightCm);

@@ -1,4 +1,8 @@
 import type { Metadata, Viewport } from "next";
+import "@fontsource/uncut-sans/400.css";
+import "@fontsource/uncut-sans/500.css";
+import "@fontsource/uncut-sans/600.css";
+import "@fontsource/uncut-sans/700.css";
 import "./globals.css";
 import { AuthProvider } from "@/components/AuthProvider";
 
@@ -16,7 +20,7 @@ export const viewport: Viewport = {
 
 // Applies the saved theme (or the OS setting) before first paint, so there is no flash.
 // The landing page and the blog (/disciplines) are dark-only.
-const themeScript = `(function(){var p=location.pathname,t;if(p==='/'||p==='/disciplines'||p.indexOf('/disciplines/')===0){document.documentElement.dataset.theme='dark';return}try{t=localStorage.getItem('sfiq-theme')}catch(e){}if(t!=='light'&&t!=='dark')t=window.matchMedia('(prefers-color-scheme: light)').matches?'light':'dark';document.documentElement.dataset.theme=t})()`;
+const themeScript = `(function(){try{if(localStorage.getItem('sfiq-sidebar')==='collapsed')document.documentElement.dataset.sidebar='collapsed'}catch(e){}var p=location.pathname,t;if(p==='/'||p==='/disciplines'||p.indexOf('/disciplines/')===0){document.documentElement.dataset.theme='dark';return}try{t=localStorage.getItem('sfiq-theme')}catch(e){}if(t!=='light'&&t!=='dark')t=window.matchMedia('(prefers-color-scheme: light)').matches?'light':'dark';document.documentElement.dataset.theme=t})()`;
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
@@ -27,7 +31,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
         <link
           rel="stylesheet"
-          href="https://fonts.googleapis.com/css2?family=Unbounded:wght@500;600;700;800&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@500;600&family=Manrope:wght@500;600;700;800&display=swap"
+          href="https://fonts.googleapis.com/css2?family=Racing+Sans+One&family=Bungee&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@500;600&family=Manrope:wght@500;600;700;800&display=swap"
         />
       </head>
       <body>

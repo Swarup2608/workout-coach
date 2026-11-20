@@ -1,5 +1,5 @@
 import { MongoClient, type Collection, type Db } from "mongodb";
-import type { AiProviderId, ChatMessage, Checkin, Profile, ScoreReport, WorkoutPlan, WorkoutSession } from "./domain.js";
+import type { AiProviderId, AppliedAction, ChatMessage, Checkin, Profile, ScoreReport, WorkoutPlan, WorkoutSession } from "./domain.js";
 import { config } from "./config.js";
 
 // ── Document shapes ──────────────────────────────────────────
@@ -85,7 +85,13 @@ export const col = {
   scores: () => coll<Owned<ScoreReport>>("scores"),
   chat: () => coll<Owned<ChatMessage>>("chat_messages"),
   checkins: () => coll<Owned<Checkin>>("checkins"),
+  coachActions: () => coll<Owned<CoachActionDoc>>("coach_actions"),
 };
+
+/** An applied coach action plus what it replaced, so it can be undone. */
+export interface CoachActionDoc extends AppliedAction {
+  before: { kind: "plan"; plan: WorkoutPlan } | { kind: "session"; session: WorkoutSession } | { kind: "profile"; profile: Profile };
+}
 
 async function ensureIndexes() {
   await Promise.all([
@@ -102,5 +108,6 @@ async function ensureIndexes() {
     col.scores().createIndex({ userId: 1, kind: 1, createdAt: 1 }),
     col.chat().createIndex({ userId: 1, createdAt: 1 }),
     col.checkins().createIndex({ userId: 1, date: 1 }, { unique: true }),
+    col.coachActions().createIndex({ userId: 1, id: 1 }, { unique: true }),
   ]);
 }

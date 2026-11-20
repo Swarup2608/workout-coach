@@ -29,11 +29,6 @@ export function Gallery() {
             { xPercent: 8, ease: "none", scrollTrigger: { trigger: img.parentElement, containerAnimation: tween, start: "left right", end: "right left", scrub: true } }
           );
         });
-        gsap.to(".g-progress i", {
-          scaleX: 1,
-          ease: "none",
-          scrollTrigger: { trigger: section.current, start: "top top", end: () => "+=" + distance(), scrub: true },
-        });
       },
       section
     );
@@ -44,9 +39,6 @@ export function Gallery() {
     <section className="gallery" ref={section} aria-label="Training disciplines">
       <div className="gallery-head container">
         <div className="eyebrow mono">ONE COACH · EVERY DISCIPLINE</div>
-        <div className="g-progress" aria-hidden="true">
-          <i />
-        </div>
       </div>
       <div className="g-track" ref={track}>
         <div className="g-intro">
