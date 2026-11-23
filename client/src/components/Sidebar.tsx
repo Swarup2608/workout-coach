@@ -18,6 +18,7 @@ const GROUPS: { title: string; items: Item[] }[] = [
     items: [
       { href: "/dashboard", label: "Today", icon: "home" },
       { href: "/plan", label: "Plan", icon: "calendar" },
+      { href: "/nutrition", label: "Nutrition", icon: "utensils" },
       { href: "/progress", label: "Progress", icon: "chart" },
       { href: "/exercises", label: "Exercises", icon: "dumbbell" },
       { href: "/log", label: "Workout Log", icon: "list" },

@@ -1,5 +1,5 @@
-import type { ChatMessage, Checkin, Profile, ScoreReport, WorkoutPlan, WorkoutSession } from "./domain.js";
-import { col, type CoachActionDoc } from "./db.js";
+import type { ChatMessage, Checkin, FoodLog, Profile, ScoreReport, WorkoutPlan, WorkoutSession } from "./domain.js";
+import { col, type CoachActionDoc, type NutritionPrefsDoc } from "./db.js";
 
 /** Never leak Mongo internals or the owner id to clients. */
 const hide = { projection: { _id: 0, userId: 0 } } as const;
@@ -95,6 +95,19 @@ export function userRepo(userId: string) {
     addCoachAction: (a: CoachActionDoc) => col.coachActions().insertOne({ ...a, userId }),
     coachAction: (id: string) => col.coachActions().findOne({ ...own, id }, hide) as Promise<CoachActionDoc | null>,
     markActionUndone: (id: string, at: string) => col.coachActions().updateOne({ ...own, id }, { $set: { undoneAt: at } }),
+
+    // ── Food log (one per local date) ──
+    foodLog: (date: string) => col.foodLogs().findOne({ ...own, date }, hide) as Promise<FoodLog | null>,
+    foodLogs: (from = "0000-01-01", to = "9999-12-31") =>
+      col.foodLogs().find({ ...own, date: { $gte: from, $lte: to } }, hide).sort({ date: 1 }).toArray() as Promise<FoodLog[]>,
+    saveFoodLog: (log: FoodLog) => col.foodLogs().replaceOne({ ...own, date: log.date }, { ...log, userId }, { upsert: true }),
+
+    // ── Favourite and own foods ──
+    async nutritionPrefs(): Promise<Omit<NutritionPrefsDoc, "_id">> {
+      const doc = await col.nutritionPrefs().findOne({ _id: userId });
+      return { favourites: doc?.favourites ?? [], customFoods: doc?.customFoods ?? [] };
+    },
+    saveNutritionPrefs: (p: Omit<NutritionPrefsDoc, "_id">) => col.nutritionPrefs().replaceOne({ _id: userId }, p, { upsert: true }),
   };
 }
 
@@ -110,6 +123,8 @@ export async function deleteAllUserData(userId: string) {
     col.chat().deleteMany({ userId }),
     col.checkins().deleteMany({ userId }),
     col.coachActions().deleteMany({ userId }),
+    col.foodLogs().deleteMany({ userId }),
+    col.nutritionPrefs().deleteOne({ _id: userId }),
     col.refreshTokens().deleteMany({ userId }),
     col.emailTokens().deleteMany({ userId }),
   ]);

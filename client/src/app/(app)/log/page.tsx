@@ -5,17 +5,14 @@ import { fromDisplay, toDisplay, useUnits } from "@/lib/units";
 import {
   CARDIO_TYPES,
   EQUIPMENT,
-  MEALS,
   exerciseVolume,
   guessEquipment,
   type Equipment,
   REP_UNITS,
   addDays,
   cardioKcal,
-  foodTotals,
   stepsKcal,
-  type FoodEntry,
-  type Meal,
+  type NutritionDay,
   type CardioEntry,
   type CardioType,
   estimateKcal,
@@ -36,6 +33,7 @@ import { ErrorNote, Spinner } from "@/components/ui";
 import { useConfirm } from "@/components/ConfirmDialog";
 import { QuickAdd } from "@/components/QuickAdd";
 import { Icon } from "@/components/Icons";
+import Link from "next/link";
 import { DATE_PICKED, DATE_SHOWN } from "@/components/topbar/DateSelector";
 
 interface DraftExercise {
@@ -76,9 +74,9 @@ export default function LogPage() {
   const [cardio, setCardio] = useState<CardioEntry[]>([]);
   const [bodyweight, setBodyweight] = useState<number | null>(null);
   const [notes, setNotes] = useState("");
-  const [food, setFood] = useState<FoodEntry[]>([]);
+  /** The day's food log (read-only here; edited on /nutrition) */
+  const [dayFood, setDayFood] = useState<NutritionDay | null>(null);
   const [steps, setSteps] = useState<number | null>(null);
-  const [waterL, setWaterL] = useState<number | null>(null);
   const [sleepHours, setSleepHours] = useState<number | null>(null);
   /** Which plan day's workout is being done on this date (one-day change; plan itself is untouched) */
   const [workoutDay, setWorkoutDay] = useState<Weekday | "custom">(weekdayOf(today()));
@@ -121,6 +119,7 @@ export default function LogPage() {
     setSavedAt(null);
     try {
       const [sessions, previous, wk] = await Promise.all([api.sessions({ date }), api.previous(date), api.sessions({ week: date })]);
+      api.nutritionDay(date).then(setDayFood).catch(() => setDayFood(null));
       setPrev(previous);
       setWeek(wk);
       const s = sessions[0] ?? null;
@@ -148,9 +147,7 @@ export default function LogPage() {
         setCardio(s.cardio?.length ? s.cardio : s.cardioMinutes ? [{ type: "other", minutes: s.cardioMinutes }] : []);
         setBodyweight(s.bodyweightKg);
         setNotes(s.notes);
-        setFood(s.food ?? []);
         setSteps(s.steps ?? null);
-        setWaterL(s.waterL ?? null);
         setSleepHours(s.sleepHours ?? null);
       } else {
         fillFromPlan(plan, date);
@@ -187,9 +184,7 @@ export default function LogPage() {
     setCardio([]);
     setBodyweight(null);
     setNotes("");
-    setFood([]);
     setSteps(null);
-    setWaterL(null);
     setSleepHours(null);
     setNewName("");
   }
@@ -227,9 +222,7 @@ export default function LogPage() {
         cardio: cardio.filter((c) => c.minutes || c.distanceKm),
         cardioMinutes: null,
         bodyweightKg: bodyweight,
-        food: food.filter((f) => f.name.trim()).map((f) => ({ ...f, name: f.name.trim() })),
         steps: steps == null ? null : Math.round(steps),
-        waterL,
         sleepHours,
         notes: notes.trim(),
       });
@@ -282,8 +275,6 @@ export default function LogPage() {
   const kg = bodyweight ?? profile?.startBodyweightKg ?? 75;
   const patchCardio = (i: number, p: Partial<CardioEntry>) => setCardio((xs) => xs.map((c, j) => (j === i ? { ...c, ...p } : c)));
   const addCardio = (type: CardioType) => setCardio((xs) => [...xs, { type, minutes: null }]);
-  const patchFood = (i: number, p: Partial<FoodEntry>) => setFood((xs) => xs.map((f, j) => (j === i ? { ...f, ...p } : f)));
-  const eaten = foodTotals(food);
 
   /** After an AI import: jump to that date (or reload this one) so the form shows what was saved. */
   const onImported = (s: WorkoutSession) => {
@@ -699,78 +690,27 @@ export default function LogPage() {
           <h2 className="h-display text-lg">
             Food &amp; day <span className="text-sm font-normal text-ink-400">(optional)</span>
           </h2>
-          <button className="rounded-full border border-ink-600 px-3 py-1 text-xs text-ink-200 hover:border-volt hover:text-fg" onClick={() => setFood((xs) => [...xs, { name: "", kcal: null }])}>
-            + Add food
-          </button>
+          <Link href={`/nutrition${date !== today() ? `?date=${date}` : ""}`} className="rounded-full border border-ink-600 px-3 py-1 text-xs text-ink-200 hover:border-volt hover:text-fg">
+            Open nutrition →
+          </Link>
         </div>
-        {food.length > 0 && (
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead className="text-left text-[11px] uppercase tracking-wider text-ink-400">
-                <tr>
-                  <th className="w-32 pb-2">Meal</th>
-                  <th className="pb-2">Food</th>
-                  <th className="w-24 pb-2">kcal</th>
-                  <th className="w-24 pb-2">Protein g</th>
-                  <th className="w-8" />
-                </tr>
-              </thead>
-              <tbody>
-                {food.map((f, i) => (
-                  <tr key={i}>
-                    <td className="py-1 pr-2">
-                      <select className="input" value={f.meal ?? ""} onChange={(e) => patchFood(i, { meal: (e.target.value || undefined) as Meal | undefined })} aria-label="Meal">
-                        <option value="">–</option>
-                        {MEALS.map((m) => (
-                          <option key={m} value={m}>
-                            {m[0].toUpperCase() + m.slice(1)}
-                          </option>
-                        ))}
-                      </select>
-                    </td>
-                    <td className="py-1 pr-2">
-                      <input className="input" placeholder="e.g. 3 eggs + 2 toast" value={f.name} onChange={(e) => patchFood(i, { name: e.target.value })} aria-label="Food" />
-                    </td>
-                    <td className="py-1 pr-2">
-                      <input type="number" inputMode="numeric" min="0" className="input" value={f.kcal ?? ""} onChange={(e) => patchFood(i, { kcal: numOrNull(e.target.value) })} aria-label="Calories" />
-                    </td>
-                    <td className="py-1 pr-2">
-                      <input type="number" inputMode="numeric" min="0" className="input" value={f.proteinG ?? ""} onChange={(e) => patchFood(i, { proteinG: numOrNull(e.target.value) })} aria-label="Protein grams" />
-                    </td>
-                    <td className="py-1 text-right">
-                      <button className="text-ink-400 hover:text-bad" onClick={() => setFood((xs) => xs.filter((_, j) => j !== i))} aria-label="Remove food">
-                        ×
-                      </button>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-              <tfoot>
-                <tr className="border-t border-ink-700 text-xs text-ink-400">
-                  <td className="pt-2" colSpan={2}>
-                    Total eaten{eaten.carbsG || eaten.fatG ? ` · ${eaten.carbsG} g carbs · ${eaten.fatG} g fat` : ""}
-                  </td>
-                  <td className="pt-2 font-display text-base font-bold text-fg">{eaten.kcal}</td>
-                  <td className="pt-2 font-display text-base font-bold text-fg">{eaten.proteinG}</td>
-                  <td />
-                </tr>
-              </tfoot>
-            </table>
-          </div>
-        )}
-        {food.length === 0 && <p className="text-xs text-ink-400">Log meals here, or let an AI estimate calories with “Quick add with AI” above.</p>}
-        <div className="grid gap-4 sm:grid-cols-3">
+        <p className="text-sm">
+          {dayFood && (dayFood.log.entries.length || dayFood.log.waterMl) ? (
+            <>
+              Eaten <strong className="text-fg">{dayFood.totals.kcal.toLocaleString()}</strong>
+              {dayFood.targets ? ` / ${dayFood.targets.kcal.toLocaleString()}` : ""} kcal · <strong className="text-fg">{dayFood.totals.proteinG}</strong>
+              {dayFood.targets ? ` / ${dayFood.targets.proteinG}` : ""} g protein · water {(dayFood.log.waterMl / 1000).toLocaleString(undefined, { maximumFractionDigits: 2 })} L
+            </>
+          ) : (
+            <span className="text-xs text-ink-400">Food and water are logged on the Nutrition page (search Indian dishes, favourites, quick add), or with “Quick add with AI” above.</span>
+          )}
+        </p>
+        <div className="grid gap-4 sm:grid-cols-2">
           <div>
             <label className="label" htmlFor="steps">
               Steps {steps ? <span className="normal-case text-ink-400">≈ {stepsKcal(steps, kg)} kcal</span> : null}
             </label>
             <input id="steps" type="number" inputMode="numeric" min="0" step="100" className="input" placeholder="e.g. 8000" value={steps ?? ""} onChange={(e) => setSteps(numOrNull(e.target.value))} />
-          </div>
-          <div>
-            <label className="label" htmlFor="water">
-              Water (L)
-            </label>
-            <input id="water" type="number" inputMode="decimal" min="0" step="0.25" className="input" value={waterL ?? ""} onChange={(e) => setWaterL(numOrNull(e.target.value))} />
           </div>
           <div>
             <label className="label" htmlFor="sleep">
@@ -824,10 +764,10 @@ export default function LogPage() {
           <span className="font-display text-xl font-bold text-fg">{Math.round(showW(volume) ?? 0).toLocaleString()}</span> {units} ·{" "}
           <span className="font-display text-xl font-bold text-fg">{kcal ?? "–"}</span> kcal
           <span className="ml-1 text-xs text-ink-400">{existing?.kcalClaude ? "(Claude)" : "(est.)"}</span>
-          {eaten.kcal > 0 && (
+          {(dayFood?.totals.kcal ?? 0) > 0 && (
             <>
               {" "}
-              · <span className="font-display text-xl font-bold text-fg">{eaten.kcal}</span> eaten
+              · <span className="font-display text-xl font-bold text-fg">{dayFood!.totals.kcal}</span> eaten
             </>
           )}
           {savedAt && <span className="ml-3 text-good">Saved {savedAt}</span>}

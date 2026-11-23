@@ -16,6 +16,8 @@ import { checkins } from "./checkins.js";
 import { workout } from "./workout.js";
 import { insights } from "./insights.js";
 import { coach, ACTION_GUIDE, pageLine, PageSchema } from "./coach.js";
+import { nutrition, loadLog, nutritionContextLine } from "./nutrition.js";
+import { mergeFoodLogs } from "../services/nutrition.js";
 
 /** Mounted behind requireAuth: req.user is always set, and all data goes through that user's repo. */
 export const api = Router();
@@ -57,6 +59,7 @@ api.use(checkins);
 api.use(workout);
 api.use(insights);
 api.use(coach);
+api.use(nutrition);
 
 // ── Plans ────────────────────────────────────────────────────
 api.get("/plans", wrap(async (req, res) => res.json(await repoOf(req).plans())));
@@ -167,6 +170,7 @@ const SessionSchema = z.object({
   cardioMinutes: z.number().nullable().default(null),
   sessionRpe: z.number().min(1).max(10).nullable().default(null),
   bodyweightKg: z.number().nullable().default(null),
+  /** Older clients only: food now lives in the food log (/nutrition). Left out = keep what's stored. */
   food: z
     .array(
       z.object({
@@ -178,9 +182,10 @@ const SessionSchema = z.object({
         fatG: z.number().min(0).nullable().default(null),
       }),
     )
-    .default([]),
+    .optional(),
   steps: z.number().int().min(0).nullable().default(null),
-  waterL: z.number().min(0).nullable().default(null),
+  /** Older clients only: water now lives in the food log. Left out = keep what's stored. */
+  waterL: z.number().min(0).nullable().optional(),
   sleepHours: z.number().min(0).max(24).nullable().default(null),
   notes: z.string().default(""),
 });
@@ -205,9 +210,9 @@ async function saveSessionBody(repo: UserRepo, body: SessionBody) {
       bodyweightKg: body.bodyweightKg,
       kcalApp: estimateKcal(body, profile.startBodyweightKg),
       kcalClaude: existing?.kcalClaude ?? null,
-      food: body.food,
+      food: body.food ?? existing?.food ?? [],
       steps: body.steps,
-      waterL: body.waterL,
+      waterL: body.waterL !== undefined ? body.waterL : (existing?.waterL ?? null),
       sleepHours: body.sleepHours,
       notes: body.notes,
       // A hand save never resets a live timer or the summary's coach note.
@@ -269,7 +274,20 @@ api.post("/day-import", wrap(async (req, res) => {
   const repo = repoOf(req);
   const existing = await repo.sessionByDate(date);
   const { body, summary } = mergeDay(day, date, existing, await repo.activePlan());
-  const saved = await saveSessionBody(repo, SessionSchema.parse(body));
+  // Food and water go to the food log (added to what's there); the session keeps what it had.
+  if (day.food?.length || day.waterL != null) {
+    const log = await loadLog(repo, date);
+    for (const f of day.food ?? []) {
+      const m = { kcal: Math.round(f.kcal ?? 0), proteinG: f.proteinG ?? 0, carbsG: f.carbsG ?? 0, fatG: f.fatG ?? 0 };
+      log.entries.push({ id: newId(), meal: f.meal ?? "snack", name: f.name.slice(0, 120), foodId: null, servings: 1, serving: null, per: m, ...m, source: "import", createdAt: now() });
+    }
+    if (day.waterL != null) log.waterMl = Math.min(10000, Math.round(day.waterL * 1000));
+    log.entries = log.entries.slice(-100);
+    log.updatedAt = now();
+    await repo.saveFoodLog(log);
+  }
+  const { food: _food, waterL: _water, ...rest } = body;
+  const saved = await saveSessionBody(repo, SessionSchema.parse(rest));
   res.json({ session: saved, summary });
 }));
 
@@ -284,10 +302,13 @@ api.get("/scores", wrap(async (req, res) => {
   res.json(await repoOf(req).scores(kind));
 }));
 
-/** Loads everything week maths needs in one go. A live (unfinished) workout is left out of scoring. */
+/**
+ * Loads everything week maths needs in one go. A live (unfinished) workout is left out of scoring.
+ * Each day's food log is merged onto its session, so calories eaten and protein come from /nutrition.
+ */
 async function loadAll(repo: UserRepo) {
-  const [plan, profile, all] = await Promise.all([repo.activePlan(), repo.profile(), repo.sessions()]);
-  return { plan, profile, sessions: all.filter((s) => !isLive(s)), live: all.find(isLive) ?? null };
+  const [plan, profile, all, logs] = await Promise.all([repo.activePlan(), repo.profile(), repo.sessions(), repo.foodLogs()]);
+  return { plan, profile, sessions: mergeFoodLogs(all.filter((s) => !isLive(s)), logs), live: all.find(isLive) ?? null };
 }
 
 api.get("/metrics/week", wrap(async (req, res) => {
@@ -398,7 +419,12 @@ api.post("/chat", wrap(async (req, res) => {
   const { message, page } = z.object({ message: z.string().min(1).max(8000), page: PageSchema.optional() }).parse(req.body);
   const repo = repoOf(req);
   await repo.addChat({ id: newId(), role: "user", content: message, createdAt: now(), page: page ? pageLine(page) : null });
-  const [{ plan, profile, sessions, live }, scores, history] = await Promise.all([loadAll(repo), repo.scores(), repo.chat()]);
+  const [{ plan, profile, sessions, live }, scores, history, food] = await Promise.all([
+    loadAll(repo),
+    repo.scores(),
+    repo.chat(),
+    nutritionContextLine(repo, new Date().toISOString().slice(0, 10)).catch(() => ""),
+  ]);
 
   res.writeHead(200, { "Content-Type": "text/event-stream", "Cache-Control": "no-cache, no-transform", Connection: "keep-alive" });
   const send = (event: string, data: unknown) => res.write(`event: ${event}\ndata: ${JSON.stringify(data)}\n\n`);
@@ -406,7 +432,8 @@ api.post("/chat", wrap(async (req, res) => {
   const context = [
     buildChatContext(profile, plan, scores, live ? [...sessions, live] : sessions),
     live ? `LIVE WORKOUT IN PROGRESS: ${live.date} (${live.title ?? live.planDay ?? live.day}).` : "",
-    page ? `The user is looking at: ${pageLine(page)}.` : "",
+    food,
+    page ?`The user is looking at: ${pageLine(page)}.` : "",
     ACTION_GUIDE,
   ].filter(Boolean).join("\n\n");
   try {

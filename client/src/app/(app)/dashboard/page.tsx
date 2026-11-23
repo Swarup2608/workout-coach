@@ -8,6 +8,7 @@ import { ProjectBridge } from "@/components/ProjectBridge";
 import { useAuth } from "@/components/AuthProvider";
 import { SetupCard } from "@/components/SetupCard";
 import { CheckinModal } from "@/components/CheckinModal";
+import { NutritionCard } from "@/components/nutrition/NutritionUi";
 
 const CHECKIN_DISMISSED_KEY = "starkfit.checkinDismissed";
 import { useCoachContext } from "@/components/coach/CoachProvider";
@@ -147,6 +148,7 @@ export default function Dashboard() {
             <ReadinessCard checkin={checkin ?? todayData.checkin} onCheckin={() => setCheckinOpen(true)} />
             <WorkoutCard t={todayData} readiness={(checkin ?? todayData.checkin)?.readiness} />
           </div>
+          <NutritionCard />
           <div className="grid gap-4 lg:grid-cols-3">
             <ActivityCard weekStart={weekStartOf(today())} sessions={allSessions.filter((x) => x.date >= weekStartOf(today()))} planned={metrics?.plannedSessions} />
             <VolumeCard all={allSessions} today={today()} />

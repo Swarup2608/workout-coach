@@ -11,6 +11,8 @@ type Hit = { kind: "Page" | "Exercise" | "Workout" | "Log"; label: string; sub?:
 const PAGES: Hit[] = [
   { kind: "Page", label: "Today", href: "/dashboard", icon: "home" },
   { kind: "Page", label: "Plan", href: "/plan", icon: "calendar" },
+  { kind: "Page", label: "Nutrition", href: "/nutrition", icon: "utensils" },
+  { kind: "Page", label: "Add food", href: "/nutrition/add", icon: "plus" },
   { kind: "Page", label: "Progress", href: "/progress", icon: "chart" },
   { kind: "Page", label: "Exercises", href: "/exercises", icon: "dumbbell" },
   { kind: "Page", label: "Workout Log", href: "/log", icon: "list" },

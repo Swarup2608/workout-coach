@@ -211,6 +211,114 @@ export function foodTotals(food: FoodEntry[] = []) {
   return { kcal: sum("kcal"), proteinG: sum("proteinG"), carbsG: sum("carbsG"), fatG: sum("fatG") };
 }
 
+// ── Nutrition ────────────────────────────────────────────────
+/** Who can eat a food. "vegan" foods are also veg; "egg" foods suit eggetarians. */
+export type FoodDiet = "vegan" | "veg" | "egg" | "non_veg";
+
+export interface Macros {
+  kcal: number;
+  proteinG: number;
+  carbsG: number;
+  fatG: number;
+}
+
+/** One food in the database (built-in) or one of the user's own foods. Nutrition is per serving. */
+export interface FoodItem extends Macros {
+  id: string;
+  name: string;
+  aliases?: string[];
+  category: string;
+  /** e.g. "1 katori (150 g)" */
+  serving: string;
+  /** Grams (or ml) in one serving */
+  grams: number;
+  fiberG?: number;
+  diet: FoodDiet;
+  /** The user's own food */
+  custom?: boolean;
+}
+
+export interface FoodLogEntry extends Macros {
+  id: string;
+  meal: Meal;
+  name: string;
+  /** Database or custom food id; null for quick-add */
+  foodId: string | null;
+  servings: number;
+  /** Serving label at the time of logging */
+  serving: string | null;
+  /** Nutrition of one serving, so changing `servings` rescales the totals */
+  per: Macros;
+  source: "db" | "custom" | "quick" | "import";
+  createdAt: string;
+}
+
+/** All food and water for one local date. */
+export interface FoodLog {
+  date: string;
+  entries: FoodLogEntry[];
+  waterMl: number;
+  updatedAt: string;
+}
+
+export interface NutritionTargets extends Macros {
+  waterMl: number;
+  trainingDay: boolean;
+  bmr: number;
+  /** Average daily burn for the week before the goal adjustment */
+  tdee: number;
+  /** Bodyweight the targets were worked out from, and where it came from */
+  weightKg: number;
+  weightSource: "check-in" | "workout log" | "profile";
+  /** Plain-language lines explaining the numbers */
+  basis: string[];
+}
+
+export interface NutritionDay {
+  date: string;
+  log: FoodLog;
+  totals: Macros;
+  /** null when profile details are missing (see `missing`) */
+  targets: NutritionTargets | null;
+  missing: ("age" | "height" | "weight")[];
+  trainingDay: boolean;
+}
+
+export interface NutritionWeekDay extends Macros {
+  date: string;
+  logged: boolean;
+  trainingDay: boolean;
+  targetKcal: number | null;
+  targetProteinG: number | null;
+}
+
+export interface RecentFood {
+  foodId: string | null;
+  name: string;
+  serving: string | null;
+  servings: number;
+  meal: Meal;
+  per: Macros;
+  lastDate: string;
+}
+
+export const MEAL_LABELS: Record<Meal, string> = { breakfast: "Breakfast", lunch: "Lunch", dinner: "Dinner", snack: "Snacks" };
+
+/** Meal that fits the time of day, for the Add-food default. */
+export const mealForNow = (h = new Date().getHours()): Meal => (h < 11 ? "breakfast" : h < 16 ? "lunch" : h < 18 ? "snack" : "dinner");
+
+export const sumMacros = (xs: Macros[]): Macros => {
+  const t = xs.reduce((a, x) => ({ kcal: a.kcal + x.kcal, proteinG: a.proteinG + x.proteinG, carbsG: a.carbsG + x.carbsG, fatG: a.fatG + x.fatG }), { kcal: 0, proteinG: 0, carbsG: 0, fatG: 0 });
+  return { kcal: Math.round(t.kcal), proteinG: Math.round(t.proteinG), carbsG: Math.round(t.carbsG), fatG: Math.round(t.fatG) };
+};
+
+export const scaleMacros =(m: Macros, servings: number): Macros => ({
+  kcal: Math.round(m.kcal * servings),
+  proteinG: Math.round(m.proteinG * servings * 10) / 10,
+  carbsG: Math.round(m.carbsG * servings * 10) / 10,
+  fatG: Math.round(m.fatG * servings * 10) / 10,
+});
+
 /** ~0.04 kcal per step for a 70 kg person, scaled by bodyweight. */
 export const stepsKcal = (steps: number | null | undefined, kg: number) => (steps ? Math.round(steps * 0.04 * (kg / 70)) : 0);
 

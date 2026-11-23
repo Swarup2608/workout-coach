@@ -17,6 +17,8 @@ import { classifyMuscle } from "../services/muscles.js";
 import { aiForUser } from "../services/ai.js";
 import { COACH_SYSTEM, buildChatContext } from "../services/claude.js";
 import { buildSummary } from "./workout.js";
+import { nutritionContextLine } from "./nutrition.js";
+import { mergeFoodLogs } from "../services/nutrition.js";
 
 /**
  * Coach extras: page context for chat, actions the coach proposes (applied only on the user's tap,
@@ -210,8 +212,16 @@ coach.post("/coach/actions/:id/undo", wrap(async (req, res) => {
 
 // ── Prompts for users without an AI key ──────────────────────
 async function contextFor(repo: UserRepo) {
-  const [plan, profile, all, scores] = await Promise.all([repo.activePlan(), repo.profile(), repo.sessions(), repo.scores()]);
-  return { plan, all, text: buildChatContext(profile, plan, scores, all) };
+  const [plan, profile, all, scores, logs, food] = await Promise.all([
+    repo.activePlan(),
+    repo.profile(),
+    repo.sessions(),
+    repo.scores(),
+    repo.foodLogs(),
+    nutritionContextLine(repo, new Date().toISOString().slice(0, 10)).catch(() => ""),
+  ]);
+  const text = [buildChatContext(profile, plan, scores, mergeFoodLogs(all, logs)), food].filter(Boolean).join("\n\n");
+  return { plan, all, text };
 }
 
 const summaryText = (s: WorkoutSummary) =>

@@ -13,6 +13,12 @@ import type {
   ChatMessage,
   Checkin,
   ConstraintFlag,
+  Diet,
+  FoodItem,
+  Meal,
+  NutritionDay,
+  NutritionWeekDay,
+  RecentFood,
   Equipment,
   ExperienceLevel,
   Profile,
@@ -90,7 +96,8 @@ async function req<T>(path: string, init?: RequestInit): Promise<T> {
 
 const json = (method: string, data?: unknown): RequestInit => ({ method, body: data === undefined ? undefined : JSON.stringify(data) });
 
-export type SessionInput = Omit<WorkoutSession, "id" | "planId" | "day" | "createdAt" | "updatedAt" | "exercises" | "kcalApp" | "kcalClaude"> & {
+/** Food and water are left out: they live in the food log (/nutrition) and the server keeps what's stored. */
+export type SessionInput = Omit<WorkoutSession, "id" | "planId" | "day" | "createdAt" | "updatedAt" | "exercises" | "kcalApp" | "kcalClaude" | "food" | "waterL"> & {
   exercises: {
     plannedId: string | null;
     name: string;
@@ -216,6 +223,21 @@ export const api = {
 
   chat: () => req<ChatMessage[]>("/chat"),
   clearChat: () => req<void>("/chat", json("DELETE")),
+
+  // ── Nutrition ──
+  nutritionDay: (date: string) => req<NutritionDay>(`/nutrition/day/${date}`),
+  nutritionWeek: (date: string) => req<{ days: NutritionWeekDay[] }>(`/nutrition/week?date=${date}`),
+  addFood: (date: string, body: { meal: Meal; foodId: string; servings: number } | { meal: Meal; name: string; kcal: number; proteinG?: number; carbsG?: number; fatG?: number; servings?: number }) =>
+    req<NutritionDay>(`/nutrition/day/${date}/entries`, json("POST", body)),
+  updateFood: (date: string, id: string, body: { servings?: number; meal?: Meal }) => req<NutritionDay>(`/nutrition/day/${date}/entries/${id}`, json("PATCH", body)),
+  removeFood: (date: string, id: string) => req<NutritionDay>(`/nutrition/day/${date}/entries/${id}`, json("DELETE")),
+  setWater: (date: string, waterMl: number) => req<NutritionDay>(`/nutrition/day/${date}/water`, json("PUT", { waterMl })),
+  searchFoods: (q: string, all = false) => req<{ foods: FoodItem[]; diet: Diet | null }>(`/nutrition/foods?${new URLSearchParams({ q, ...(all ? { all: "1" } : {}) })}`),
+  foodLibrary: (date: string) => req<{ recent: RecentFood[]; favourites: FoodItem[]; custom: FoodItem[] }>(`/nutrition/library?date=${date}`),
+  favourite: (foodId: string, on: boolean) => req<{ favourites: string[] }>(`/nutrition/favourites/${encodeURIComponent(foodId)}`, json(on ? "PUT" : "DELETE")),
+  createFood: (body: { name: string; serving?: string; grams?: number; kcal: number; proteinG?: number; carbsG?: number; fatG?: number }) =>
+    req<FoodItem>("/nutrition/custom-foods", json("POST", body)),
+  deleteFood: (id: string) => req<void>(`/nutrition/custom-foods/${encodeURIComponent(id)}`, json("DELETE")),
 };
 
 /** Streams a chat reply from the SSE endpoint. */

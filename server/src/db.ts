@@ -1,5 +1,5 @@
 import { MongoClient, type Collection, type Db } from "mongodb";
-import type { AiProviderId, AppliedAction, ChatMessage, Checkin, Profile, ScoreReport, WorkoutPlan, WorkoutSession } from "./domain.js";
+import type { AiProviderId, AppliedAction, ChatMessage, Checkin, FoodItem, FoodLog, Profile, ScoreReport, WorkoutPlan, WorkoutSession } from "./domain.js";
 import { config } from "./config.js";
 
 // ── Document shapes ──────────────────────────────────────────
@@ -86,7 +86,17 @@ export const col = {
   chat: () => coll<Owned<ChatMessage>>("chat_messages"),
   checkins: () => coll<Owned<Checkin>>("checkins"),
   coachActions: () => coll<Owned<CoachActionDoc>>("coach_actions"),
+  foodLogs: () => coll<Owned<FoodLog>>("food_logs"),
+  nutritionPrefs: () => coll<NutritionPrefsDoc>("nutrition_prefs"),
 };
+
+/** Per-user favourites and own foods. */
+export interface NutritionPrefsDoc {
+  /** userId */
+  _id: string;
+  favourites: string[];
+  customFoods: FoodItem[];
+}
 
 /** An applied coach action plus what it replaced, so it can be undone. */
 export interface CoachActionDoc extends AppliedAction {
@@ -109,5 +119,6 @@ async function ensureIndexes() {
     col.chat().createIndex({ userId: 1, createdAt: 1 }),
     col.checkins().createIndex({ userId: 1, date: 1 }, { unique: true }),
     col.coachActions().createIndex({ userId: 1, id: 1 }, { unique: true }),
+    col.foodLogs().createIndex({ userId: 1, date: 1 }, { unique: true }),
   ]);
 }

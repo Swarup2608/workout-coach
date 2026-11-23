@@ -8,6 +8,7 @@ import { NO_DOCK } from "@/components/coach/CoachDock";
 const TABS = [
   { href: "/dashboard", label: "Today", d: "M3 11 12 4l9 7v9a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z" },
   { href: "/plan", label: "Plan", d: "M4 5h16v16H4zM4 9h16M9 3v4M15 3v4" },
+  { href: "/nutrition", label: "Food", d: "M3 2v7c0 1.1.9 2 2 2h4a2 2 0 0 0 2-2V2M7 2v20M21 15V2a5 5 0 0 0-5 5v6c0 1.1.9 2 2 2h3Zm0 0v7" },
   { href: "/progress", label: "Progress", d: "M4 19h16M6 16l4-5 3 3 5-7" },
   { href: "/exercises", label: "Exercises", d: "M6 8v8M18 8v8M3 10v4M21 10v4M6 12h12" },
   { href: "/log", label: "Log", d: "M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01" },
