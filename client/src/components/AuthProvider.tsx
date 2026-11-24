@@ -23,7 +23,7 @@ interface AuthCtx {
 const Ctx = createContext<AuthCtx | null>(null);
 
 /** Pages anyone can open. Token links from emails must work without being signed in. */
-export const PUBLIC_ROUTES = ["/login", "/signup", "/forgot-password", "/reset-password", "/verify-email", "/disciplines"];
+export const PUBLIC_ROUTES = ["/login", "/signup", "/forgot-password", "/reset-password", "/verify-email", "/disciplines", "/landing-2"];
 /** "/" (the landing page) is public too, matched exactly. */
 const isPublic = (path: string) => path === "/" || PUBLIC_ROUTES.some((p) => path === p || path.startsWith(p + "/"));
 

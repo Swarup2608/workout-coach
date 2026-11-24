@@ -6,13 +6,13 @@ import gsap from "gsap";
 import { TRY_IT, SplitText } from "../lib";
 
 /* Workout-status circle colours: purple strength, orange fat loss, green endurance, cyan mobility/cardio, grey rest */
-type Kind = "purple" | "orange" | "green" | "cyan" | "grey";
+export type Kind = "purple" | "orange" | "green" | "cyan" | "grey";
 const P: Kind = "purple",
   O: Kind = "orange",
   G: Kind = "green",
   C: Kind = "cyan",
   R: Kind = "grey";
-const PLANS: Record<string, { label: string; img: string; title: string; desc: string; ai: string; days: [string, string, Kind][] }> = {
+export const PLANS: Record<string, { label: string; img: string; title: string; desc: string; ai: string; days: [string, string, Kind][] }> = {
   strength: {
     label: "Build strength",
     img: TRY_IT.strength,
