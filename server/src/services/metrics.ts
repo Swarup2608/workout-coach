@@ -11,10 +11,12 @@ import {
   type Profile,
   type SubScore,
   type WeekMetrics,
+  type Weekday,
   type WorkoutPlan,
   type WorkoutSession,
 } from "../domain.js";
 import { checkExercise, checkPlan } from "./constraints.js";
+import { followedDay } from "./reshuffle.js";
 
 const clamp = (n: number) => Math.max(0, Math.min(100, Math.round(n)));
 const round1 = (n: number) => Math.round(n * 10) / 10;
@@ -90,7 +92,8 @@ export function computeWeekMetrics(
     for (const e of d.exercises) plannedSetsByMuscle[e.muscle] = (plannedSetsByMuscle[e.muscle] ?? 0) + e.sets;
   const plannedSets = Object.values(plannedSetsByMuscle).reduce((a, b) => a + b, 0);
 
-  const loggedDays = new Set(sessions.filter((s) => s.exercises.some((e) => doneSets(e).length)).map((s) => s.day));
+  // A workout counts for the plan day it followed, so a missed Monday done on Wednesday credits Monday.
+  const loggedDays = new Set(sessions.filter((s) => s.exercises.some((e) => doneSets(e).length)).map(followedDay).filter((d): d is Weekday => !!d));
   const completedSessions = trainingDays.filter((d) => loggedDays.has(d.day)).length;
 
   const setsByMuscle: Record<string, number> = {};

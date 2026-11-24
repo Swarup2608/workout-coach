@@ -16,7 +16,7 @@
 
 StarkFitIQ is an AI workout coach that understands your training plan, workout history, goals and constraints. Log sets and reps, review your progress, score each training week and get practical coaching recommendations.
 
-It is a web app (Next.js client, Express 5 + MongoDB API) where each user brings their own AI key, and every AI feature also works without one through copy and paste. The full daily training loop is built: onboarding, starter plan, check-in, live workout, summary, progress and a coach on every page. Nutrition (targets, an Indian food database, food and water logging) is built too. AI-generated plans and photo-to-macros are next; see [Status and roadmap](#status-and-roadmap).
+It is a web app (Next.js client, Express 5 + MongoDB API) where each user brings their own AI key, and every AI feature also works without one through copy and paste. The full daily training loop is built: onboarding, starter plan, check-in, live workout, summary, progress and a coach on every page. Nutrition (targets, an Indian food database, food and water logging, and adding food from a photo of a meal or a nutrition label) is built too. AI-generated plans are next; see [Status and roadmap](#status-and-roadmap).
 
 <div align="center">
   <img src="docs/starkfitiq-workflow.svg" alt="StarkFitIQ workflow: sign up, guided setup, rule-based starter plan, log and check in, weekly score and AI coaching" width="100%" />
@@ -132,12 +132,12 @@ Measured against the product spec (18 P0 pages): **13 done, 3 partial, 2 missing
 | Live workout, rest timer, summary, PRs, exercise library and detail, swaps | Done |
 | Progress, coach chat on every page with Apply/undo, profile and settings (kg/lb, cm/in, theme) | Done |
 | Sign-up (email only; no Google or phone OTP), Today (no calorie/protein rings yet), plan (no drag reschedule) | Partial |
-| Progressive overload, per-set effort rating, adaptive plan, readiness auto-adjusting the session | Partial |
-| Nutrition page, Add food, food database (174 Indian-first foods), calorie, macro and water targets ([docs/nutrition.md](docs/nutrition.md)) | Built |
-| AI plan generator, photo-to-macros, missed-session reshuffle | Missing |
+| Per-set effort, weekly goal ring, missed-session reshuffle, bodyweight trend, AI plan generator ([docs/training-upgrades.md](docs/training-upgrades.md)) | Built |
+| Progressive overload targets, adaptive plan, readiness auto-adjusting the session | Partial |
+| Nutrition page, Add food, food database (174 Indian-first foods), calorie, macro and water targets, photo of a meal or nutrition label, editing calories after adding, adaptive calories, "what should I eat now", meal planner ([docs/nutrition.md](docs/nutrition.md)) | Built |
 | PWA / offline, data export, billing, per-user AI usage caps | Missing |
 
-**Next up (Phase 1, in order):** AI plan generator (building on the rule-based plan and `workouts.json`), per-set effort and missed-session reshuffle, stored progressive-overload targets, readiness that adjusts the session, photo-to-macros and adaptive plans, then hardening (tests for AI routes, usage caps, safety guardrails).
+**Next up (Phase 1, in order):** stored progressive-overload targets, readiness that adjusts the session, adaptive plans, then hardening (tests for AI routes, usage caps, safety guardrails).
 
 **Open decisions:** PWA vs React Native (recommended: PWA first), whether Pro includes built-in AI or users keep their own keys, The food data source is decided: a self-built Indian-first dataset for the MVP, with a licensed source later.
 

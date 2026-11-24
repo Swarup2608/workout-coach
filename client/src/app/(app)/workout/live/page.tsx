@@ -5,8 +5,10 @@ import { Suspense, useCallback, useEffect, useMemo, useRef, useState } from "rea
 import { useRouter, useSearchParams } from "next/navigation";
 import {
   DEFAULT_REST,
+  EFFORTS,
   WEEKDAYS,
   exerciseSlug,
+  nextTimeHint,
   guessEquipment,
   unitShort,
   weekdayOf,
@@ -552,6 +554,8 @@ function ExerciseCard(props: {
   const readW = (v: string) => (units === "kg" ? numOrNull(v) : fromDisplay(numOrNull(v), units));
   const info = props.library.find((x) => x.slug === exerciseSlug(ex.name));
   const target = planned ? `${planned.sets} × ${planned.repMin}${planned.repMax !== planned.repMin ? `–${planned.repMax}` : ""}${ex.unit === "reps" ? "" : ` ${unitShort(ex.unit)}`}` : null;
+  // Last time's effort turns into a nudge for today ("felt easy: add a little weight").
+  const lastHint = nextTimeHint(prevSets.map((s) => ({ done: true, rir: s.rir ?? null })), ex.unit);
 
   return (
     <div className="card space-y-4">
@@ -562,6 +566,7 @@ function ExerciseCard(props: {
             {target ? `Target ${target}` : "Your own exercise"} · rest {props.restSec}s
             {prevSets.length ? ` · last time ${prevSets.map((s) => `${s.weightKg != null ? `${showW(s.weightKg)}${units}` : "BW"}×${s.reps}`).join(", ")}` : ""}
           </p>
+          {lastHint && <p className="text-xs text-volt-bright">Last time: {lastHint.charAt(0).toLowerCase() + lastHint.slice(1)}</p>}
         </div>
         <div className="flex gap-2 text-xs">
           <Link href={`/exercises/${exerciseSlug(ex.name)}`} className="rounded-lg border border-ink-700 px-2 py-1 hover:border-volt" aria-label={`How to do ${ex.name}`}>
@@ -591,7 +596,8 @@ function ExerciseCard(props: {
         {ex.sets.map((s, si) => {
           const p = prevSets[si] ?? prevSets.at(-1);
           return (
-            <div key={si} className={`grid grid-cols-[2rem_1fr_1fr_3.5rem] items-center gap-2 rounded-xl px-1 py-1 ${s.done ? "bg-good/10" : ""}`}>
+            <div key={si} className={`rounded-xl ${s.done ? "bg-good/10" : ""}`}>
+            <div className="grid grid-cols-[2rem_1fr_1fr_3.5rem] items-center gap-2 px-1 py-1">
               <span className="text-center font-display font-bold text-ink-400">{si + 1}</span>
               <input
                 type="number"
@@ -622,6 +628,24 @@ function ExerciseCard(props: {
               >
                 ✓
               </button>
+            </div>
+            {s.done && (
+              <div className="flex flex-wrap items-center gap-1.5 px-2 pb-2 pl-11" role="radiogroup" aria-label={`How hard was set ${si + 1}?`}>
+                <span className="text-xs text-ink-400">How hard?</span>
+                {EFFORTS.map((f) => (
+                  <button
+                    key={f.rir}
+                    role="radio"
+                    aria-checked={s.rir === f.rir}
+                    title={f.hint}
+                    onClick={() => props.onPatch(si, { rir: s.rir === f.rir ? null : f.rir })}
+                    className={`rounded-full border px-2.5 py-0.5 text-xs ${s.rir === f.rir ? "border-volt bg-volt/15 text-fg" : "border-ink-600 text-ink-400 hover:text-fg"}`}
+                  >
+                    {f.label}
+                  </button>
+                ))}
+              </div>
+            )}
             </div>
           );
         })}

@@ -17,6 +17,7 @@ import { workout } from "./workout.js";
 import { insights } from "./insights.js";
 import { coach, ACTION_GUIDE, pageLine, PageSchema } from "./coach.js";
 import { nutrition, loadLog, nutritionContextLine } from "./nutrition.js";
+import { planGen } from "./planGen.js";
 import { mergeFoodLogs } from "../services/nutrition.js";
 
 /** Mounted behind requireAuth: req.user is always set, and all data goes through that user's repo. */
@@ -60,6 +61,7 @@ api.use(workout);
 api.use(insights);
 api.use(coach);
 api.use(nutrition);
+api.use(planGen);
 
 // ── Plans ────────────────────────────────────────────────────
 api.get("/plans", wrap(async (req, res) => res.json(await repoOf(req).plans())));
@@ -137,7 +139,15 @@ api.delete("/plans/:id", wrap(async (req, res) => {
 }));
 
 // ── Sessions (set/rep logging) ───────────────────────────────
-const SetSchema = z.object({ weightKg: z.number().nullable(), reps: z.number().nullable(), negatives: z.number().min(0).nullable().default(null), done: z.boolean() });
+const SetSchema = z.object({
+  weightKg: z.number().nullable(),
+  reps: z.number().nullable(),
+  negatives: z.number().min(0).nullable().default(null),
+  done: z.boolean(),
+  // Kept when an older log is re-saved from /log, so tick times and effort aren't lost.
+  completedAt: z.string().datetime().nullable().optional(),
+  rir: z.number().int().min(0).max(4).nullable().optional(),
+});
 const SessionSchema = z.object({
   date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
   planDay: z.enum(["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday", "custom"]).optional(),

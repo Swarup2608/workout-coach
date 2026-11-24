@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
-import { addDays, type ProgressData } from "@/lib/domain";
+import { addDays, trendWeights, weeklyWeightRate, type ProgressData } from "@/lib/domain";
 import { api, today } from "@/lib/api";
 import { toDisplay, useUnits } from "@/lib/units";
 import { ErrorNote } from "@/components/ui";
@@ -32,7 +32,10 @@ export default function ProgressPage() {
 
   const w = (kg: number) => toDisplay(kg, units) ?? 0;
   const bw = data?.bodyweight ?? [];
-  const bwChange = bw.length > 1 ? w(bw.at(-1)!.kg) - w(bw[0].kg) : null;
+  // Trend weight smooths daily swings; the change and weekly rate come from it, not the raw scale.
+  const bwTrend = trendWeights(bw);
+  const bwChange = bw.length > 1 ? w(bwTrend.at(-1)!) - w(bwTrend[0]) : null;
+  const bwRate = weeklyWeightRate(bw);
 
   return (
     <div className="space-y-6">
@@ -72,12 +75,14 @@ export default function ProgressPage() {
               <h2 className="h-display text-xl">Bodyweight</h2>
               {bwChange != null && (
                 <span className="text-sm text-ink-400">
-                  {bwChange > 0 ? "+" : ""}
+                  Trend {bwChange > 0 ? "+" : ""}
                   {Math.round(bwChange * 10) / 10} {units} over {range === 365 ? "the year" : `${range} days`}
+                  {bwRate != null && ` · ${bwRate > 0 ? "+" : bwRate < 0 ? "−" : ""}${w(Math.abs(bwRate))} ${units}/week lately`}
                 </span>
               )}
             </div>
-            <LineChart label="Bodyweight" unit={units} points={bw.map((p) => ({ date: p.date, value: w(p.kg) }))} />
+            <LineChart label="Bodyweight" unit={units} points={bw.map((p) => ({ date: p.date, value: w(p.kg) }))} trend={bwTrend.map(w)} />
+            {bw.length > 1 && <p className="mt-2 text-xs text-ink-400">Dots are your weigh-ins; the line is your trend weight, which smooths out day-to-day water and food swings.</p>}
             {bw.length < 2 && (
               <p className="mt-2 text-xs text-ink-400">
                 Add your weight in the <Link href="/checkin" className="link">daily check-in</Link> to see the trend.

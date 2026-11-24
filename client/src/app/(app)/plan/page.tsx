@@ -3,11 +3,12 @@
 import Link from "next/link";
 import { Suspense, useCallback, useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
-import { WEEKDAYS, addDays, exerciseSlug, unitShort, weekStartOf, type WorkoutSession, type PlanDay, type PlannedExercise, type Profile, type ScoreReport, type WorkoutPlan } from "@/lib/domain";
+import { WEEKDAYS, addDays, exerciseSlug, unitShort, weekStartOf, type WorkoutSession, type PlanDay, type PlannedExercise, type Profile, type ReshuffleSuggestion, type ScoreReport, type WeekMove, type WorkoutPlan } from "@/lib/domain";
 import { api, constraintHit, today } from "@/lib/api";
 import { useCoachContext } from "@/components/coach/CoachProvider";
-import { DATA_CHANGED } from "@/components/coach/actions";
+import { DATA_CHANGED, notifyDataChanged } from "@/components/coach/actions";
 import { ProjectBridge } from "@/components/ProjectBridge";
+import { PlanGenerator } from "@/components/plan/PlanGenerator";
 import { ErrorNote, ScoreReportCard, Spinner } from "@/components/ui";
 import { Icon } from "@/components/Icons";
 
@@ -117,6 +118,7 @@ function ManagePlans() {
 
   return (
     <div className="space-y-6">
+      <PlanGenerator onSaved={load} />
       <section className="flex flex-wrap items-end justify-between gap-4">
         <div>
           <p className="text-sm text-ink-400">{active ? active.goal || "Active plan" : "No plan yet"}</p>
@@ -320,11 +322,16 @@ function WeekView({ initialDay }: { initialDay: string | null }) {
   const [sessions, setSessions] = useState<WorkoutSession[]>([]);
   const [prev, setPrev] = useState<Prev>({});
   const [open, setOpen] = useState<string | null>(initialDay);
+  const [shuffle, setShuffle] = useState<ReshuffleSuggestion | null>(null);
+  const [hideShuffle, setHideShuffle] = useState(false);
+  const [shuffleBusy, setShuffleBusy] = useState(false);
+  const [shuffleError, setShuffleError] = useState<string | null>(null);
   const t = today();
   const ws = weekStartOf(t);
 
   const load = useCallback(() => {
     api.activePlan().then(setPlan).catch(() => setPlan(null));
+    api.reshuffle(t).then(setShuffle).catch(() => setShuffle(null));
     api.sessions({ week: t }).then(setSessions).catch(() => {});
     api.previous(addDays(t, 1)).then(setPrev).catch(() => {});
   }, [t]);
@@ -343,15 +350,90 @@ function WeekView({ initialDay }: { initialDay: string | null }) {
       </div>
     );
 
+  const applied = shuffle?.applied ?? [];
+  const short = (date: string) => new Date(date + "T00:00:00").toLocaleDateString(undefined, { weekday: "short" });
+  const finished = (x: WorkoutSession) => x.status !== "in_progress" && (x.exercises.some((e) => e.sets.some((y) => y.done)) || !!x.durationMin);
+  const apply = async (moves: WeekMove[]) => {
+    setShuffleBusy(true);
+    setShuffleError(null);
+    try {
+      setShuffle(await api.applyReshuffle(t, moves));
+      notifyDataChanged();
+    } catch (e) {
+      setShuffleError(e instanceof Error ? e.message : "Could not save");
+    } finally {
+      setShuffleBusy(false);
+    }
+  };
+  // Offer a reshuffle when something was missed and the suggestion differs from what's applied.
+  const pending = shuffle && shuffle.missed.length > 0 && !hideShuffle && shuffle.moves.some((m) => !applied.some((a) => a.date === m.date && a.planDay === m.planDay));
+
   return (
+    <div className="space-y-3">
+    {pending && shuffle && (
+      <section className="card space-y-3 border-warn/50" aria-label="Missed workouts">
+        <h2 className="h-display text-lg">Missed {shuffle.missed.map((m) => `${m.day.slice(0, 3)} (${m.title})`).join(", ")}</h2>
+        {shuffle.moves.length > 0 && (
+          <ul className="space-y-1 text-sm">
+            {shuffle.moves.map((m) => (
+              <li key={m.date}>
+                Do <strong className="text-fg">{m.title}</strong> on {m.date === t ? "today" : short(m.date)} (a rest day), instead of losing it.
+              </li>
+            ))}
+          </ul>
+        )}
+        {shuffle.skipped.length > 0 && (
+          <p className="text-sm text-ink-400">
+            No free day left for {shuffle.skipped.map((m) => m.title).join(", ")}. Skip it this week rather than doubling up; your next week starts fresh.
+          </p>
+        )}
+        <ErrorNote error={shuffleError} />
+        <div className="flex flex-wrap gap-2">
+          {shuffle.moves.length > 0 && (
+            <button className="btn btn-primary" disabled={shuffleBusy} onClick={() => apply(shuffle.moves.map(({ date, planDay }) => ({ date, planDay })))}>
+              {shuffleBusy && <Spinner />} Reshuffle this week
+            </button>
+          )}
+          <button className="btn btn-ghost" onClick={() => setHideShuffle(true)}>
+            Not now
+          </button>
+        </div>
+      </section>
+    )}
+    {applied.length > 0 && (
+      <p className="flex flex-wrap items-center gap-2 text-xs text-ink-400">
+        Reshuffled this week: {applied.map((m) => `${m.planDay.slice(0, 3)} → ${short(m.date)}`).join(", ")}.
+        <button className="link" disabled={shuffleBusy} onClick={() => apply([])}>
+          Undo
+        </button>
+      </p>
+    )}
     <ul className="space-y-2">
       {WEEKDAYS.map((wd, i) => {
         const date = addDays(ws, i);
-        const d = plan.days.find((x) => x.day === wd);
+        const moveHere = applied.find((m) => m.date === date);
+        const d = plan.days.find((x) => x.day === (moveHere?.planDay ?? wd));
         const s = sessions.find((x) => x.date === date);
-        const done = !!s && s.status !== "in_progress" && (s.exercises.some((e) => e.sets.some((x) => x.done)) || !!s.durationMin);
+        const done = !!s && finished(s);
         const live = s?.status === "in_progress";
-        const status = live ? "In progress" : done ? `Done${s?.durationMin ? ` · ${s.durationMin} min` : ""}` : d?.isRest || !d ? "Rest" : date === t ? "Today" : date < t ? "Missed" : "Upcoming";
+        // This day's own workout done on another date, or moved there by the reshuffle.
+        const doneElsewhere = sessions.find((x) => x.date !== date && x.planDay === wd && finished(x));
+        const movedTo = applied.find((m) => m.planDay === wd && m.date !== date);
+        const status = live
+          ? "In progress"
+          : done
+            ? `Done${s?.durationMin ? ` · ${s.durationMin} min` : ""}`
+            : doneElsewhere
+              ? `Done ${short(doneElsewhere.date)}`
+              : movedTo && !moveHere
+                ? `Moved to ${short(movedTo.date)}`
+                : d?.isRest || !d
+                  ? "Rest"
+                  : date === t
+                    ? "Today"
+                    : date < t
+                      ? "Missed"
+                      : "Upcoming";
         const tone = live ? "text-pulse" : done ? "text-good" : status === "Missed" ? "text-bad" : status === "Today" ? "text-volt-bright" : "text-ink-400";
         const isOpen = open === wd;
         return (
@@ -361,7 +443,10 @@ function WeekView({ initialDay }: { initialDay: string | null }) {
                 <p className="font-display text-sm font-bold uppercase text-fg">{wd.slice(0, 3)}</p>
                 <p className="text-xs text-ink-400">{new Date(date + "T00:00:00").toLocaleDateString(undefined, { day: "numeric", month: "short" })}</p>
               </div>
-              <p className="flex-1 truncate font-medium text-fg">{d?.isRest || !d ? "Rest day" : d.title}</p>
+              <p className="flex-1 truncate font-medium text-fg">
+                {d?.isRest || !d ? "Rest day" : d.title}
+                {moveHere && <span className="ml-2 text-xs font-normal text-ink-400">moved from {moveHere.planDay.slice(0, 3)}</span>}
+              </p>
               <span className={`text-xs ${tone}`}>{status}</span>
               <span className="text-ink-400" aria-hidden>{isOpen ? "▴" : "▾"}</span>
             </button>
@@ -391,7 +476,7 @@ function WeekView({ initialDay }: { initialDay: string | null }) {
                       ) : live ? (
                         <Link href="/workout/live" className="btn btn-primary">Resume</Link>
                       ) : (
-                        <Link href={`/workout/live?day=${wd}`} className="btn btn-primary">Start this workout</Link>
+                        <Link href={`/workout/live?day=${d.day}`} className="btn btn-primary">Start this workout</Link>
                       )}
                     </div>
                   </>
@@ -407,5 +492,6 @@ function WeekView({ initialDay }: { initialDay: string | null }) {
         );
       })}
     </ul>
+    </div>
   );
 }

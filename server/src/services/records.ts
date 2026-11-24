@@ -1,4 +1,4 @@
-import { exerciseVolume, setLabel, type ExerciseComparison, type LoggedExercise, type PersonalRecord, type WorkoutSession } from "../domain.js";
+import { exerciseVolume, nextTimeHint, setLabel, type ExerciseComparison, type LoggedExercise, type PersonalRecord, type WorkoutSession } from "../domain.js";
 import { e1rm } from "./metrics.js";
 
 /**
@@ -90,7 +90,8 @@ export function compareWithLast(session: WorkoutSession, all: WorkoutSession[]):
     const b = bestOf(e);
     const prevEx = earlier.flatMap((s) => s.exercises).find((x) => norm(x.name) === norm(e.name) && done(x).length);
     const volume = Math.round(exerciseVolume(e));
-    if (!prevEx) return { name: e.name, bestSet: b.set ? setLabel(b.set, e.unit) : null, prevBestSet: null, volume, prevVolume: null, trend: "new" as const };
+    const nextTime = nextTimeHint(e.sets, e.unit);
+    if (!prevEx) return { name: e.name, bestSet: b.set ? setLabel(b.set, e.unit) : null, prevBestSet: null, volume, prevVolume: null, trend: "new" as const, nextTime };
     const p = bestOf(prevEx);
     const prevVolume = Math.round(exerciseVolume(prevEx));
     const score = (x: Best) => x.e1rm ?? x.repsAtTop ?? 0;
@@ -102,6 +103,7 @@ export function compareWithLast(session: WorkoutSession, all: WorkoutSession[]):
       volume,
       prevVolume,
       trend: !b.set ? ("down" as const) : diff > 0 ? ("up" as const) : diff < 0 ? ("down" as const) : ("same" as const),
+      nextTime,
     };
   });
 }

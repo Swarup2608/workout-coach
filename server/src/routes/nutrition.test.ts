@@ -64,6 +64,32 @@ describe("nutrition", () => {
     assert.equal(r.body.log.entries[0].kcal, 315);
   });
 
+  it("calories, macros and name can be edited after adding; totals follow servings", async () => {
+    const r = await a.call("PATCH", `/nutrition/day/${D}/entries/${entryId}`, { name: "Ghee roti", kcal: 140, fatG: 5 });
+    assert.equal(r.status, 200);
+    const e = r.body.log.entries[0];
+    assert.deepEqual([e.name, e.per.kcal, e.per.fatG, e.per.proteinG, e.servings, e.kcal, e.fatG], ["Ghee roti", 140, 5, 3.6, 3, 420, 15]);
+    assert.equal((await a.call("PATCH", `/nutrition/day/${D}/entries/${entryId}`, { kcal: 9000 })).status, 400);
+    assert.equal((await a.call("PATCH", `/nutrition/day/${D}/entries/${entryId}`, { name: "" })).status, 400);
+  });
+
+  it("a photo result is added with its serving label and source", async () => {
+    const r = await a.call("POST", `/nutrition/day/${D}/entries`, { meal: "snack", name: "Protein bar", serving: "1 bar (40 g)", kcal: 180, proteinG: 15, carbsG: 18, fatG: 6, servings: 2, source: "photo" });
+    assert.equal(r.status, 200);
+    const e = r.body.log.entries.at(-1);
+    assert.deepEqual([e.source, e.serving, e.servings, e.kcal, e.proteinG], ["photo", "1 bar (40 g)", 2, 360, 30]);
+    await a.call("DELETE", `/nutrition/day/${D}/entries/${e.id}`);
+  });
+
+  it("photo needs a connected AI and a real image", async () => {
+    const png = "data:image/png;base64,iVBORw0KGgo=";
+    const r = await a.call("POST", "/nutrition/photo", { image: png });
+    assert.equal(r.status, 409);
+    assert.equal(r.body.code, "no_ai");
+    assert.equal((await a.call("POST", "/nutrition/photo", { image: "data:text/html;base64,PGI+" })).status, 400);
+    assert.equal((await a.call("POST", "/nutrition/photo", { image: png, extra: 1 })).status, 400);
+  });
+
   it("water is set per day", async () => {
     const r = await a.call("PUT", `/nutrition/day/${D}/water`, { waterMl: 750 });
     assert.equal(r.body.log.waterMl, 750);
@@ -183,5 +209,63 @@ describe("nutrition", () => {
     assert.equal((await a.call("DELETE", "/auth/me", { password: "Str0ngPassw0rd" })).status, 204);
     assert.equal(await app.col().foodLogs().countDocuments({ userId }), 0);
     assert.equal(await app.col().nutritionPrefs().countDocuments({ _id: userId }), 0);
+  });
+});
+
+describe("adaptive calories (API)", () => {
+  const c = new Browser();
+  it("a stalled fat-loss trend lowers the targets and says why", async () => {
+    await signUpVerified(c, { name: "Meera", email: "meera@example.com" });
+    const id = (await c.call("GET", "/auth/me")).body.user.id;
+    await app.col().profiles().updateOne({ _id: id }, { $set: { age: 32, sex: "female", heightCm: 162, startBodyweightKg: 70, goalKey: "fat_loss", daysPerWeek: 3 } }, { upsert: true });
+    const before = (await c.call("GET", "/nutrition/day/2026-11-20")).body.targets;
+    assert.equal(before.adaptive, null);
+    // Four weeks of check-ins at a flat 70 kg.
+    for (let i = 27; i >= 0; i--) {
+      const d = new Date(Date.UTC(2026, 10, 20 - i)).toISOString().slice(0, 10);
+      await c.call("PUT", `/checkins/${d}`, { weightKg: 70 });
+    }
+    const after = (await c.call("GET", "/nutrition/day/2026-11-20")).body.targets;
+    assert.equal(after.adaptive.method, "trend");
+    assert.ok(after.adaptive.deltaKcal < 0);
+    assert.ok(after.kcal < before.kcal || after.kcal === Math.max(after.bmr, 1200));
+    assert.ok(after.basis.some((b: string) => b.includes("Adjusted to your progress")));
+  });
+});
+
+describe("meal ideas (API)", () => {
+  const d = new Browser();
+  const DAY = "2026-11-20";
+  it("suggests the next meal from what's left, and adds a whole option in one go", async () => {
+    await signUpVerified(d, { name: "Kiran", email: "kiran@example.com" });
+    const id = (await d.call("GET", "/auth/me")).body.user.id;
+    await app.col().profiles().updateOne({ _id: id }, { $set: { age: 28, sex: "male", heightCm: 175, startBodyweightKg: 72, goalKey: "muscle_gain", daysPerWeek: 4, diet: "veg" } }, { upsert: true });
+    const s = (await d.call("GET", `/nutrition/suggest?date=${DAY}&meal=lunch`)).body;
+    assert.equal(s.meal, "lunch");
+    assert.equal(s.assumed, false);
+    assert.equal(s.options.length, 3);
+    const opt = s.options[0];
+    const r = await d.call("POST", `/nutrition/day/${DAY}/entries/bulk`, { meal: "lunch", items: opt.items.map((i: { foodId: string; servings: number }) => ({ foodId: i.foodId, servings: i.servings })) });
+    assert.equal(r.status, 200);
+    assert.equal(r.body.log.entries.length, opt.items.length);
+    assert.equal(r.body.totals.kcal, opt.totals.kcal);
+    // Lunch is logged now, so the dinner budget shrinks to what's left.
+    const next = (await d.call("GET", `/nutrition/suggest?date=${DAY}&meal=dinner`)).body;
+    assert.ok(next.budget.kcal < r.body.targets.kcal - opt.totals.kcal + 1);
+  });
+
+  it("plans a whole day that adds up to the targets", async () => {
+    const p = (await d.call("GET", `/nutrition/plan?date=${DAY}&seed=2`)).body;
+    assert.deepEqual(p.meals.map((m: { meal: string }) => m.meal), ["breakfast", "lunch", "snack", "dinner"]);
+    const total = p.meals.reduce((a: number, m: { options: { totals: { kcal: number } }[] }) => a + m.options[0].totals.kcal, 0);
+    assert.ok(Math.abs(total - p.targets.kcal) / p.targets.kcal < 0.12, `${total} vs ${p.targets.kcal}`);
+    assert.equal(p.seed, 2);
+  });
+
+  it("bulk add validates", async () => {
+    assert.equal((await d.call("POST", `/nutrition/day/${DAY}/entries/bulk`, { meal: "lunch", items: [] })).status, 400);
+    assert.equal((await d.call("POST", `/nutrition/day/${DAY}/entries/bulk`, { meal: "lunch", items: [{ foodId: "nope", servings: 1 }] })).status, 404);
+    assert.equal((await d.call("POST", `/nutrition/day/${DAY}/entries/bulk`, { meal: "lunch", items: [{ foodId: "roti", servings: 50 }] })).status, 400);
+    assert.equal((await d.call("GET", `/nutrition/suggest?date=${DAY}&meal=brunch`)).status, 400);
   });
 });

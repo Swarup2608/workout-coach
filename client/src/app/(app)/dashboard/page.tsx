@@ -13,7 +13,7 @@ import { NutritionCard } from "@/components/nutrition/NutritionUi";
 const CHECKIN_DISMISSED_KEY = "starkfit.checkinDismissed";
 import { useCoachContext } from "@/components/coach/CoachProvider";
 import { DATA_CHANGED } from "@/components/coach/actions";
-import { ActivityCard, InsightCard, MuscleCard, ReadinessCard, RecentCard, StatStrip, VolumeCard, WorkoutCard, addDays, sessionMinutes, sessionVolume, weekStartOf } from "@/components/dashboard/Widgets";
+import { ActivityCard, InsightCard, MuscleCard, ReadinessCard, RecentCard, StatStrip, VolumeCard, WeekGoalCard, WorkoutCard, addDays, sessionMinutes, sessionVolume, weekStartOf } from "@/components/dashboard/Widgets";
 import type { WorkoutSession } from "@/lib/domain";
 import { ErrorNote, ScoreReportCard, ScoreRing, Spinner, SubScoreBars, scoreColor } from "@/components/ui";
 
@@ -148,7 +148,10 @@ export default function Dashboard() {
             <ReadinessCard checkin={checkin ?? todayData.checkin} onCheckin={() => setCheckinOpen(true)} />
             <WorkoutCard t={todayData} readiness={(checkin ?? todayData.checkin)?.readiness} />
           </div>
-          <NutritionCard />
+          <div className="grid gap-4 lg:grid-cols-[2fr_3fr]">
+            <WeekGoalCard goal={todayData.weekGoal} />
+            <NutritionCard />
+          </div>
           <div className="grid gap-4 lg:grid-cols-3">
             <ActivityCard weekStart={weekStartOf(today())} sessions={allSessions.filter((x) => x.date >= weekStartOf(today()))} planned={metrics?.plannedSessions} />
             <VolumeCard all={allSessions} today={today()} />

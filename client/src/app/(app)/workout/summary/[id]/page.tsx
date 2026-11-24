@@ -112,9 +112,12 @@ export default function SummaryPage({ params }: { params: Promise<{ id: string }
               <span className={`w-6 text-center text-lg ${e.trend === "up" ? "text-good" : e.trend === "down" ? "text-bad" : "text-ink-400"}`} aria-label={e.trend}>
                 {e.trend === "up" ? "↑" : e.trend === "down" ? "↓" : e.trend === "new" ? <Icon name="star" size={14} /> : "="}
               </span>
-              <Link href={`/exercises/${e.name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "")}`} className="flex-1 text-fg hover:underline">
-                {e.name}
-              </Link>
+              <span className="min-w-0 flex-1">
+                <Link href={`/exercises/${e.name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "")}`} className="text-fg hover:underline">
+                  {e.name}
+                </Link>
+                {e.nextTime && <span className="block text-xs text-ink-400">{e.nextTime}</span>}
+              </span>
               <span className="text-right text-ink-400">
                 {e.bestSet ?? "not done"}
                 {e.prevBestSet && <span className="block text-xs">last: {e.prevBestSet}</span>}

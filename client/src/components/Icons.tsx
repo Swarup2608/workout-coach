@@ -2,7 +2,7 @@ import type { IconType } from "react-icons";
 import {
   LuAnnoyed, LuArrowLeftRight, LuBot, LuCalendarDays, LuChartColumn, LuClock, LuDumbbell, LuFlame, LuFrown, LuHouse, LuLaugh, LuLayers, LuListChecks, LuMeh,
   LuPanelLeftClose, LuPanelLeftOpen, LuX, LuTrash2, LuSearch, LuBell, LuChevronLeft, LuChevronRight,
-  LuUtensils, LuDroplet, LuPlus, LuMinus,
+  LuUtensils, LuDroplet, LuPlus, LuMinus, LuCamera,
   LuBed, LuBicepsFlexed, LuBrain, LuInfo, LuLogOut, LuPencil, LuPlay, LuSettings, LuSmile, LuSparkles, LuStar, LuTriangleAlert, LuTrophy, LuUser, LuZap,
 } from "react-icons/lu";
 
@@ -49,6 +49,7 @@ const ICONS = {
   droplet: LuDroplet,
   plus: LuPlus,
   minus: LuMinus,
+  camera: LuCamera,
 } satisfies Record<string, IconType>;
 
 export type IconName = keyof typeof ICONS;

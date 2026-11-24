@@ -1,6 +1,7 @@
 import { describe, it } from "node:test";
 import assert from "node:assert/strict";
-import { FOODS, computeTargets, mergeFoodLogs, searchFoods } from "./nutrition.js";
+import { FOODS, adaptiveDelta, computeTargets, mergeFoodLogs, searchFoods } from "./nutrition.js";
+import { addDays } from "../domain.js";
 import type { FoodItem, FoodLog, WorkoutSession } from "../domain.js";
 
 type Input = Parameters<typeof computeTargets>[0];
@@ -115,5 +116,57 @@ describe("food log merge for scoring", () => {
     assert.equal(out[0].waterL, 2);
     assert.equal(out[1].exercises.length, 0);
     assert.equal(out[1].food![0].kcal, 500);
+  });
+});
+
+describe("adaptive calories", () => {
+  const days = (n: number, start = "2026-10-20") => Array.from({ length: n }, (_, i) => addDays(start, i));
+  // 28 daily weigh-ins changing by `perWeek` kg a week.
+  const weights = (perWeek: number, from = 80) => days(28).map((date, i) => ({ date, kg: Math.round((from + (perWeek / 7) * i) * 100) / 100 }));
+  const intake = (kcal: number, n = 14) => days(n, "2026-11-01").map((date) => ({ date, kcal }));
+
+  it("no usable trend → formulas only", () => {
+    assert.equal(adaptiveDelta("fat_loss", 80, 2200, { weights: weights(-0.4).slice(0, 4), intake: [] }), null);
+    assert.equal(t().targets!.adaptive, null);
+  });
+
+  it("from the trend alone: half the gap, only when more than 0.15 kg/week off", () => {
+    // Fat loss at 80 kg aims for −0.4 kg/week; losing nothing → −(0.4·7700/7)/2 ≈ −220 → −200.
+    const stalled = adaptiveDelta("fat_loss", 80, 2200, { weights: weights(0), intake: [] })!;
+    assert.equal(stalled.method, "trend");
+    assert.equal(stalled.goalRateKgWeek, -0.4);
+    assert.ok(Math.abs(stalled.rateKgWeek) < 0.05);
+    assert.equal(stalled.deltaKcal, -200);
+    assert.match(stalled.note, /Took off 200 kcal/);
+    // Close to the goal pace → no change.
+    assert.equal(adaptiveDelta("fat_loss", 80, 2200, { weights: weights(-0.35), intake: [] })!.deltaKcal, 0);
+  });
+
+  it("with 10+ days of food logs, works out the real burn", () => {
+    // Ate 2500 a day and the trend held steady → burn ≈ 2500; fat loss wants −440/day → 2060 vs a 2200 formula → −150.
+    const a = adaptiveDelta("fat_loss", 80, 2200, { weights: weights(0), intake: intake(2500) })!;
+    assert.equal(a.method, "intake");
+    assert.ok(Math.abs(a.observedTdee! - 2500) < 30, `burn ${a.observedTdee}`);
+    assert.equal(a.deltaKcal, -150);
+    // Too few logged days falls back to the trend method.
+    assert.equal(adaptiveDelta("fat_loss", 80, 2200, { weights: weights(0), intake: intake(2500, 6) })!.method, "trend");
+  });
+
+  it("is capped at ±500 kcal and keeps the floor", () => {
+    const gain = adaptiveDelta("muscle_gain", 80, 2000, { weights: weights(-1), intake: intake(3500) })!;
+    assert.equal(gain.deltaKcal, 500);
+    const r = t({ profile: { goalKey: "fat_loss", sex: "female", age: 60, heightCm: 150 }, weightKg: 50, trainingDay: false, history: { weights: weights(0, 50), intake: intake(900) } }).targets!;
+    assert.ok(r.kcal >= Math.max(r.bmr, 1200));
+  });
+
+  it("shifts both training and rest days and explains itself", () => {
+    const history = { weights: weights(0), intake: [] };
+    const base = { profile: { goalKey: "fat_loss" as const } };
+    const train = t({ ...base, trainingDay: true, history }).targets!;
+    const rest = t({ ...base, trainingDay: false, history }).targets!;
+    const plainTrain = t({ ...base, trainingDay: true }).targets!;
+    assert.ok(train.kcal < plainTrain.kcal);
+    assert.ok(train.kcal > rest.kcal);
+    assert.ok(train.basis.some((b) => b.startsWith("Adjusted to your progress")));
   });
 });

@@ -44,6 +44,7 @@ const SetSchema = z.object({
   negatives: z.number().min(0).nullable().default(null),
   done: z.boolean(),
   completedAt: z.string().datetime().nullable().optional(),
+  rir: z.number().int().min(0).max(4).nullable().optional(),
 });
 const ExerciseSchema = z.object({
   plannedId: z.string().nullable(),

@@ -3,13 +3,14 @@
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useCallback, useEffect, useState } from "react";
-import { MEALS, MEAL_LABELS, addDays, sumMacros, type FoodLogEntry, type NutritionDay, type NutritionWeekDay } from "@/lib/domain";
+import { MEALS, MEAL_LABELS, addDays, scaleMacros, sumMacros, type FoodLogEntry, type Macros, type Meal, type NutritionDay, type NutritionWeekDay } from "@/lib/domain";
 import { api, today } from "@/lib/api";
 import { Icon } from "@/components/Icons";
 import { ErrorNote } from "@/components/ui";
 import { useCoachContext } from "@/components/coach/CoachProvider";
 import { DATA_CHANGED } from "@/components/coach/actions";
-import { CalorieRing, MACRO_COLOR, MacroBar, MissingTargets } from "@/components/nutrition/NutritionUi";
+import { MealIdeas } from "@/components/nutrition/MealIdeas";
+import { CalorieRing, MACRO_COLOR, MacroBar, MacroInputs, MissingTargets, macrosOk, toMacros, toText, type MacroText } from "@/components/nutrition/NutritionUi";
 
 const GLASS_ML = 250;
 const validDate = (d: string | null) => (d && /^\d{4}-\d{2}-\d{2}$/.test(d) ? d : null);
@@ -56,8 +57,10 @@ function Nutrition() {
     try {
       setDay(await fn());
       api.nutritionWeek(date).then((w) => setWeek(w.days)).catch(() => {});
+      return true;
     } catch (e) {
       setError(e instanceof Error ? e.message : "Could not save");
+      return false;
     } finally {
       setBusy(null);
     }
@@ -107,6 +110,17 @@ function Nutrition() {
               <MacroBar label="Protein" value={day.totals.proteinG} target={targets?.proteinG ?? null} color={MACRO_COLOR.protein} />
               <MacroBar label="Carbs" value={day.totals.carbsG} target={targets?.carbsG ?? null} color={MACRO_COLOR.carbs} />
               <MacroBar label="Fat" value={day.totals.fatG} target={targets?.fatG ?? null} color={MACRO_COLOR.fat} />
+              {targets?.adaptive && targets.adaptive.deltaKcal !== 0 && (
+                <p className="rounded-lg border border-ink-600 px-3 py-2 text-xs">
+                  <strong className="text-fg">
+                    {targets.adaptive.deltaKcal > 0 ? "+" : "−"}
+                    {Math.abs(targets.adaptive.deltaKcal)} kcal a day
+                  </strong>{" "}
+                  from your weight trend ({targets.adaptive.rateKgWeek > 0 ? "+" : ""}
+                  {targets.adaptive.rateKgWeek} kg/week vs a goal of {targets.adaptive.goalRateKgWeek > 0 ? "+" : ""}
+                  {targets.adaptive.goalRateKgWeek}).
+                </p>
+              )}
               {targets ? (
                 <details className="text-xs text-ink-400">
                   <summary className="cursor-pointer select-none hover:text-fg">How these targets are set</summary>
@@ -122,6 +136,8 @@ function Nutrition() {
               )}
             </div>
           </section>
+
+          {date === t && <MealIdeas date={date} />}
 
           <section className="card space-y-3">
             <div className="flex flex-wrap items-center justify-between gap-2">
@@ -166,6 +182,7 @@ function Nutrition() {
                           e={e}
                           busy={busy === e.id}
                           onServings={(s) => run(e.id, () => api.updateFood(date, e.id, { servings: s }))}
+                          onSave={(body) => run(e.id, () => api.updateFood(date, e.id, body))}
                           onRemove={() => run(e.id, () => api.removeFood(date, e.id))}
                         />
                       ))}
@@ -186,17 +203,25 @@ function Nutrition() {
   );
 }
 
-function EntryRow({ e, busy, onServings, onRemove }: { e: FoodLogEntry; busy: boolean; onServings: (s: number) => void; onRemove: () => void }) {
+type EntryEdit = { name: string; meal: Meal; servings: number } & Macros;
+
+function EntryRow({ e, busy, onServings, onSave, onRemove }: { e: FoodLogEntry; busy: boolean; onServings: (s: number) => void; onSave: (b: EntryEdit) => Promise<boolean>; onRemove: () => void }) {
   const step = 0.5;
+  const [editing, setEditing] = useState(false);
+  if (editing) return <EntryEditor e={e} busy={busy} onCancel={() => setEditing(false)} onSave={(b) => onSave(b).then((ok) => ok && setEditing(false))} />;
+  const how = e.serving ? `${e.servings} × ${e.serving}` : e.servings !== 1 ? `× ${e.servings}` : e.source === "import" ? "from your log" : e.source === "photo" ? "from a photo" : "quick add";
   return (
     <li className={`flex items-center gap-3 py-2 ${busy ? "opacity-60" : ""}`}>
       <div className="min-w-0 flex-1">
         <p className="truncate text-sm font-medium text-fg">{e.name}</p>
         <p className="truncate text-xs text-ink-400">
-          {e.serving ? `${e.servings} × ${e.serving}` : e.servings !== 1 ? `× ${e.servings}` : e.source === "import" ? "from your log" : "quick add"} · {e.proteinG} g P · {e.carbsG} g C · {e.fatG} g F
+          {how} · {e.proteinG} g P · {e.carbsG} g C · {e.fatG} g F
         </p>
       </div>
       <div className="flex items-center gap-1">
+        <button className="rounded-md p-1 text-ink-400 hover:bg-ink-800 hover:text-fg disabled:opacity-40" disabled={busy} onClick={() => setEditing(true)} aria-label={`Edit ${e.name}`}>
+          <Icon name="pencil" size={14} />
+        </button>
         <button className="rounded-md p-1 text-ink-400 hover:bg-ink-800 hover:text-fg disabled:opacity-40" disabled={busy || e.servings <= 0.25} onClick={() => onServings(Math.max(0.25, e.servings - step))} aria-label={`Less ${e.name}`}>
           <Icon name="minus" size={14} />
         </button>
@@ -208,6 +233,65 @@ function EntryRow({ e, busy, onServings, onRemove }: { e: FoodLogEntry; busy: bo
           <Icon name="trash" size={14} />
         </button>
       </div>
+    </li>
+  );
+}
+
+/** Edit an entry in place: name, meal, servings, and calories/macros of one serving. */
+function EntryEditor({ e, busy, onCancel, onSave }: { e: FoodLogEntry; busy: boolean; onCancel: () => void; onSave: (b: EntryEdit) => void }) {
+  const [name, setName] = useState(e.name);
+  const [meal, setMeal] = useState<Meal>(e.meal);
+  const [servings, setServings] = useState(String(e.servings));
+  const [m, setM] = useState<MacroText>(toText(e.per));
+  const s = Number(servings);
+  const ok = name.trim() && macrosOk(m) && s >= 0.25 && s <= 20;
+  const total = scaleMacros(toMacros(m), ok ? s : 1);
+  return (
+    <li className="py-3">
+      <form
+        className="space-y-3"
+        onSubmit={(ev) => {
+          ev.preventDefault();
+          if (ok) onSave({ name: name.trim(), meal, servings: Math.round(s * 4) / 4, ...toMacros(m) });
+        }}
+      >
+        <div className="grid gap-3 sm:grid-cols-[2fr_1fr_1fr]">
+          <div>
+            <label className="label" htmlFor={`e-${e.id}-name`}>
+              Name
+            </label>
+            <input id={`e-${e.id}-name`} className="input" value={name} onChange={(ev) => setName(ev.target.value)} maxLength={120} required />
+          </div>
+          <div>
+            <label className="label" htmlFor={`e-${e.id}-meal`}>
+              Meal
+            </label>
+            <select id={`e-${e.id}-meal`} className="input" value={meal} onChange={(ev) => setMeal(ev.target.value as Meal)}>
+              {MEALS.map((x) => (
+                <option key={x} value={x}>
+                  {MEAL_LABELS[x]}
+                </option>
+              ))}
+            </select>
+          </div>
+          <div>
+            <label className="label" htmlFor={`e-${e.id}-servings`}>
+              Servings
+            </label>
+            <input id={`e-${e.id}-servings`} type="number" inputMode="decimal" min={0.25} max={20} step={0.25} className="input" value={servings} onChange={(ev) => setServings(ev.target.value)} />
+          </div>
+        </div>
+        <p className="text-xs text-ink-400">Calories and macros for one serving{e.serving ? ` (${e.serving})` : ""}:</p>
+        <MacroInputs idPrefix={`e-${e.id}`} v={m} onChange={setM} />
+        <div className="flex flex-wrap items-center gap-2">
+          <button className="btn btn-primary" disabled={!ok || busy}>
+            Save · {total.kcal} kcal
+          </button>
+          <button type="button" className="btn btn-ghost" onClick={onCancel}>
+            Cancel
+          </button>
+        </div>
+      </form>
     </li>
   );
 }

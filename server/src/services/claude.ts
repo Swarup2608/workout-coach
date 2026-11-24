@@ -4,6 +4,7 @@ import {
   WEEKDAYS,
   addDays,
   cardioText,
+  effortLabel,
   foodTotals,
   guessEquipment,
   type WeekStats,
@@ -27,7 +28,7 @@ export const setText = (e: LoggedExercise) => {
   const done = e.sets.filter((x) => x.done);
   if (!done.length) return "no sets done";
   const sets = done
-    .map((x, i) => `S${i + 1} ${x.weightKg != null ? `${x.weightKg} kg` : "bodyweight"} × ${x.reps ?? "?"} ${unitShort(e.unit)}${x.negatives ? ` + ${x.negatives} negative-only reps` : ""}`)
+    .map((x, i) => `S${i + 1} ${x.weightKg != null ? `${x.weightKg} kg` : "bodyweight"} × ${x.reps ?? "?"} ${unitShort(e.unit)}${x.negatives ? ` + ${x.negatives} negative-only reps` : ""}${x.rir != null ? ` (felt ${effortLabel(x.rir)!.toLowerCase()}, ~${x.rir >= 4 ? "4+" : x.rir} in reserve)` : ""}`)
     .join(", ");
   return done.length < e.sets.length ? `${sets} (${done.length} of ${e.sets.length} sets done)` : sets;
 };

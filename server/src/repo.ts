@@ -38,6 +38,7 @@ export function userRepo(userId: string) {
       await col.plans().updateMany(own, { $set: { active: false } });
       await col.plans().insertOne({ ...plan, active: true, userId });
     },
+    setWeekMoves: (planId: string, weekMoves: WorkoutPlan["weekMoves"]) => col.plans().updateOne({ ...own, id: planId }, { $set: { weekMoves } }),
     replacePlan: (plan: WorkoutPlan) => col.plans().replaceOne({ ...own, id: plan.id }, { ...plan, userId }),
     async activatePlan(id: string) {
       if (!(await col.plans().countDocuments({ ...own, id }))) return false;

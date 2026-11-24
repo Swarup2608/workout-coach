@@ -1,4 +1,5 @@
 import { Router, type NextFunction, type Request, type Response } from "express";
+import { ipKeyGenerator, rateLimit } from "express-rate-limit";
 import { z } from "zod";
 import {
   MEALS,
@@ -8,7 +9,9 @@ import {
   type FoodItem,
   type FoodLog,
   type FoodLogEntry,
+  type DayMealPlan,
   type Macros,
+  type MealSuggestions,
   type NutritionDay,
   type WorkoutPlan,
   type WorkoutSession,
@@ -16,6 +19,9 @@ import {
 import { userRepo, type UserRepo } from "../repo.js";
 import { newId, now } from "../util/id.js";
 import { builtInFood, computeTargets, searchFoods } from "../services/nutrition.js";
+import { aiForUser } from "../services/ai.js";
+import { analyzeFoodPhoto, parseImageDataUrl } from "../services/foodPhoto.js";
+import { MEAL_ORDER, MEAL_SHARE, nowBudget, suggestMeal } from "../services/mealSuggest.js";
 
 /** Food log, targets, food search, favourites and own foods. Mounted on the authenticated `api` router. */
 export const nutrition = Router();
@@ -79,27 +85,40 @@ const isTrainingDay = (plan: WorkoutPlan | null, session: WorkoutSession | null,
   !!session?.exercises.some((e) => e.sets.some((x) => x.done)) ||
   !!plan?.days.some((d) => d.day === weekdayOf(date) && !d.isRest && d.exercises.length > 0);
 
-/** Latest bodyweight on or before the date: check-in, then workout log, then the profile. */
-async function latestWeight(repo: UserRepo, date: string, startKg: number | null) {
-  const [checkins, sessions] = await Promise.all([repo.checkins(addDays(date, -90), date), repo.sessions()]);
-  const c = [...checkins].reverse().find((x) => x.weightKg);
-  if (c?.weightKg) return { kg: c.weightKg, source: "check-in" as const };
-  const s = [...sessions].filter((x) => x.date <= date && x.bodyweightKg).sort((a, b) => b.date.localeCompare(a.date))[0];
-  if (s?.bodyweightKg) return { kg: s.bodyweightKg, source: "workout log" as const };
-  return { kg: startKg, source: "profile" as const };
+/**
+ * Weigh-ins on or before the date (check-ins, with workout-log bodyweight on days without one),
+ * the latest bodyweight (check-in, then workout log, then the profile), and logged daily intake
+ * for the last 21 days (adaptive calories).
+ */
+async function bodyAndIntake(repo: UserRepo, date: string, startKg: number | null) {
+  const [checkins, sessions, logs] = await Promise.all([repo.checkins(addDays(date, -90), date), repo.sessions(), repo.foodLogs(addDays(date, -21), date)]);
+  const byDate = new Map<string, number>();
+  for (const s of sessions) if (s.date <= date && s.date >= addDays(date, -90) && s.bodyweightKg) byDate.set(s.date, s.bodyweightKg);
+  for (const c of checkins) if (c.weightKg) byDate.set(c.date, c.weightKg);
+  const weights = [...byDate.entries()].sort(([a], [b]) => a.localeCompare(b)).map(([d, kg]) => ({ date: d, kg }));
+  const lastCheckin = [...checkins].reverse().find((x) => x.weightKg);
+  const lastSession = [...sessions].filter((x) => x.date <= date && x.bodyweightKg).sort((a, b) => b.date.localeCompare(a.date))[0];
+  const weight = lastCheckin?.weightKg
+    ? { kg: lastCheckin.weightKg, source: "check-in" as const }
+    : lastSession?.bodyweightKg
+      ? { kg: lastSession.bodyweightKg, source: "workout log" as const }
+      : { kg: startKg, source: "profile" as const };
+  // Today is still in progress, so it doesn't count as a full day of eating.
+  const intake = logs.filter((l) => l.date < date && l.entries.length).map((l) => ({ date: l.date, kcal: sumMacros(l.entries).kcal }));
+  return { weight, history: { weights, intake } };
 }
 
 async function targetsContext(repo: UserRepo, date: string) {
   const [profile, plan] = await Promise.all([repo.profile(), repo.activePlan()]);
-  const weight = await latestWeight(repo, date, profile.startBodyweightKg);
+  const { weight, history } = await bodyAndIntake(repo, date, profile.startBodyweightKg);
   const plannedDays = plan ? plan.days.filter((d) => !d.isRest && d.exercises.length > 0).length : null;
-  return { profile, plan, weight, plannedDays };
+  return { profile, plan, weight, plannedDays, history };
 }
 
 async function dayView(repo: UserRepo, date: string, log?: FoodLog): Promise<NutritionDay> {
   const [ctx, theLog, session] = await Promise.all([targetsContext(repo, date), log ?? loadLog(repo, date), repo.sessionByDate(date)]);
   const trainingDay = isTrainingDay(ctx.plan, session, date);
-  const t = computeTargets({ profile: ctx.profile, weightKg: ctx.weight.kg, weightSource: ctx.weight.source, trainingDay, plannedDays: ctx.plannedDays });
+  const t = computeTargets({ profile: ctx.profile, weightKg: ctx.weight.kg, weightSource: ctx.weight.source, trainingDay, plannedDays: ctx.plannedDays, history: ctx.history });
   return { date, log: theLog, totals: sumMacros(theLog.entries), targets: t.targets, missing: t.missing, trainingDay };
 }
 
@@ -150,7 +169,7 @@ nutrition.get("/nutrition/week", wrap(async (req, res) => {
     // Older days may only have food typed into the workout log.
     const totals = log ? sumMacros(log.entries) : sumMacros((s?.food ?? []).map((f) => ({ kcal: f.kcal ?? 0, proteinG: f.proteinG ?? 0, carbsG: f.carbsG ?? 0, fatG: f.fatG ?? 0 })));
     const trainingDay = isTrainingDay(ctx.plan, s, date);
-    const t = computeTargets({ profile: ctx.profile, weightKg: ctx.weight.kg, weightSource: ctx.weight.source, trainingDay, plannedDays: ctx.plannedDays }).targets;
+    const t = computeTargets({ profile: ctx.profile, weightKg: ctx.weight.kg, weightSource: ctx.weight.source, trainingDay, plannedDays: ctx.plannedDays, history: ctx.history }).targets;
     const logged = log ? log.entries.length > 0 : !!s?.food?.length;
     return { date, logged, trainingDay, ...totals, targetKcal: t?.kcal ?? null, targetProteinG: t?.proteinG ?? null };
   });
@@ -168,6 +187,10 @@ const AddEntry = z.union([
       carbsG: Gram.default(0),
       fatG: Gram.default(0),
       servings: Servings.default(1),
+      /** Serving label for one unit, e.g. "1 bar (40 g)" from a nutrition label */
+      serving: z.string().trim().min(1).max(60).optional(),
+      /** "photo" when the values came from a photo the user checked */
+      source: z.enum(["quick", "photo"]).default("quick"),
     })
     .strict(),
 ]);
@@ -185,20 +208,73 @@ nutrition.post("/nutrition/day/:date/entries", wrap(async (req, res) => {
       entry = { id: newId(), meal: body.meal, name: food.name, foodId: food.id, servings: body.servings, serving: food.serving, per, ...scale(per, body.servings), source: food.custom ? "custom" : "db", createdAt: now() };
     } else {
       const per = { kcal: Math.round(body.kcal), proteinG: r1(body.proteinG), carbsG: r1(body.carbsG), fatG: r1(body.fatG) };
-      entry = { id: newId(), meal: body.meal, name: body.name, foodId: null, servings: body.servings, serving: null, per, ...scale(per, body.servings), source: "quick", createdAt: now() };
+      entry = { id: newId(), meal: body.meal, name: body.name, foodId: null, servings: body.servings, serving: body.serving ?? null, per, ...scale(per, body.servings), source: body.source, createdAt: now() };
     }
     log.entries.push(entry);
   });
 }));
 
+/**
+ * Change an entry: meal, servings, name, or the calories and macros of ONE serving (any entry,
+ * including database foods and photo results). Totals are rescaled from `per` × servings.
+ */
+const EditEntry = z
+  .object({
+    servings: Servings.optional(),
+    meal: Meal.optional(),
+    name: z.string().trim().min(1).max(120).optional(),
+    kcal: Kcal.optional(),
+    proteinG: Gram.optional(),
+    carbsG: Gram.optional(),
+    fatG: Gram.optional(),
+  })
+  .strict();
+
 nutrition.patch("/nutrition/day/:date/entries/:id", wrap(async (req, res) => {
-  const body = z.object({ servings: Servings.optional(), meal: Meal.optional() }).strict().parse(req.body);
+  const body = EditEntry.parse(req.body);
   await changeDay(req, res, (log) => {
     const e = log.entries.find((x) => x.id === req.params.id);
     if (!e) return res.status(404).json({ error: "Entry not found" });
     if (body.meal) e.meal = body.meal;
-    if (body.servings) Object.assign(e, { servings: body.servings }, scale(e.per, body.servings));
+    if (body.name) e.name = body.name;
+    if (body.servings) e.servings = body.servings;
+    e.per = {
+      kcal: body.kcal !== undefined ? Math.round(body.kcal) : e.per.kcal,
+      proteinG: body.proteinG !== undefined ? r1(body.proteinG) : e.per.proteinG,
+      carbsG: body.carbsG !== undefined ? r1(body.carbsG) : e.per.carbsG,
+      fatG: body.fatG !== undefined ? r1(body.fatG) : e.per.fatG,
+    };
+    Object.assign(e, scale(e.per, e.servings));
   });
+}));
+
+// ── Photo (label or food) ────────────────────────────────────
+const photoLimit = rateLimit({
+  windowMs: 10 * 60_000,
+  limit: 30,
+  standardHeaders: "draft-8",
+  legacyHeaders: false,
+  keyGenerator: (req) => req.user?._id ?? ipKeyGenerator(req.ip ?? ""),
+  message: { error: "Too many photos in a short time. Try again in a few minutes." },
+});
+
+/**
+ * Reads a nutrition label or recognises food in one photo with the user's own AI.
+ * Returns a draft only; the client shows it for editing and then adds entries as usual.
+ */
+nutrition.post("/nutrition/photo", photoLimit, wrap(async (req, res) => {
+  // The client shrinks photos to ~1600 px JPEG, well under the 2 MB JSON limit.
+  const { image } = z.object({ image: z.string().max(1_900_000, "Photo is too large") }).strict().parse(req.body);
+  const img = parseImageDataUrl(image);
+  if (!img) return res.status(400).json({ error: "Send a JPEG, PNG or WebP photo" });
+  const ai = aiForUser(req.user!);
+  if (!ai) return res.status(409).json({ error: "Connect an AI under Profile → AI coach to add food from a photo.", code: "no_ai" });
+  const prefs = await repoOf(req).nutritionPrefs();
+  try {
+    res.json(await analyzeFoodPhoto(ai, img, { custom: prefs.customFoods }));
+  } catch (e) {
+    res.status(502).json({ error: `${ai.label} couldn't read the photo: ${(e as Error).message}. Check that the model supports images.` });
+  }
 }));
 
 nutrition.delete("/nutrition/day/:date/entries/:id", wrap(async (req, res) => {
@@ -212,6 +288,67 @@ nutrition.delete("/nutrition/day/:date/entries/:id", wrap(async (req, res) => {
 nutrition.put("/nutrition/day/:date/water", wrap(async (req, res) => {
   const { waterMl } = z.object({ waterMl: z.number().int().min(0).max(10000) }).strict().parse(req.body);
   await changeDay(req, res, (log) => void (log.waterMl = waterMl));
+}));
+
+// ── Meal ideas (rule-based) ──────────────────────────────────
+const ASSUMED: Macros = { kcal: 2000, proteinG: 100, carbsG: 250, fatG: 60 };
+const SeedQ = z.coerce.number().int().min(0).max(1_000_000).catch(0);
+
+/** Favourites and foods eaten in the last 30 days, to lean suggestions toward what the user eats. */
+async function likedFoods(repo: UserRepo, date: string) {
+  const [prefs, logs] = await Promise.all([repo.nutritionPrefs(), repo.foodLogs(addDays(date, -30), date)]);
+  return new Set([...prefs.favourites, ...logs.flatMap((l) => l.entries.map((e) => e.foodId).filter((x): x is string => !!x))]);
+}
+
+nutrition.get("/nutrition/suggest", wrap(async (req, res) => {
+  const date = DateParam.parse(String(req.query.date ?? new Date().toISOString().slice(0, 10)));
+  const meal = Meal.parse(req.query.meal ?? "snack");
+  const repo = repoOf(req);
+  const [day, profile, liked] = await Promise.all([dayView(repo, date), repo.profile(), likedFoods(repo, date)]);
+  const target = day.targets ?? ASSUMED;
+  const logged = new Set(day.log.entries.map((e) => e.meal));
+  const b = nowBudget(target, day.totals, logged, meal);
+  const options = suggestMeal({ meal: b.meal, budget: b, diet: profile.diet, liked, seed: SeedQ.parse(req.query.seed) });
+  const out: MealSuggestions = { meal: b.meal, budget: { kcal: b.kcal, proteinG: b.proteinG }, full: b.full, assumed: !day.targets, options };
+  res.json(out);
+}));
+
+/** A whole day of meals that adds up to the day's targets. */
+nutrition.get("/nutrition/plan", wrap(async (req, res) => {
+  const date = DateParam.parse(String(req.query.date ?? new Date().toISOString().slice(0, 10)));
+  const seed = SeedQ.parse(req.query.seed);
+  const repo = repoOf(req);
+  const [day, profile, liked] = await Promise.all([dayView(repo, date), repo.profile(), likedFoods(repo, date)]);
+  const t = day.targets ?? ASSUMED;
+  const plan: DayMealPlan = {
+    date,
+    seed,
+    targets: { kcal: t.kcal, proteinG: t.proteinG, carbsG: t.carbsG, fatG: t.fatG },
+    assumed: !day.targets,
+    meals: MEAL_ORDER.map((meal) => {
+      const budget = { kcal: Math.round(t.kcal * MEAL_SHARE[meal]), proteinG: Math.round(t.proteinG * MEAL_SHARE[meal]) };
+      return { meal, budget, options: suggestMeal({ meal, budget, diet: profile.diet, liked, seed: seed * 7 + MEAL_ORDER.indexOf(meal) }) };
+    }),
+  };
+  res.json(plan);
+}));
+
+/** Adds several database foods to one meal at once (a suggested meal or a planned one). */
+nutrition.post("/nutrition/day/:date/entries/bulk", wrap(async (req, res) => {
+  const body = z
+    .object({ meal: Meal, items: z.array(z.object({ foodId: z.string().min(1).max(80), servings: Servings }).strict()).min(1).max(10) })
+    .strict()
+    .parse(req.body);
+  const prefs = await repoOf(req).nutritionPrefs();
+  const foods = body.items.map((i) => ({ i, food: builtInFood(i.foodId) ?? prefs.customFoods.find((f) => f.id === i.foodId) ?? null }));
+  if (foods.some((x) => !x.food)) return res.status(404).json({ error: "Food not found" });
+  await changeDay(req, res, (log) => {
+    if (log.entries.length + foods.length > MAX_ENTRIES) return res.status(422).json({ error: `A day holds up to ${MAX_ENTRIES} items.` });
+    for (const { i, food } of foods) {
+      const per = macrosOf(food!);
+      log.entries.push({ id: newId(), meal: body.meal, name: food!.name, foodId: food!.id, servings: i.servings, serving: food!.serving, per, ...scale(per, i.servings), source: food!.custom ? "custom" : "db", createdAt: now() });
+    }
+  });
 }));
 
 // ── Foods ────────────────────────────────────────────────────

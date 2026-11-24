@@ -13,12 +13,18 @@ import type {
   ChatMessage,
   Checkin,
   ConstraintFlag,
+  DayMealPlan,
   Diet,
   FoodItem,
+  GeneratedPlan,
   Meal,
+  MealSuggestions,
   NutritionDay,
   NutritionWeekDay,
+  PhotoResult,
   RecentFood,
+  ReshuffleSuggestion,
+  WeekMove,
   Equipment,
   ExperienceLevel,
   Profile,
@@ -160,6 +166,9 @@ export const api = {
   checkins: (from: string, to: string) => req<Checkin[]>(`/checkins?from=${from}&to=${to}`),
 
   today: (date: string) => req<TodayData>(`/today?date=${date}`),
+  reshuffle: (date: string) => req<ReshuffleSuggestion>(`/reshuffle?date=${date}`),
+  /** Replaces this week's moves; an empty list clears them. */
+  applyReshuffle: (date: string, moves: WeekMove[]) => req<ReshuffleSuggestion>("/reshuffle", json("PUT", { date, moves })),
   progress: (range: number, date: string) => req<ProgressData>(`/progress?range=${range}&date=${date}`),
   exercises: () => req<ExerciseInfo[]>("/exercises"),
   exercise: (slug: string) =>
@@ -195,6 +204,11 @@ export const api = {
   plans: () => req<WorkoutPlan[]>("/plans"),
   activePlan: () => req<WorkoutPlan | null>("/plans/active"),
   uploadPlan: (name: string, text: string) => req<WorkoutPlan>("/plans", json("POST", { name, text })),
+  /** AI plan preview (nothing saved). 409 code "no_ai" without a key, 422 code "setup" before onboarding. */
+  generatePlan: (notes: string) => req<GeneratedPlan>("/plans/generate", json("POST", { notes })),
+  planPrompt: (notes: string) => req<{ text: string }>("/plans/generate/prompt", json("POST", { notes })),
+  /** Checks a plan pasted back from Claude with the generator's rules. */
+  checkPlan: (text: string) => req<GeneratedPlan>("/plans/generate/check", json("POST", { text })),
   updatePlanDay: (
     id: string,
     day: Weekday,
@@ -205,7 +219,7 @@ export const api = {
 
   sessions: (q: { week?: string; date?: string } = {}) => req<WorkoutSession[]>(`/sessions?${new URLSearchParams(q as Record<string, string>)}`),
   previous: (before: string) =>
-    req<Record<string, { date: string; sets: { weightKg: number | null; reps: number | null; negatives?: number | null }[] }>>(`/sessions/previous?before=${before}`),
+    req<Record<string, { date: string; sets: { weightKg: number | null; reps: number | null; negatives?: number | null; rir?: number | null }[] }>>(`/sessions/previous?before=${before}`),
   saveSession: (s: SessionInput) => req<WorkoutSession>("/sessions", json("PUT", s)),
   dayPrompt: (date: string) => req<{ text: string }>(`/day-import/prompt?date=${date}`),
   importDay: (text: string, date: string) => req<{ session: WorkoutSession; summary: string }>("/day-import", json("POST", { text, date })),
@@ -227,9 +241,22 @@ export const api = {
   // ── Nutrition ──
   nutritionDay: (date: string) => req<NutritionDay>(`/nutrition/day/${date}`),
   nutritionWeek: (date: string) => req<{ days: NutritionWeekDay[] }>(`/nutrition/week?date=${date}`),
-  addFood: (date: string, body: { meal: Meal; foodId: string; servings: number } | { meal: Meal; name: string; kcal: number; proteinG?: number; carbsG?: number; fatG?: number; servings?: number }) =>
-    req<NutritionDay>(`/nutrition/day/${date}/entries`, json("POST", body)),
-  updateFood: (date: string, id: string, body: { servings?: number; meal?: Meal }) => req<NutritionDay>(`/nutrition/day/${date}/entries/${id}`, json("PATCH", body)),
+  addFood: (
+    date: string,
+    body:
+      | { meal: Meal; foodId: string; servings: number }
+      | { meal: Meal; name: string; kcal: number; proteinG?: number; carbsG?: number; fatG?: number; servings?: number; serving?: string; source?: "quick" | "photo" },
+  ) => req<NutritionDay>(`/nutrition/day/${date}/entries`, json("POST", body)),
+  /** Calories and macros are for one serving; totals follow servings. */
+  updateFood: (date: string, id: string, body: { servings?: number; meal?: Meal; name?: string; kcal?: number; proteinG?: number; carbsG?: number; fatG?: number }) =>
+    req<NutritionDay>(`/nutrition/day/${date}/entries/${id}`, json("PATCH", body)),
+  /** Ideas for the next meal from what's left today (rule-based). */
+  suggestMeal: (date: string, meal: Meal, seed = 0) => req<MealSuggestions>(`/nutrition/suggest?${new URLSearchParams({ date, meal, seed: String(seed) })}`),
+  mealPlan: (date: string, seed = 0) => req<DayMealPlan>(`/nutrition/plan?date=${date}&seed=${seed}`),
+  /** Adds several database foods to one meal at once. */
+  addMeal: (date: string, meal: Meal, items: { foodId: string; servings: number }[]) => req<NutritionDay>(`/nutrition/day/${date}/entries/bulk`, json("POST", { meal, items })),
+  /** `image` is a data: URL (JPEG/PNG/WebP). Nothing is saved; returns a draft. */
+  foodPhoto: (image: string) => req<PhotoResult>("/nutrition/photo", json("POST", { image })),
   removeFood: (date: string, id: string) => req<NutritionDay>(`/nutrition/day/${date}/entries/${id}`, json("DELETE")),
   setWater: (date: string, waterMl: number) => req<NutritionDay>(`/nutrition/day/${date}/water`, json("PUT", { waterMl })),
   searchFoods: (q: string, all = false) => req<{ foods: FoodItem[]; diet: Diet | null }>(`/nutrition/foods?${new URLSearchParams({ q, ...(all ? { all: "1" } : {}) })}`),

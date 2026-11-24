@@ -1,12 +1,15 @@
 import foods from "../seed/foods.json" with { type: "json" };
 import {
+  addDays,
   allowedFoodDiets,
   weekdayOf,
+  weeklyWeightRate,
   type Diet,
   type FoodEntry,
   type FoodItem,
   type FoodLog,
   type GoalKey,
+  type AdaptiveCalories,
   type NutritionTargets,
   type Profile,
   type WorkoutSession,
@@ -85,6 +88,52 @@ export interface TargetInput {
   trainingDay: boolean;
   /** Training days in the active plan (falls back to the profile's days per week) */
   plannedDays?: number | null;
+  /** Recent weigh-ins and logged daily intake, for adaptive calories (left out = formulas only) */
+  history?: { weights: { date: string; kg: number }[]; intake: { date: string; kcal: number }[] };
+}
+
+// ── Adaptive calories ────────────────────────────────────────
+/** Roughly the energy in 1 kg of body weight change. */
+const KCAL_PER_KG = 7700;
+/** Weekly change each goal aims for, as a share of bodyweight. */
+const GOAL_RATE: Record<GoalKey, number> = { fat_loss: -0.005, muscle_gain: 0.0025, strength: 0.001, maintain: 0, general: 0 };
+const ADAPT_CAP = 500;
+const MIN_LOGGED_DAYS = 10;
+const r50 = (n: number) => Math.round(n / 50) * 50;
+
+/**
+ * How far to move the formula's daily average so the weight trend heads toward the goal's rate.
+ * - Enough food logs (10+ days in the last 21): real burn = average intake − trend change in kcal; target = real burn + goal change.
+ * - Otherwise, from the trend alone: half of the gap between actual and goal rate, only when it's more than 0.15 kg/week off.
+ * Capped at ±500 kcal and rounded to 50. Null without a usable trend (5+ weigh-ins over 10+ days).
+ */
+export function adaptiveDelta(goal: GoalKey, kg: number, formulaAvg: number, history: NonNullable<TargetInput["history"]>): AdaptiveCalories | null {
+  const rate = weeklyWeightRate(history.weights);
+  if (rate == null) return null;
+  const goalRate = Math.round(GOAL_RATE[goal] * kg * 100) / 100;
+  const last = history.weights.at(-1)!.date;
+  const logged = history.intake.filter((d) => d.date > addDays(last, -21) && d.date <= last && d.kcal > 0);
+  const daily = (kgPerWeek: number) => (kgPerWeek * KCAL_PER_KG) / 7;
+  let delta: number;
+  let observedTdee: number | null = null;
+  let method: AdaptiveCalories["method"];
+  if (logged.length >= MIN_LOGGED_DAYS) {
+    const avgIntake = logged.reduce((a, d) => a + d.kcal, 0) / logged.length;
+    observedTdee = Math.round(avgIntake - daily(rate));
+    delta = observedTdee + daily(goalRate) - formulaAvg;
+    method = "intake";
+  } else {
+    delta = Math.abs(rate - goalRate) > 0.15 ? daily(goalRate - rate) / 2 : 0;
+    method = "trend";
+  }
+  const deltaKcal = r50(Math.max(-ADAPT_CAP, Math.min(ADAPT_CAP, delta)));
+  const fmt = (n: number) => `${n > 0 ? "+" : n < 0 ? "−" : ""}${Math.abs(n).toFixed(2)} kg/week`;
+  const pace = `Your trend weight is changing ${fmt(rate)}; your goal aims for ${fmt(goalRate)}.`;
+  const note =
+    deltaKcal === 0
+      ? `${pace} On track, so no change.`
+      : `${pace} ${deltaKcal > 0 ? "Added" : "Took off"} ${Math.abs(deltaKcal)} kcal a day${method === "intake" ? `, based on ${logged.length} days of food logs (real burn about ${observedTdee} kcal)` : " (a half step; log food for a sharper estimate)"}.`;
+  return { deltaKcal, rateKgWeek: rate, goalRateKgWeek: goalRate, method, observedTdee, note };
 }
 
 export type TargetResult = { targets: NutritionTargets; missing: [] } | { targets: null; missing: ("age" | "height" | "weight")[] };
@@ -112,7 +161,9 @@ export function computeTargets(input: TargetInput): TargetResult {
   const days = Math.min(7, Math.max(0, input.plannedDays ?? profile.daysPerWeek ?? 3));
   const tdee = bmr * activityFactor(days);
   const goal: GoalKey = profile.goalKey ?? "maintain";
-  const avg = tdee * (1 + GOAL_KCAL[goal]);
+  const formulaAvg = tdee * (1 + GOAL_KCAL[goal]);
+  const adaptive = input.history ? adaptiveDelta(goal, kg, formulaAvg, input.history) : null;
+  const avg = formulaAvg + (adaptive?.deltaKcal ?? 0);
   // Split the weekly budget: rest = avg − d·bump/7, training = rest + bump.
   const bump = avg * TRAINING_BUMP;
   const rest = avg - (days * bump) / 7;
@@ -127,9 +178,10 @@ export function computeTargets(input: TargetInput): TargetResult {
     `About ${r10(tdee)} kcal a day on average with ${days} training day${days === 1 ? "" : "s"} a week.`,
     `Set ${GOAL_WORDS[goal]}${input.trainingDay && days > 0 ? "; training days get a little more than rest days" : days > 0 ? "; rest days get a little less than training days" : ""}.`,
     `Protein ${GOAL_PROTEIN[goal]} g per kg, fat about 25% of calories, carbs make up the rest.`,
+    ...(adaptive ? [`Adjusted to your progress: ${adaptive.note}`] : []),
   ];
   return {
-    targets: { kcal, proteinG, carbsG, fatG, waterMl, trainingDay: input.trainingDay, bmr: Math.round(bmr), tdee: Math.round(tdee), weightKg: kg, weightSource: input.weightSource, basis },
+    targets: { kcal, proteinG, carbsG, fatG, waterMl, trainingDay: input.trainingDay, bmr: Math.round(bmr), tdee: Math.round(tdee), weightKg: kg, weightSource: input.weightSource, basis, adaptive },
     missing: [],
   };
 }

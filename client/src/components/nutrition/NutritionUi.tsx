@@ -2,13 +2,53 @@
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
-import type { NutritionDay } from "@/lib/domain";
+import type { Macros, NutritionDay } from "@/lib/domain";
 import { api, today } from "@/lib/api";
 import { Icon } from "@/components/Icons";
 import { DATA_CHANGED } from "@/components/coach/actions";
 
 /** One colour per nutrient, used on every nutrition view. */
 export const MACRO_COLOR = { kcal: "var(--accent)", protein: "var(--good)", carbs: "var(--pulse)", fat: "var(--warn)", water: "var(--ice)" } as const;
+
+// ── Editable calories and macros (text while typing, numbers when saved) ──
+export type MacroText = { kcal: string; proteinG: string; carbsG: string; fatG: string };
+export const emptyMacros: MacroText = { kcal: "", proteinG: "", carbsG: "", fatG: "" };
+export const numOr0 = (v: string) => (v.trim() === "" || !Number.isFinite(Number(v)) ? 0 : Math.max(0, Number(v)));
+export const toMacros = (v: MacroText): Macros => ({ kcal: numOr0(v.kcal), proteinG: numOr0(v.proteinG), carbsG: numOr0(v.carbsG), fatG: numOr0(v.fatG) });
+export const toText = (m: Macros): MacroText => ({ kcal: String(m.kcal), proteinG: String(m.proteinG), carbsG: String(m.carbsG), fatG: String(m.fatG) });
+/** Calories present and within what the server accepts. */
+export const macrosOk = (v: MacroText) => v.kcal.trim() !== "" && numOr0(v.kcal) <= 5000 && [v.proteinG, v.carbsG, v.fatG].every((x) => numOr0(x) <= 1000);
+
+export function MacroInputs({ v, onChange, idPrefix = "m" }: { v: MacroText; onChange: (v: MacroText) => void; idPrefix?: string }) {
+  return (
+    <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+      {(
+        [
+          ["kcal", "Calories"],
+          ["proteinG", "Protein g"],
+          ["carbsG", "Carbs g"],
+          ["fatG", "Fat g"],
+        ] as const
+      ).map(([k, label]) => (
+        <div key={k}>
+          <label className="label" htmlFor={`${idPrefix}-${k}`}>
+            {label}
+          </label>
+          <input
+            id={`${idPrefix}-${k}`}
+            type="number"
+            inputMode="decimal"
+            min={0}
+            className="input"
+            value={v[k]}
+            onChange={(e) => onChange({ ...v, [k]: e.target.value })}
+            required={k === "kcal"}
+          />
+        </div>
+      ))}
+    </div>
+  );
+}
 
 const fmt = (n: number, decimals = 0) => n.toLocaleString(undefined, { maximumFractionDigits: decimals });
 

@@ -47,7 +47,7 @@ Roughly **25-30% of the P0 scope is built**: auth, coach chat, set logging, week
 | 2 | Sign up / log in | P0 | Partial (email only; no Google, no phone OTP). Signup now asks for age |
 | 3 | Onboarding | P0 | **Done**: 8 steps, steps 1–2 done at signup, saved per step, skip and redo |
 | 4 | Plan reveal | P0 | **Done**: "Here's your week" after onboarding (rule-based plan) |
-| 5 | Home / Today | P0 | Partial *(18 Nov, loop)*: today card with Start/Resume, readiness, streak, coach tip, week strip. *(21 Nov, nutrition)* calorie ring, protein and water bars. Still missing: weekly goal ring |
+| 5 | Home / Today | P0 | Partial *(18 Nov, loop)*: today card with Start/Resume, readiness, streak, coach tip, week strip. *(21 Nov, nutrition)* calorie ring, protein and water bars. *(23 Nov)* weekly goal ring |
 | 6 | Workout plan | P0 | Partial *(18 Nov, loop)*: "This week" view with status per day and day preview; edit/paste under "Manage plans". No drag reschedule |
 | 7 | Nutrition | P0 | **Done** *(21 Nov, nutrition)*: calorie ring, macro bars, how targets are set, water, meals with servings edit, 7-day chart, other dates |
 | 8 | Progress | P0 | **Done** *(18 Nov, loop)*: bodyweight trend, e1RM charts per lift, PR list, calendar, totals (30/90/365 days) |
@@ -69,21 +69,21 @@ Totals for the 18 P0 pages: 15 done, 3 partial (sign up, Home / Today, Workout p
 
 | Feature | Status | Note |
 |---|---|---|
-| Plan generation from onboarding | Partial | Rule-based starter plan from onboarding answers (no AI). The AI plan generator is still missing |
+| Plan generation from onboarding | **Done** *(23 Nov)* | Rule-based starter plan, plus an AI plan generator with hard checks, one retry and the rule plan as fallback; copy-paste path without a key ([docs/training-upgrades.md](docs/training-upgrades.md)) |
 | One-tap set logging | Done | |
-| Effort rating (per set) | Partial | Session-level RPE (now asked on the workout summary) |
+| Effort rating (per set) | **Done** *(23 Nov)* | Easy / Good / Hard / Max after each set (stored as reps in reserve), turned into a "next time" hint |
 | Rest timer | **Done** *(18 Nov, loop)* | Per exercise (compound/isolation defaults, per-exercise overrides), ±15 s, survives reloads, background notification |
 | Progressive overload (auto next load + reason) | Partial | e1RM and hints are scored; nothing auto-adjusts |
 | Exercise swap | **Done** *(18 Nov, loop)* | Live workout swap from same-pattern, equipment- and injury-filtered alternatives; coach can propose swaps (today or plan) |
-| Missed-session reshuffle | Missing | Manual only: the coach can propose swapping two plan days |
+| Missed-session reshuffle | **Done** *(23 Nov)* | Missed workouts move to this week's free rest days; scoring credits the plan day a workout followed |
 | PR detection | **Done** *(18 Nov, loop)* | Weight, e1RM and reps PRs; shown on the summary and Progress |
 | Calorie and macro targets | **Done** *(21 Nov, nutrition)* | Rule-based (Mifflin-St Jeor × training days, goal adjustment, training days higher). Not yet adaptive to the weight trend |
 | Food logging (search, recent, favourites, quick-add) | **Done** *(21 Nov, nutrition)* | Plus own foods; day-import (AI) adds to the same food log |
-| Indian food database | **Done** *(21 Nov, nutrition)* | Self-built, 174 foods, regional aliases, veg / egg / non-veg / vegan tags. No licensed source or barcode yet |
+| Indian food database | **Done** *(21 Nov, nutrition)* | Self-built, 174 foods, regional aliases, veg / egg / non-veg / vegan tags. No licensed source yet. Barcode scan dropped: photos of the nutrition label replace it |
 | Protein tracker | **Done** *(21 Nov, nutrition)* | Protein bar against a goal-based target on Nutrition and Today; water tracker too |
 | Strength charts, bodyweight trend, workout history calendar | **Done** *(18 Nov, loop)* | Progress page (bodyweight not smoothed yet) |
 | Daily check-in | **Done** *(18 Nov, loop)* | Six answers, rule-based readiness |
-| Streaks and weekly goal ring | Partial *(18 Nov, loop)* | Training streak (rest days keep it going); no weekly goal ring |
+| Streaks and weekly goal ring | **Done** *(23 Nov)* | Training streak and a weekly goal ring on Today |
 | Accounts and sync | Done | |
 | Units (kg/lb, cm/in) | Done | Per user, stored in kg and cm *(cm/in 18 Nov, loop)* |
 | Dark theme | Done | |
@@ -92,12 +92,12 @@ Totals for the 18 P0 pages: 15 done, 3 partial (sign up, Home / Today, Workout p
 
 | AI feature | Status |
 |---|---|
-| Plan generator | **Missing** |
+| Plan generator | **Done** *(23 Nov)*: forced tool call, allowed-exercise list, hard rejections (days, volume, session length, injuries), rule-based fallback |
 | Adaptive plan | Partial (scoring only, no rewrite) |
 | Readiness engine | Partial *(18 Nov, loop)*: rule-based verdict from the check-in, shown on Today with advice; no AI and the session is not auto-adjusted |
 | Coach chat | **Done** (no per-user usage cap, no output validation); on every page with page context *(18 Nov, loop)* |
 | Plan edits by chat (confirm before apply) | **Done** *(18 Nov, loop)*: the coach adds `coach-action` blocks; the app shows Apply today / Apply to plan / Dismiss, validates server-side, keeps an undo snapshot. Works with a pasted Claude reply too |
-| Photo-to-macros | **Missing** (no image input) |
+| Photo-to-macros | **Done** *(23 Nov, nutrition)*: one photo, read by the user's own AI. A nutrition label is copied (per-100 g scaled to the serving); food is named, estimated and matched to the database. Every value is editable before and after adding. No copy-paste fallback without a key |
 
 ### Platform and cross-cutting
 
@@ -128,17 +128,17 @@ These are open questions in the spec and they change the work below.
 Build in this sequence, since each step feeds the next.
 
 1. ~~**Profile model and onboarding**~~ **Done 18 Nov** (goal, body stats, experience, schedule, equipment, diet, injuries; `/onboarding`). Still to do: an onboarding-completion event for the 70% metric (`onboarding.completedAt` / `skippedAt` are stored and can feed it).
-2. **Plan generator (AI #1)** with structured output and rule checks. *A rule-based starter plan and the Plan reveal page already exist (18 Nov); the AI generator should build on the same profile fields and the `workouts.json` library, and can reuse the rule-based plan as a fallback.* Reuse the forced-tool-call pattern in `server/src/services/ai.ts` and the checks in `metrics.ts` and `constraints.ts`, but make them hard rejections at generation time (volume, frequency, injury exclusions). Then the **Plan reveal** page.
+2. ~~**Plan generator (AI #1)**~~ **done 23 Nov** ([docs/training-upgrades.md](docs/training-upgrades.md)). Original note: structured output and rule checks. *A rule-based starter plan and the Plan reveal page already exist (18 Nov); the AI generator should build on the same profile fields and the `workouts.json` library, and can reuse the rule-based plan as a fallback.* Reuse the forced-tool-call pattern in `server/src/services/ai.ts` and the checks in `metrics.ts` and `constraints.ts`, but make them hard rejections at generation time (volume, frequency, injury exclusions). Then the **Plan reveal** page.
 3. ~~**Exercise library and detail.**~~ **Done 18 Nov.** Seed exercise data (muscles, equipment, cues). Search and filter by muscle or equipment. Show the user's history per lift. Also supplies real **swap** alternatives.
-4. **Training loop upgrades.** ~~Workout preview, rest timer, PR detection, workout summary~~ **done 18 Nov** (plus a start-to-finish workout timer and empty workouts). Still to do: per-set effort rating, missed-session reshuffle.
+4. **Training loop upgrades.** ~~Workout preview, rest timer, PR detection, workout summary~~ **done 18 Nov** (plus a start-to-finish workout timer and empty workouts). ~~Per-set effort rating, missed-session reshuffle~~ **done 23 Nov**.
 5. **Progressive overload.** Turn the existing overload hints into a stored next-session load or reps with a one-line reason.
-6. ~~**Nutrition module**~~ **Done 21 Nov** ([docs/nutrition.md](docs/nutrition.md)): targets (TDEE and macros, higher on training days), Indian food DB with search, recent, favourites, own foods and quick-add, a `food_logs` collection with its own endpoints (older session food moves over on first read), water and protein tracker, Nutrition and Add-food pages. Still to do: adaptive calories from the weight trend, copy a previous meal.
+6. ~~**Nutrition module**~~ **Done 21 Nov** ([docs/nutrition.md](docs/nutrition.md)): targets (TDEE and macros, higher on training days), Indian food DB with search, recent, favourites, own foods and quick-add, a `food_logs` collection with its own endpoints (older session food moves over on first read), water and protein tracker, Nutrition and Add-food pages. ~~Adaptive calories from the weight trend~~ **done 23 Nov**, plus "what should I eat now" and a day meal planner. Still to do: copy a previous meal.
 7. **Daily check-in and readiness engine (AI #3).** *Check-in page and rule-based readiness verdict done 18 Nov; still to do: auto-adjusting the session on low readiness, and an AI layer.* Check-in page (sleep, soreness, energy, stress in under 10 seconds). Verdict of push, normal or go light, which adjusts the session and never raises intensity on low readiness.
-8. **Home / Today.** ~~Today's workout card, readiness, streak, coach tip~~ **done 18 Nov**; ~~calorie and protein rings~~ **done 21 Nov**. Still to do: weekly goal ring.
-9. ~~**Progress page.**~~ **Done 18 Nov** (bodyweight smoothing still to do).
+8. **Home / Today.** ~~Today's workout card, readiness, streak, coach tip~~ **done 18 Nov**; ~~calorie and protein rings~~ **done 21 Nov**. ~~Weekly goal ring~~ **done 23 Nov**.
+9. ~~**Progress page.**~~ **Done 18 Nov**; bodyweight trend smoothing **done 23 Nov**.
 10. **Remaining P0 AI:**
     - ~~Plan edits by chat~~ **done 18 Nov** (action cards with Apply/undo; no visual diff yet).
-    - Photo-to-macros: add image input, editable estimate, confidence flag on mixed dishes.
+    - ~~Photo-to-macros~~ **done 23 Nov**: label or food photo, editable draft, database matches, edit calories after adding. Still to do: confidence flag on mixed dishes.
     - Adaptive plan: rewrite upcoming weeks with a weekly load-change cap and a "what changed and why" view.
 11. ~~**Settings and units**~~ **Done 18 Nov**: kg/lb, cm/in, sectioned Profile with workout preferences.
 12. **Platform P0 hardening.** Tests for chat, plans, sessions and AI routes. Per-user AI usage caps. Safety guardrails (no diagnosis, doctor referral for pain) with tests.
@@ -147,9 +147,9 @@ Build in this sequence, since each step feeds the next.
 
 ### Phase 2: P1 (retention and differentiation)
 
-- Pages: meal plan, recipe detail, lift detail, body measurements, progress photos, weekly report page, achievements, notifications, subscription, help and feedback, privacy and data.
-- Features: short-on-time mode, warm-up and plate calculators, supersets and deloads, water tracking polish, barcode scan, diet filters (veg, vegan, Jain, eggetarian), adaptive calories, muscle volume, smart reminders, badges, share cards, offline logging, Apple Health and Google Health Connect sync, subscription billing (Razorpay or app store), data export and deletion.
-- AI: voice logging, plateau detector, meal plan generator, "what should I eat now", weekly AI report, goal forecasting, smart reminders, injury-aware programming (hard exclusions).
+- Pages: ~~meal plan~~ (done 23 Nov), recipe detail, lift detail, body measurements, progress photos, weekly report page, achievements, notifications, subscription, help and feedback, privacy and data.
+- Features: short-on-time mode, warm-up and plate calculators, supersets and deloads, water tracking polish, diet filters (veg, vegan, Jain, eggetarian), ~~adaptive calories~~ (done 23 Nov), muscle volume, smart reminders, badges, share cards, offline logging, Apple Health and Google Health Connect sync, subscription billing (Razorpay or app store), data export and deletion.
+- AI: voice logging, plateau detector, ~~meal plan generator, "what should I eat now"~~ (rule-based, done 23 Nov), weekly AI report, goal forecasting, smart reminders, injury-aware programming (hard exclusions).
 - Compliance: DPDP Act consent, export and delete in-app.
 
 ### Phase 3: P2 (growth)

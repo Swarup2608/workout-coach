@@ -1,6 +1,7 @@
 import { Router, type NextFunction, type Request, type Response } from "express";
 import { z } from "zod";
 import {
+  WEEKDAYS,
   addDays,
   exerciseSlug,
   exerciseVolume,
@@ -9,14 +10,17 @@ import {
   weekStartOf,
   workoutTitle,
   type PlanDay,
+  type Profile,
   type ProgressData,
   type TodayData,
+  type WeekGoal,
   type WorkoutPlan,
   type WorkoutSession,
 } from "../domain.js";
 import { userRepo } from "../repo.js";
 import { computeWeekMetrics, latestLoggedDate } from "../services/metrics.js";
 import { allRecords, exerciseSeries } from "../services/records.js";
+import { plannedDayFor, suggestReshuffle, validateMoves } from "../services/reshuffle.js";
 import { alternativesFor, exerciseList, findExercise, restFor } from "../services/exerciseLibrary.js";
 
 /** Read-only views: Today, Progress, and the exercise library. */
@@ -57,13 +61,29 @@ export function streakFor(plan: WorkoutPlan | null, sessions: WorkoutSession[], 
 /** About 2.5 minutes per set, including rest. */
 export const estimateMinutes = (day: PlanDay | null) => Math.round((day?.exercises.reduce((a, e) => a + e.sets, 0) ?? 0) * 2.5);
 
+const isTrainingDay = (d: PlanDay | undefined) => !!d && !d.isRest && d.exercises.length > 0;
+
+/** Workouts done this week against the goal. A timed class or run with no sets counts too. */
+export function weekGoalFor(plan: WorkoutPlan | null, profile: Pick<Profile, "daysPerWeek">, sessions: WorkoutSession[], today: string): WeekGoal {
+  const ws = weekStartOf(today);
+  const dates = Array.from({ length: 7 }, (_, i) => addDays(ws, i));
+  const doneDates = new Set(sessions.filter((s) => s.date >= ws && s.date <= dates[6] && (trained(s) || (!isLive(s) && (s.durationMin ?? 0) > 0))).map((s) => s.date));
+  const planned = plan ? plan.days.filter(isTrainingDay).length : 0;
+  return {
+    done: doneDates.size,
+    goal: Math.min(7, Math.max(1, planned || profile.daysPerWeek || 3)),
+    daysLeft: dates.filter((d) => d > today || (d === today && !doneDates.has(d))).length,
+    days: dates.map((d) => ({ date: d, done: doneDates.has(d), planned: isTrainingDay(plan?.days.find((x) => x.day === weekdayOf(d))) })),
+  };
+}
+
 insights.get("/today", wrap(async (req, res) => {
   const date = dateQ(req);
   const repo = repoOf(req);
   const [plan, profile, all, checkin] = await Promise.all([repo.activePlan(), repo.profile(), repo.sessions(), repo.checkin(date)]);
   const sessions = all.filter((s) => !isLive(s));
   const live = all.find(isLive) ?? null;
-  const planDay = plan?.days.find((d) => d.day === weekdayOf(date)) ?? null;
+  const { planDay, movedFrom } = plannedDayFor(plan, date);
 
   let tip: string | null = null;
   if (plan) {
@@ -74,6 +94,9 @@ insights.get("/today", wrap(async (req, res) => {
   }
 
   const session = all.find((s) => s.date === date) ?? null;
+  // Missed workouts a reshuffle could still fit in, not counting ones already moved.
+  const shuffle = plan ? suggestReshuffle(plan, sessions, date) : null;
+  const toReshuffle = shuffle ? shuffle.moves.filter((m) => !shuffle.applied.some((a) => a.planDay === m.planDay)).length : 0;
   const data: TodayData = {
     date,
     weekday: weekdayOf(date),
@@ -87,8 +110,42 @@ insights.get("/today", wrap(async (req, res) => {
     streak: streakFor(plan, sessions, date),
     tip,
     estMinutes: estimateMinutes(planDay),
+    weekGoal: {
+      ...weekGoalFor(plan, profile, sessions, date),
+      toReshuffle,
+    },
+    movedFrom,
   };
   res.json(data);
+}));
+
+// ── Missed-session reshuffle ─────────────────────────────────
+insights.get("/reshuffle", wrap(async (req, res) => {
+  const date = dateQ(req);
+  const repo = repoOf(req);
+  const [plan, all] = await Promise.all([repo.activePlan(), repo.sessions()]);
+  if (!plan) return res.status(404).json({ error: "No active plan" });
+  res.json(suggestReshuffle(plan, all, date));
+}));
+
+const MovesBody = z
+  .object({
+    date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+    moves: z.array(z.object({ date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/), planDay: z.enum(WEEKDAYS) }).strict()).max(7),
+  })
+  .strict();
+
+/** Applies moves for the current week (replacing earlier ones). An empty list clears them. */
+insights.put("/reshuffle", wrap(async (req, res) => {
+  const { date, moves } = MovesBody.parse(req.body);
+  const repo = repoOf(req);
+  const plan = await repo.activePlan();
+  if (!plan) return res.status(404).json({ error: "No active plan" });
+  const problem = validateMoves(plan, moves, date);
+  if (problem) return res.status(422).json({ error: problem });
+  await repo.setWeekMoves(plan.id, moves.length ? { weekStart: weekStartOf(date), moves } : null);
+  const fresh = (await repo.activePlan())!;
+  res.json(suggestReshuffle(fresh, await repo.sessions(), date));
 }));
 
 insights.get("/progress", wrap(async (req, res) => {

@@ -42,11 +42,15 @@ describe("live workout timer", () => {
 
   it("autosaves sets and keeps the timer fields when saved", async () => {
     const live = (await a.call("GET", "/sessions/live")).body.session;
-    live.exercises[0].sets[0] = { weightKg: 20, reps: 10, negatives: null, done: true, completedAt: new Date().toISOString() };
+    live.exercises[0].sets[0] = { weightKg: 20, reps: 10, negatives: null, done: true, completedAt: new Date().toISOString(), rir: 4 };
     const r = await a.call("PATCH", `/sessions/${id}`, { exercises: live.exercises.map(({ muscle, ...e }: { muscle: string }) => e) });
     assert.equal(r.status, 200);
     assert.equal(r.body.status, "in_progress");
     assert.equal(r.body.exercises[0].sets[0].done, true);
+    assert.equal(r.body.exercises[0].sets[0].rir, 4);
+    const bad = structuredClone(live.exercises);
+    bad[0].sets[0].rir = 7;
+    assert.equal((await a.call("PATCH", `/sessions/${id}`, { exercises: bad.map(({ muscle, ...e }: { muscle: string }) => e) })).status, 400);
   });
 
   it("pause and resume add up paused time", async () => {
@@ -75,6 +79,7 @@ describe("live workout timer", () => {
     const after = (await a.call("GET", `/sessions?date=${MON}`)).body[0];
     assert.equal(after.status, "completed");
     assert.equal(after.startedAt, s.startedAt);
+    assert.equal(after.exercises[0].sets[0].rir, 4, "effort survives a save from the Log page");
   });
 
   it("summary reports sets, duration and a rule-based note", async () => {
@@ -84,6 +89,7 @@ describe("live workout timer", () => {
     assert.equal(r.body.setsPlanned, 5);
     assert.equal(r.body.durationMin, 45);
     assert.match(r.body.ruleNote, /1 of 5 sets/);
+    assert.match(r.body.exercises[0].nextTime, /easy/i);
   });
 
   it("won't start a second workout on a day that already has one", async () => {
@@ -129,6 +135,9 @@ describe("today, progress and exercises", () => {
     assert.equal(r.body.planDay.exercises.length, 2);
     assert.equal(r.body.estMinutes, 13);
     assert.equal(r.body.streak, 0);
+    assert.equal(r.body.weekGoal.done, 0);
+    assert.ok(r.body.weekGoal.goal >= 1);
+    assert.equal(r.body.weekGoal.days.length, 7);
   });
 
   it("exercise library lists built-in and the user's own exercises", async () => {

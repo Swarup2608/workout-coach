@@ -81,6 +81,46 @@ export interface WorkoutPlan {
   active: boolean;
   rawText: string;
   days: PlanDay[];
+  /** This week's reshuffle: missed workouts moved to later days. Ignored once the week is over. */
+  weekMoves?: WeekMoves | null;
+}
+
+/** A plan preview from the generator (not saved until the user accepts it). */
+export interface GeneratedPlan {
+  /** "ai": written by the user's AI and passed every check; "rules": the rule-based fallback; "pasted": checked from a pasted reply */
+  source: "ai" | "rules" | "pasted";
+  name: string;
+  goal: string;
+  summary: string;
+  /** Markdown, saved through the normal plan endpoint */
+  rawText: string;
+  days: PlanDay[];
+  note: string;
+  /** Rules the plan breaks (empty when it passed) */
+  problems: string[];
+}
+
+/** A missed plan day done on another date this week. The plan's own days don't change. */
+export interface WeekMove {
+  date: string;
+  planDay: Weekday;
+}
+export interface WeekMoves {
+  weekStart: string;
+  moves: WeekMove[];
+}
+
+/** Suggested reshuffle for the rest of the week. */
+export interface ReshuffleSuggestion {
+  weekStart: string;
+  /** Planned training days already past with nothing logged for them */
+  missed: { day: Weekday; title: string }[];
+  /** Where each missed workout could go (free rest days from today on, oldest first) */
+  moves: (WeekMove & { title: string })[];
+  /** Missed workouts with no free day left: better skipped than crammed in */
+  skipped: { day: Weekday; title: string }[];
+  /** Moves already in use this week */
+  applied: WeekMove[];
 }
 
 export interface LoggedSet {
@@ -92,6 +132,30 @@ export interface LoggedSet {
   done: boolean;
   /** When the set was ticked during a live workout (pacing stats) */
   completedAt?: string | null;
+  /** How hard it felt, as reps left in the tank: 4 = easy (4+), 2 = good (2–3), 1 = hard, 0 = max. Optional. */
+  rir?: number | null;
+}
+
+/** The four effort choices shown after a set, as reps in reserve. */
+export const EFFORTS = [
+  { rir: 4, label: "Easy", hint: "4+ reps left" },
+  { rir: 2, label: "Good", hint: "2–3 left" },
+  { rir: 1, label: "Hard", hint: "1 left" },
+  { rir: 0, label: "Max", hint: "nothing left" },
+] as const;
+export const effortLabel = (rir: number | null | undefined) => (rir == null ? null : (EFFORTS.find((e) => e.rir <= rir) ?? EFFORTS[3]).label);
+
+/**
+ * A "next time" hint from the effort of the done sets, or null when none were rated.
+ * Easy everywhere → add load; max early on → hold; otherwise chase a rep.
+ */
+export function nextTimeHint(sets: Pick<LoggedSet, "done" | "rir">[], unit: RepUnit = "reps"): string | null {
+  const rated = sets.filter((s) => s.done && s.rir != null).map((s) => s.rir!);
+  if (!rated.length) return null;
+  const avg = rated.reduce((a, b) => a + b, 0) / rated.length;
+  if (rated.every((r) => r >= 3)) return unit === "reps" ? "Felt easy: add a little weight (2.5 kg) or 2 reps next time." : "Felt easy: go a bit longer next time.";
+  if (rated.slice(0, -1).some((r) => r === 0) || avg < 0.75) return "Close to your limit: keep the same weight next time and own it.";
+  return unit === "reps" ? "Right effort: same weight, aim for one more rep next time." : "Right effort: repeat it and add a little next time.";
 }
 
 /** "20 kg × 10 + 2 neg" style text for one set. */
@@ -249,8 +313,36 @@ export interface FoodLogEntry extends Macros {
   serving: string | null;
   /** Nutrition of one serving, so changing `servings` rescales the totals */
   per: Macros;
-  source: "db" | "custom" | "quick" | "import";
+  source: "db" | "custom" | "quick" | "photo" | "import";
   createdAt: string;
+}
+
+/** One suggested meal: database foods with servings. */
+export interface MealOption {
+  items: ({ foodId: string; name: string; serving: string; servings: number } & Macros)[];
+  totals: Macros;
+  /** e.g. "520 kcal of your 550 · 32 g protein covers it" */
+  why: string;
+}
+
+/** "What should I eat now": ideas for the next meal from what's left today. */
+export interface MealSuggestions {
+  meal: Meal;
+  budget: { kcal: number; proteinG: number };
+  /** Calories for the day are used up: light, high-protein ideas instead */
+  full: boolean;
+  /** Profile is missing what targets need, so a typical day is assumed */
+  assumed: boolean;
+  options: MealOption[];
+}
+
+/** A day of meals hitting the targets; each meal has a few options to swap between. */
+export interface DayMealPlan {
+  date: string;
+  seed: number;
+  targets: Macros;
+  assumed: boolean;
+  meals: { meal: Meal; budget: { kcal: number; proteinG: number }; options: MealOption[] }[];
 }
 
 /** All food and water for one local date. */
@@ -272,6 +364,22 @@ export interface NutritionTargets extends Macros {
   weightSource: "check-in" | "workout log" | "profile";
   /** Plain-language lines explaining the numbers */
   basis: string[];
+  /** Correction from your real weight trend (and food logs, when there are enough); null until there's enough data */
+  adaptive?: AdaptiveCalories | null;
+}
+
+export interface AdaptiveCalories {
+  /** Added to the formula's daily average (negative = eat less) */
+  deltaKcal: number;
+  /** Trend weight change, kg per week */
+  rateKgWeek: number;
+  /** What the goal aims for, kg per week */
+  goalRateKgWeek: number;
+  /** "intake": from food logs + weight trend; "trend": weight trend only (half-step nudges) */
+  method: "intake" | "trend";
+  /** Daily burn estimated from food logs and the weight trend (method "intake") */
+  observedTdee: number | null;
+  note: string;
 }
 
 export interface NutritionDay {
@@ -504,6 +612,8 @@ export interface ExerciseComparison {
   volume: number;
   prevVolume: number | null;
   trend: "up" | "same" | "down" | "new";
+  /** From per-set effort, when rated */
+  nextTime?: string | null;
 }
 
 export interface WorkoutSummary {
@@ -536,6 +646,21 @@ export interface TodayData {
   streak: number;
   tip: string | null;
   estMinutes: number;
+  /** Workouts this week (Mon–Sun) against the weekly goal */
+  weekGoal: WeekGoal;
+  /** Set when today's workout is a missed day moved here by a reshuffle */
+  movedFrom?: Weekday | null;
+}
+
+export interface WeekGoal {
+  done: number;
+  /** Plan training days, else the profile's days per week, else 3 */
+  goal: number;
+  /** Days left this week, counting today if nothing is logged yet */
+  daysLeft: number;
+  days: { date: string; done: boolean; planned: boolean }[];
+  /** Missed workouts that a reshuffle could still fit in (not yet moved) */
+  toReshuffle?: number;
 }
 
 export interface ProgressData {
@@ -858,6 +983,52 @@ export function addDays(date: string, n: number): string {
   const d = new Date(date + "T00:00:00Z");
   d.setUTCDate(d.getUTCDate() + n);
   return d.toISOString().slice(0, 10);
+}
+
+// ── Bodyweight trend ─────────────────────────────────────────
+/**
+ * Trend weight: an exponential moving average that moves ~10% of the way to each day's weigh-in
+ * (gaps count as several days), so water and food swings don't hide the real direction.
+ * Input must be sorted by date. Returns one smoothed value per point.
+ */
+export function trendWeights(points: { date: string; kg: number }[], dailyPull = 0.1): number[] {
+  const out: number[] = [];
+  let prev: { date: string; t: number } | null = null;
+  for (const p of points) {
+    if (!prev) prev = { date: p.date, t: p.kg };
+    else {
+      const days = Math.max(1, Math.round((Date.parse(p.date) - Date.parse(prev.date)) / 86_400_000));
+      const a = 1 - Math.pow(1 - dailyPull, days);
+      prev = { date: p.date, t: prev.t + a * (p.kg - prev.t) };
+    }
+    out.push(Math.round(prev.t * 100) / 100);
+  }
+  return out;
+}
+
+/**
+ * Weekly rate of change (kg/week, negative = losing): a least-squares line through the raw weigh-ins
+ * of the last `days`. The fit averages out daily noise without the lag a moving average has early on.
+ * Null with fewer than `minPoints` weigh-ins spanning 10+ days.
+ */
+export function weeklyWeightRate(points: { date: string; kg: number }[], days = 28, minPoints = 5): number | null {
+  if (!points.length) return null;
+  const last = points.at(-1)!.date;
+  const from = addDays(last, -days);
+  const xs: number[] = [];
+  const ys: number[] = [];
+  for (const p of points) {
+    if (p.date >= from) {
+      xs.push(Date.parse(p.date) / 86_400_000);
+      ys.push(p.kg);
+    }
+  }
+  if (xs.length < minPoints || xs.at(-1)! - xs[0] < 10) return null;
+  const mx = xs.reduce((a, b) => a + b, 0) / xs.length;
+  const my = ys.reduce((a, b) => a + b, 0) / ys.length;
+  const num = xs.reduce((a, x, i) => a + (x - mx) * (ys[i] - my), 0);
+  const den = xs.reduce((a, x) => a + (x - mx) ** 2, 0);
+  return den ? Math.round((num / den) * 7 * 100) / 100 : null;
 }
 
 export function weekdayOf(date: string): Weekday {

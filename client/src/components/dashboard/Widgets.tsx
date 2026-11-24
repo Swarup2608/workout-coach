@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import type { ReactNode } from "react";
-import type { Checkin, Readiness, TodayData, WeekMetrics, WorkoutSession } from "@/lib/domain";
+import type { Checkin, Readiness, TodayData, WeekGoal, WeekMetrics, WorkoutSession } from "@/lib/domain";
 import { LineChart } from "@/components/LineChart";
 import { ScoreRing } from "@/components/ui";
 import { MOODS } from "@/components/CheckinCard";
@@ -141,6 +141,7 @@ export function WorkoutCard({ t, readiness }: { t: TodayData; readiness?: Readin
     action = <Link href={`/workout/summary/${t.session!.id}`} className="btn btn-ghost px-6 py-3">See summary</Link>;
   } else if (pd && !pd.isRest) {
     title = pd.title;
+    if (t.movedFrom) label = `Today's workout · moved from ${t.movedFrom}`;
     sub = (
       <>
         <div className="mt-3 flex flex-wrap gap-2">
@@ -178,6 +179,73 @@ export function WorkoutCard({ t, readiness }: { t: TodayData; readiness?: Readin
         <div className="mt-4">{action}</div>
       </div>
     </section>
+  );
+}
+
+/* ── Weekly goal ring ────────────────────────────────────── */
+
+export function WeekGoalCard({ goal }: { goal: WeekGoal }) {
+  const { done, goal: target, daysLeft, days } = goal;
+  const size = 120;
+  const r = size / 2 - 9;
+  const c = 2 * Math.PI * r;
+  const pct = Math.min(1, done / target);
+  const left = Math.max(0, target - done);
+  const status =
+    done >= target
+      ? done > target
+        ? `Goal beaten: ${done - target} extra workout${done - target === 1 ? "" : "s"} this week.`
+        : "Weekly goal done. Recover well."
+      : left > daysLeft
+        ? `${left} to go but only ${daysLeft} day${daysLeft === 1 ? "" : "s"} left. Every session still counts.`
+        : `${left} to go, ${daysLeft} day${daysLeft === 1 ? "" : "s"} left.`;
+  return (
+    <Card title="Weekly goal">
+      <div className="flex items-center gap-5">
+        <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`} role="img" aria-label={`${done} of ${target} workouts this week`} className="shrink-0">
+          <circle cx={size / 2} cy={size / 2} r={r} stroke="var(--surface-700)" strokeWidth={10} fill="none" />
+          <circle
+            cx={size / 2}
+            cy={size / 2}
+            r={r}
+            stroke={done >= target ? "var(--good)" : "var(--accent)"}
+            strokeWidth={10}
+            fill="none"
+            strokeLinecap="round"
+            strokeDasharray={c}
+            strokeDashoffset={c * (1 - pct)}
+            transform={`rotate(-90 ${size / 2} ${size / 2})`}
+            style={{ transition: "stroke-dashoffset 600ms ease" }}
+          />
+          <text x="50%" y="48%" textAnchor="middle" fontSize="28" fontWeight="700" fill="currentColor" className="font-display text-fg">
+            {done}/{target}
+          </text>
+          <text x="50%" y="66%" textAnchor="middle" fontSize="11" fill="var(--muted)">
+            workouts
+          </text>
+        </svg>
+        <div className="min-w-0 flex-1 space-y-3">
+          <p className="text-sm">{status}</p>
+          <div className="flex gap-1.5" aria-hidden>
+            {days.map((d) => (
+              <span key={d.date} className="flex flex-1 flex-col items-center gap-1">
+                <span
+                  className={`h-2.5 w-full rounded-full ${d.done ? "" : d.planned ? "border border-ink-500" : "bg-ink-800"}`}
+                  style={d.done ? { background: "var(--good)" } : undefined}
+                />
+                <span className="text-[10px] text-ink-400">{new Date(d.date + "T12:00:00").toLocaleDateString(undefined, { weekday: "narrow" })}</span>
+              </span>
+            ))}
+          </div>
+          <p className="text-[11px] text-ink-400">Green = trained · outlined = planned</p>
+          {!!goal.toReshuffle && (
+            <Link href="/plan" className="inline-flex text-xs link">
+              {goal.toReshuffle} missed workout{goal.toReshuffle === 1 ? "" : "s"}: reshuffle the week →
+            </Link>
+          )}
+        </div>
+      </div>
+    </Card>
   );
 }
 

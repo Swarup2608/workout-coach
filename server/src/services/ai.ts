@@ -13,11 +13,18 @@ export interface ToolSpec {
   schema: Record<string, unknown>;
 }
 
+/** A base64 image sent along with a prompt (the model must support vision). */
+export interface AiImage {
+  mediaType: "image/jpeg" | "image/png" | "image/webp";
+  /** Base64, no data: prefix */
+  data: string;
+}
+
 /** One chat AI, whichever provider the user picked. */
 export interface AiClient {
   label: string;
   /** Forces a single tool call and returns its arguments (structured output). */
-  structured(opts: { system: string; prompt: string; tool: ToolSpec; maxTokens: number }): Promise<unknown>;
+  structured(opts: { system: string; prompt: string; tool: ToolSpec; maxTokens: number; image?: AiImage }): Promise<unknown>;
   /** Streams plain text; resolves with the full reply. */
   stream(opts: { system: string; messages: Pick<ChatMessage, "role" | "content">[]; maxTokens: number; onText: (t: string) => void }): Promise<string>;
 }
@@ -48,14 +55,21 @@ function anthropicClient(c: AiConfig): AiClient {
   const sdk = new Anthropic({ apiKey: c.apiKey, timeout: TIMEOUT_MS, maxRetries: 1 });
   return {
     label: aiLabel(c.provider, c.model),
-    async structured({ system, prompt, tool, maxTokens }) {
+    async structured({ system, prompt, tool, maxTokens, image }) {
       const res = await sdk.messages.create({
         model: c.model,
         max_tokens: maxTokens,
         system,
         tools: [{ name: tool.name, description: tool.description, input_schema: tool.schema as Anthropic.Tool.InputSchema }],
         tool_choice: { type: "tool", name: tool.name },
-        messages: [{ role: "user", content: prompt }],
+        messages: [
+          {
+            role: "user",
+            content: image
+              ? [{ type: "image", source: { type: "base64", media_type: image.mediaType, data: image.data } }, { type: "text", text: prompt }]
+              : prompt,
+          },
+        ],
       });
       const block = res.content.find((b) => b.type === "tool_use");
       if (!block || block.type !== "tool_use") throw new Error("The AI returned no structured result");
@@ -92,10 +106,16 @@ function openAiCompatibleClient(c: AiConfig): AiClient {
 
   return {
     label: aiLabel(c.provider, c.model),
-    async structured({ system, prompt, tool, maxTokens }) {
+    async structured({ system, prompt, tool, maxTokens, image }) {
       const res = await post({
         ...limit(maxTokens),
-        messages: [{ role: "system", content: system }, { role: "user", content: prompt }],
+        messages: [
+          { role: "system", content: system },
+          {
+            role: "user",
+            content: image ? [{ type: "image_url", image_url: { url: `data:${image.mediaType};base64,${image.data}` } }, { type: "text", text: prompt }] : prompt,
+          },
+        ],
         tools: [{ type: "function", function: { name: tool.name, description: tool.description, parameters: tool.schema } }],
         tool_choice: { type: "function", function: { name: tool.name } },
       });

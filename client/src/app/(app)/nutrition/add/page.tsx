@@ -9,6 +9,9 @@ import { Icon } from "@/components/Icons";
 import { ErrorNote, Spinner } from "@/components/ui";
 import { useCoachContext } from "@/components/coach/CoachProvider";
 import { notifyDataChanged } from "@/components/coach/actions";
+import { MacroInputs, emptyMacros, numOr0, toMacros } from "@/components/nutrition/NutritionUi";
+import { PhotoButton, PhotoReview } from "@/components/nutrition/PhotoFood";
+import type { PhotoResult } from "@/lib/domain";
 
 type Tab = "recent" | "favourites" | "mine" | "quick";
 /** What the serving picker is showing: a database/own food, or a recent quick-add. */
@@ -16,7 +19,6 @@ type Pick = { foodId: string | null; name: string; serving: string | null; per: 
 
 const DIET_WORDS: Record<Diet, string> = { veg: "vegetarian", vegan: "vegan", eggetarian: "vegetarian and egg", non_veg: "" };
 const SERVING_CHIPS = [0.5, 1, 1.5, 2, 3];
-const numOr0 = (v: string) => (v.trim() === "" || !Number.isFinite(Number(v)) ? 0 : Math.max(0, Number(v)));
 
 export default function AddFoodPage() {
   return (
@@ -42,6 +44,8 @@ function AddFood() {
   const [added, setAdded] = useState<string[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
+  /** The latest photo's draft; `n` counts photos so a new one resets the review form. */
+  const [photo, setPhoto] = useState<{ n: number; result: PhotoResult } | null>(null);
   const back = `/nutrition${date !== t ? `?date=${date}` : ""}`;
   useCoachContext("Add food", `${MEAL_LABELS[meal]} on ${date}`);
 
@@ -91,7 +95,10 @@ function AddFood() {
     setSaving(true);
     setError(null);
     try {
-      await api.addFood(date, p.foodId ? { meal, foodId: p.foodId, servings: p.servings } : { meal, name: p.name, ...p.per, servings: p.servings });
+      await api.addFood(
+        date,
+        p.foodId ? { meal, foodId: p.foodId, servings: p.servings } : { meal, name: p.name, ...p.per, servings: p.servings, ...(p.serving ? { serving: p.serving } : {}) },
+      );
       setAdded((xs) => [`${p.name}${p.servings !== 1 ? ` × ${p.servings}` : ""}`, ...xs]);
       setPick(null);
       notifyDataChanged();
@@ -134,21 +141,30 @@ function AddFood() {
         ))}
       </div>
 
-      <div className="relative">
-        <Icon name="search" size={18} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-ink-400" />
-        <input
-          className="input pl-10"
-          placeholder="Search foods: roti, dal, paneer, idli…"
-          value={q}
-          onChange={(e) => setQ(e.target.value)}
-          autoFocus
-          aria-label="Search foods"
+      <div className="flex flex-wrap gap-2">
+        <div className="relative min-w-0 flex-1">
+          <Icon name="search" size={18} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-ink-400" />
+          <input
+            className="input pl-10"
+            placeholder="Search foods: roti, dal, paneer, idli…"
+            value={q}
+            onChange={(e) => setQ(e.target.value)}
+            autoFocus
+            aria-label="Search foods"
+          />
+          {searching && (
+            <span className="absolute right-3 top-1/2 -translate-y-1/2 text-ink-400">
+              <Spinner />
+            </span>
+          )}
+        </div>
+        <PhotoButton
+          onResult={(r) => {
+            setPick(null);
+            setPhoto((p) => ({ n: (p?.n ?? 0) + 1, result: r }));
+          }}
+          onError={setError}
         />
-        {searching && (
-          <span className="absolute right-3 top-1/2 -translate-y-1/2 text-ink-400">
-            <Spinner />
-          </span>
-        )}
       </div>
 
       {added.length > 0 && (
@@ -162,7 +178,24 @@ function AddFood() {
       )}
       <ErrorNote error={error} />
 
-      {pick && <ServingPicker pick={pick} meal={meal} saving={saving} onChange={setPick} onAdd={() => add(pick)} onCancel={() => setPick(null)} />}
+      {photo && (
+        <PhotoReview
+          key={photo.n}
+          result={photo.result}
+          date={date}
+          meal={meal}
+          onAdded={(names) => {
+            setAdded((xs) => [...names, ...xs]);
+            setPhoto(null);
+            notifyDataChanged();
+            loadLib();
+          }}
+          onClose={() => setPhoto(null)}
+          onError={setError}
+        />
+      )}
+
+      {pick &&<ServingPicker pick={pick} meal={meal} saving={saving} onChange={setPick} onAdd={() => add(pick)} onCancel={() => setPick(null)} />}
 
       {results ? (
         <section className="card space-y-2">
@@ -360,31 +393,6 @@ function ServingPicker({ pick, meal, saving, onChange, onAdd, onCancel }: { pick
     </div>
   );
 }
-
-function MacroInputs({ v, onChange }: { v: { kcal: string; proteinG: string; carbsG: string; fatG: string }; onChange: (v: { kcal: string; proteinG: string; carbsG: string; fatG: string }) => void }) {
-  return (
-    <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-      {(
-        [
-          ["kcal", "Calories"],
-          ["proteinG", "Protein g"],
-          ["carbsG", "Carbs g"],
-          ["fatG", "Fat g"],
-        ] as const
-      ).map(([k, label]) => (
-        <div key={k}>
-          <label className="label" htmlFor={`m-${k}`}>
-            {label}
-          </label>
-          <input id={`m-${k}`} type="number" inputMode="decimal" min={0} className="input" value={v[k]} onChange={(e) => onChange({ ...v, [k]: e.target.value })} required={k === "kcal"} />
-        </div>
-      ))}
-    </div>
-  );
-}
-
-const emptyMacros = { kcal: "", proteinG: "", carbsG: "", fatG: "" };
-const toMacros = (v: typeof emptyMacros): Macros => ({ kcal: numOr0(v.kcal), proteinG: numOr0(v.proteinG), carbsG: numOr0(v.carbsG), fatG: numOr0(v.fatG) });
 
 function QuickAdd({ initialName, saving, onAdd }: { initialName: string; saving: boolean; onAdd: (name: string, per: Macros) => void }) {
   const [name, setName] = useState(initialName);
