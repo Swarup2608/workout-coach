@@ -64,7 +64,11 @@ export function encryptionKeyBytes(): Buffer {
   return buf;
 }
 
-/** Fail fast on missing or weak secrets. Called once at startup (not on import, so unit tests stay env-free). */
+/**
+ * Fail fast on missing or weak secrets. Called once at startup (not on import, so unit tests stay env-free).
+ * Throws instead of exiting: the local server exits on it, while the Vercel handler logs it and answers 503 —
+ * process.exit() inside a serverless function crashes it (FUNCTION_INVOCATION_FAILED) and hides the reason.
+ */
 export function assertConfig() {
   const problems: string[] = [];
   if (!config.mongoUri) problems.push("MONGODB_URI is required (your MongoDB Atlas connection string)");
@@ -85,8 +89,8 @@ export function assertConfig() {
   if (!config.gmailAppPassword) problems.push("GMAIL_APP_PASSWORD is required (Google App Password: https://myaccount.google.com/apppasswords)");
   if (config.isProd && !/^https:\/\//.test(config.appUrl)) problems.push("APP_URL must be the https:// address of the web app in production");
   if (problems.length) {
-    console.error("\nServer config is incomplete (server/.env):\n" + problems.map((p) => `  • ${p}`).join("\n"));
+    console.error("\nServer config is incomplete (server/.env, or the Vercel project's Environment Variables):\n" + problems.map((p) => `  • ${p}`).join("\n"));
     console.error("\nGenerate secrets with:  npm run secrets -w server\n");
-    process.exit(1);
+    throw new Error(`Server config is incomplete: ${problems.length} problem(s), listed above`);
   }
 }

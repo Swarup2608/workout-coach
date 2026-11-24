@@ -37,7 +37,8 @@ export default async function handler(req: IncomingMessage, res: ServerResponse)
   let app: Express;
   try {
     app = await ready;
-  } catch {
+  } catch (e) {
+    console.error("Startup failed:", String((e as Error)?.message ?? e).split("\n")[0]);
     res.statusCode = 503;
     res.setHeader("Content-Type", "application/json");
     res.setHeader("Cache-Control", "no-store");
