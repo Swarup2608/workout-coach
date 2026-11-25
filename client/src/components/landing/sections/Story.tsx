@@ -63,7 +63,9 @@ function PhoneScreen({ step }: { step: number }) {
   );
 }
 
-export function Story() {
+/** `from` skips the first panels. */
+export function Story({ from = 0 }: { from?: number }) {
+  const STEPS = STORY.slice(from);
   const root = useRef<HTMLElement>(null);
   const [step, setStep] = useState(0);
 
@@ -72,7 +74,7 @@ export function Story() {
       trigger: root.current,
       start: "top top",
       end: "bottom bottom",
-      onUpdate: (self) => setStep(Math.min(STORY.length - 1, Math.floor(self.progress * STORY.length))),
+      onUpdate: (self) => setStep(Math.min(STEPS.length - 1, Math.floor(self.progress * STEPS.length))),
     });
     return () => st.kill();
   }, []);
@@ -83,11 +85,11 @@ export function Story() {
         <div className="container story-grid">
           <div className="story-text">
             <div className="story-dots" aria-hidden="true">
-              {STORY.map((s, i) => (
+              {STEPS.map((s, i) => (
                 <i key={s.k} className={i === step ? "on" : ""} style={vars({ "--c": s.color })} />
               ))}
             </div>
-            {STORY.map((s, i) => (
+            {STEPS.map((s, i) => (
               <div key={s.k} className={`story-step ${i === step ? "on" : ""}`} aria-hidden={i !== step}>
                 <div className="eyebrow mono" style={{ color: s.color }}>
                   {s.k}
@@ -110,18 +112,18 @@ export function Story() {
                       <span className="rec" /> STARKFITIQ
                     </span>
                     <span className="ph-steps" aria-hidden="true">
-                      {STORY.map((_, i) => (
+                      {STEPS.map((_, i) => (
                         <i key={i} className={i === step ? "is-active" : undefined} />
                       ))}
                     </span>
                   </div>
                   <div className="ph-swap" key={step}>
-                    <PhoneScreen step={step} />
+                    <PhoneScreen step={step + from} />
                   </div>
                 </div>
               </div>
             </div>
-            <div className="phone-glow" style={vars({ "--c": STORY[step].color })} aria-hidden="true" />
+            <div className="phone-glow" style={vars({ "--c": STEPS[step].color })} aria-hidden="true" />
           </div>
         </div>
       </div>

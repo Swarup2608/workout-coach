@@ -1,6 +1,6 @@
 # StarkFitIQ: App Completion Plan
 
-Date: 18 Nov 2026. **Status: built** (see [Build status](#build-status) at the end). Demo: [workflow/workflow-demo.webm](workflow/workflow-demo.webm), screenshots in [workflow/screens/](workflow/screens/). Follows [onboarding.md](onboarding.md) and the gap table in [../PRODUCT_PLAN.md](../PRODUCT_PLAN.md).
+Date: 18 Nov 2026. **Status: built** (see [Build status](#build-status) at the end). Demo: [demo/e2e-workflow.mp4](demo/e2e-workflow.mp4), screenshots in [screenshots/readme/](screenshots/readme/) (full set: `node scripts/record-demos.mjs shots`). Follows [onboarding.md](onboarding.md) and the gap table in [../PRODUCT_PLAN.md](../PRODUCT_PLAN.md).
 
 ## Scope
 
@@ -277,7 +277,7 @@ Each step ends with `npm run typecheck`, `npm test` and `npm run build` passing.
 
 ## Build status
 
-Everything above is built. Verified with `npm run typecheck` (server and client), `npm test` (88 passing, including new suites for the live workout timer, coach actions, today/progress/exercises, readiness and PRs) and a production `next build`. The video and screenshots in [workflow/](workflow/) walk the whole loop.
+Everything above is built. Verified with `npm run typecheck` (server and client), `npm test` (88 passing, including new suites for the live workout timer, coach actions, today/progress/exercises, readiness and PRs) and a production `next build`. The [end-to-end demo](demo/e2e-workflow.mp4) and [screenshots](screenshots/readme/) walk the whole loop.
 
 Differences from the plan above:
 

@@ -11,6 +11,11 @@ server/.mongo-test-*
 .DS_Store
 client/.shots
 
+# Full screenshot set: regenerate with `node scripts/record-demos.mjs shots`.
+# Only docs/screenshots/readme/ (compressed WebP used by README.md) is committed.
+docs/screenshots/desktop/
+docs/screenshots/mobile/
+
 # Demo / ad build artefacts
 docs/.voice-cache/
 docs/**/.build/

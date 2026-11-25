@@ -1,7 +1,6 @@
 "use client";
 
 import { Fragment, useEffect, useRef, useState } from "react";
-import gsap from "gsap";
 
 import gymEntry from "@/assets/landing/hero/Athlete_entering_futuristic_gym_f5196066_1080p.mp4";
 import barbell from "@/assets/landing/hero/Athlete_performing_heavy_barbell…_acd55de2_1080p.mp4";
@@ -23,10 +22,10 @@ import quickAddImg from "@/assets/landing/the System/quick add.png";
 import mealPrep from "@/assets/landing/hero/Preparing_healthy_vegetarian_fit…_591ede66_1080p.mp4";
 
 /* ---------------------------------------------------------------------------
-   Photos are served from public/media/ (Unsplash License).
+   Photos live in ./photos (public/media/, Unsplash License).
    Videos are imported from src/assets/landing/hero/ (see next.config.ts).
    --------------------------------------------------------------------------- */
-const m = (file: string) => `/media/${file}`;
+import { media as m } from "./photos";
 
 export type Video = { sources: string[]; poster: string };
 
@@ -35,9 +34,6 @@ export const HERO_REEL: Video = {
   sources: [gymEntry, barbell, dumbbellPress, trackRun, mobility, rooftop, mealPrep],
   poster: m("gym-interior.jpg"),
 };
-
-/** One clip per hero carousel slide (same order as the slides). */
-export const HERO_CLIPS = [gymEntry, barbell, dumbbellPress, trackRun, mobility, rooftop, mealPrep];
 
 /** "The System" bento card images. */
 export const SYSTEM = { setBySet: setBySetLog.src, weekly: weeklyScoreImg.src, aiChat: aiChatImg.src, food: foodStatsImg.src, quickAdd: quickAddImg.src };
@@ -50,22 +46,7 @@ export const VIDEOS: Record<"phone" | "film", Video> = {
   film: { sources: [landingFilm], poster: m("barbell-floor.jpg") },
 };
 
-export const PHOTOS = {
-  barbellFloor: m("barbell-floor.jpg"),
-  womanLift: m("woman-lift.jpg"),
-  sprintStart: m("sprint-start.jpg"),
-  kettlebell: m("kettlebell.jpg"),
-  womanCarry: m("woman-carry.jpg"),
-  courtDark: m("court-dark.jpg"),
-  womanBarbell: m("woman-barbell.jpg"),
-  monoAthlete: m("mono-athlete.jpg"),
-  bowl: m("bowl.jpg"),
-  roadRun: m("road-run.jpg"),
-  gymInterior: m("gym-interior.jpg"),
-  orangeTank: m("orange-tank.jpg"),
-  runningField: m("running-field.jpg"),
-  floorMobility: m("floor-mobility.jpg"),
-};
+export { PHOTOS } from "./photos";
 
 /** <source> list for a single video. */
 export function VideoSources({ video }: { video: Video }) {
@@ -121,49 +102,6 @@ export function VideoReel({ video }: { video: Video }) {
   );
 }
 
-/**
- * Carousel video layer: shows the clip for `index`, restarts it when selected,
- * and calls `onEnded` when it finishes so the carousel can advance.
- * Only the current and next clip are loaded.
- */
-export function SlideVideos({ sources, poster, index, onEnded, onProgress }: { sources: string[]; poster: string; index: number; onEnded: () => void; onProgress?: (ratio: number) => void }) {
-  const refs = useRef<(HTMLVideoElement | null)[]>([]);
-  const next = (index + 1) % sources.length;
-
-  useEffect(() => {
-    const v = refs.current[index];
-    if (!v) return;
-    v.currentTime = 0;
-    v.play().catch(() => {});
-  }, [index]);
-
-  return (
-    <>
-      {sources.map((src, idx) => {
-        const live = idx === index || idx === next;
-        return (
-          <video
-            key={src}
-            ref={(el) => {
-              refs.current[idx] = el;
-            }}
-            className={idx === index ? "is-active" : undefined}
-            src={live ? src : undefined}
-            poster={idx === 0 ? poster : undefined}
-            autoPlay={idx === 0}
-            muted
-            playsInline
-            preload={live ? "auto" : "none"}
-            onEnded={() => idx === index && onEnded()}
-            onTimeUpdate={(e) => idx === index && onProgress && e.currentTarget.duration && onProgress(e.currentTarget.currentTime / e.currentTarget.duration)}
-            aria-hidden="true"
-          />
-        );
-      })}
-    </>
-  );
-}
-
 /* --------------------------- helpers ------------------------------------ */
 
 type LenisLike = { scrollTo: (t: Element, o?: { offset?: number; duration?: number }) => void; start: () => void; stop: () => void };
@@ -175,38 +113,13 @@ declare global {
 
 /** Smooth-scrolls to an in-page anchor through Lenis when it is running. */
 export function scrollToHash(e: React.MouseEvent, hash: string) {
+  // Only same-page anchors ("#how"); links like "/#how" navigate normally.
+  if (!hash.startsWith("#")) return;
   const target = document.querySelector(hash);
   if (!target) return;
   e.preventDefault();
   if (window.__lenis) window.__lenis.scrollTo(target, { offset: -70, duration: 1.4 });
   else target.scrollIntoView({ behavior: "smooth" });
-}
-
-/** Pulls an element gently toward the pointer while hovered (desktop only). */
-export function useMagnetic<T extends HTMLElement = HTMLAnchorElement>(strength = 0.35) {
-  const ref = useRef<T>(null);
-  useEffect(() => {
-    const el = ref.current;
-    if (!el || window.matchMedia("(hover: none)").matches) return;
-    const xTo = gsap.quickTo(el, "x", { duration: 0.6, ease: "elastic.out(1, 0.4)" });
-    const yTo = gsap.quickTo(el, "y", { duration: 0.6, ease: "elastic.out(1, 0.4)" });
-    const move = (e: PointerEvent) => {
-      const r = el.getBoundingClientRect();
-      xTo((e.clientX - (r.left + r.width / 2)) * strength);
-      yTo((e.clientY - (r.top + r.height / 2)) * strength);
-    };
-    const leave = () => {
-      xTo(0);
-      yTo(0);
-    };
-    el.addEventListener("pointermove", move);
-    el.addEventListener("pointerleave", leave);
-    return () => {
-      el.removeEventListener("pointermove", move);
-      el.removeEventListener("pointerleave", leave);
-    };
-  }, [strength]);
-  return ref;
 }
 
 /** Splits a string into masked words so each can slide up independently. */

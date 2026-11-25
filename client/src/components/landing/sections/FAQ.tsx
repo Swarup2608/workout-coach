@@ -1,7 +1,3 @@
-"use client";
-
-import { useState } from "react";
-
 const QA: [string, string][] = [
   ["Do I need a gym or equipment?", "No. Write your plan around whatever you have — nothing, dumbbells or a full gym — and log it the same way."],
   ["Which AI providers work?", "Claude, OpenAI, Gemini, Groq, Mistral, OpenRouter or any OpenAI-compatible API. Add your key in Profile. Without one, you still get the app’s own weekly scoring, plus a copy-and-paste check-in for a Claude Project."],
@@ -10,27 +6,22 @@ const QA: [string, string][] = [
 ];
 
 export function FAQ() {
-  const [open, setOpen] = useState(0);
   return (
-    <section className="section">
-      <div className="container faq-wrap">
-        <h2 className="h2 disp center" data-reveal>
-          Questions, answered.
-        </h2>
-        <div className="faq">
-          {QA.map(([q, a], i) => (
-            <div className={`faq-item ${open === i ? "on" : ""}`} key={q} data-reveal>
-              <button className="faq-q" aria-expanded={open === i} onClick={() => setOpen(open === i ? -1 : i)}>
-                <span>{q}</span>
-                <span className="faq-plus" aria-hidden="true" />
-              </button>
-              <div className="faq-a">
-                <div>
-                  <p>{a}</p>
-                </div>
-              </div>
-            </div>
-          ))}
+    <section id="faq" className="l2-section">
+      <div className="l2-wrap l2-narrow">
+        <div className="l2-faq-grid">
+          <h2 className="l2-h2">Questions, answered.</h2>
+          <div className="l2-faq">
+            {QA.map(([q, a], i) => (
+              <details key={q} open={i === 0} data-r>
+                <summary>
+                  <span>{q}</span>
+                  <span className="l2-plus" aria-hidden="true" />
+                </summary>
+                <p>{a}</p>
+              </details>
+            ))}
+          </div>
         </div>
       </div>
     </section>

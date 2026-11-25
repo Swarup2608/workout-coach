@@ -1,65 +1,76 @@
-/* eslint-disable @next/next/no-img-element */
-/**
- * StarkFitIQ brand marks, from the PNG set in public/brand/.
- *
- * Each variant renders a version for dark backgrounds and one for light backgrounds;
- * CSS in globals.css (.on-dark-only / .on-light-only) shows the one matching <html data-theme>.
- * Pass `tone` to pin a variant regardless of theme (e.g. on a photo, which is always dark).
- *
- *   horizontal  960×201  — nav bars, footers
- *   stacked     720×532  — auth pages, splash
- *   mark        512×585  — icon-only spots
- */
-type Tone = "auto" | "dark" | "light";
+import Image from "next/image";
 
+/**
+ * StarkFitIQ brand marks, from public/brand/:
+ *
+ *   Logo.png     1254×1254  — full logo (mark + wordmark + tagline): auth pages, splash
+ *   LogoNav.png  2172×724   — horizontal logo (mark + wordmark): nav bars, footers
+ *   Favicon.png  1254×1254  — the "S" mark alone: icon-only spots, browser tab
+ *
+ * Both are metallic artwork on a transparent background, so one file serves light and dark themes.
+ * They're large PNGs; next/image serves resized, compressed copies at the rendered size.
+ * Each has ~10% transparent padding around the artwork, so the visible mark is a little smaller than `size`.
+ */
 const SRC = {
-  horizontal: { dark: "/brand/logo-horizontal-dark.png", light: "/brand/logo-horizontal-light.png", ratio: 960 / 201 },
-  stacked: { dark: "/brand/logo-stacked-dark.png", light: "/brand/logo-stacked-light.png", ratio: 720 / 532 },
-  mark: { dark: "/brand/mark-dark.png", light: "/brand/mark-light.png", ratio: 512 / 585 },
+  stacked: "/brand/Logo.png",
+  mark: "/brand/Favicon.png",
 } as const;
 
 type Variant = keyof typeof SRC;
 
-/** `size` is the rendered height in px. `tone`: "dark" = for dark backgrounds, "light" = for light ones. */
+/** Square brand image; `size` is the rendered height (and width) in px. */
 export function BrandImage({
   variant,
   size,
-  tone = "auto",
   className = "",
   alt = "StarkFitIQ",
+  priority = false,
 }: {
   variant: Variant;
   size: number;
-  tone?: Tone;
   className?: string;
   alt?: string;
+  priority?: boolean;
+  /** @deprecated the artwork works on both themes; kept so older call sites still compile */
+  tone?: "auto" | "dark" | "light";
 }) {
-  const s = SRC[variant];
-  const w = Math.round(size * s.ratio);
-  const img = (src: string, cls: string, a: string) => (
-    <img src={src} alt={a} width={w} height={size} className={`block shrink-0 ${cls} ${className}`} style={{ height: size, width: "auto" }} decoding="async" />
-  );
-  if (tone === "dark") return img(s.dark, "", alt);
-  if (tone === "light") return img(s.light, "", alt);
   return (
-    <>
-      {img(s.dark, "on-dark-only", alt)}
-      {img(s.light, "on-light-only", alt)}
-    </>
+    <Image
+      src={SRC[variant]}
+      alt={alt}
+      width={size}
+      height={size}
+      priority={priority}
+      className={`block shrink-0 ${className}`}
+      style={{ width: size, height: size }}
+    />
   );
 }
 
+/** LogoNav.png is 2172×724 (3:1). */
+const NAV_RATIO = 2172 / 724;
+
 /**
- * Horizontal logo, sized by height. `tone="light"` is for light backgrounds; the default follows the theme.
+ * Nav/footer logo (LogoNav.png: mark + wordmark side by side), sized by height in px.
+ * The wordmark fills only the middle third of the image's height, so call sites pass ~2× a normal logo height.
  */
-export function Logo({ size = 28, tone = "auto", className = "" }: { size?: number; tone?: Tone; className?: string; accent?: string }) {
+export function Logo({ size = 48, className = "" }: { size?: number; tone?: "auto" | "dark" | "light"; className?: string; accent?: string }) {
+  const width = Math.round(size * NAV_RATIO);
   return (
     <span className={`inline-flex items-center ${className}`}>
-      <BrandImage variant="horizontal" size={size} tone={tone} />
+      <Image
+        src="/brand/LogoNav.png"
+        alt="StarkFitIQ"
+        width={width}
+        height={size}
+        priority
+        className="block shrink-0"
+        style={{ width, height: size }}
+      />
     </span>
   );
 }
 
-export function LogoMark({ size = 40, tone = "auto", className = "" }: { size?: number; tone?: Tone; className?: string }) {
-  return <BrandImage variant="mark" size={size} tone={tone} className={className} alt="" />;
+export function LogoMark({ size = 40, className = "" }: { size?: number; tone?: "auto" | "dark" | "light"; className?: string }) {
+  return <BrandImage variant="mark" size={size} className={className} alt="" />;
 }

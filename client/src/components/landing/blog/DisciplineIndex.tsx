@@ -1,16 +1,17 @@
 "use client";
 
-import { LandingFooter, LandingNav } from "../chrome";
+import { HOME_LINKS, LandingFooter, Nav } from "../chrome";
 import { DISCIPLINES } from "../disciplines";
 import { PostCard } from "./DisciplineArticle";
 import "../landing.css";
 import "./blog.css";
+import "../theme";
 
 /** All discipline guides as a blog index. Public: no login needed. */
 export function DisciplineIndex() {
   return (
     <div className="lp">
-      <LandingNav />
+      <Nav links={HOME_LINKS.map(([h, l]) => [`/${h}`, l])} />
       <main className="container post-index">
         <div className="eyebrow mono">ONE COACH · EVERY DISCIPLINE</div>
         <h1 className="h2 disp">

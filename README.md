@@ -26,11 +26,10 @@ It is a web app (Next.js client, Express 5 + MongoDB API) where each user brings
 
 | Video | Format | File |
 | --- | --- | --- |
-| Full product demo | 16:9 | [docs/demo/starkfitiq-full-demo.mp4](docs/demo/starkfitiq-full-demo.mp4) |
+| End-to-end walkthrough (sign-up → onboarding → check-in → plan → live workout → summary → exercises → nutrition → log → progress → profile → AI coach), about 5 min | 16:9 | [docs/demo/e2e-workflow.mp4](docs/demo/e2e-workflow.mp4) |
+| Home page tour, about 1 min | 16:9 | [docs/demo/home.mp4](docs/demo/home.mp4) |
 | Promo ad, 60 s | 16:9 | [voice-over](docs/ad/starkfitiq-ad-60s-16x9.mp4) · [with music](docs/ad/starkfitiq-ad-60s-16x9-music.mp4) |
 | Promo ad, 30 s | 9:16 (phone) | [voice-over](docs/ad/starkfitiq-ad-30s-9x16.mp4) · [with music](docs/ad/starkfitiq-ad-30s-9x16-music.mp4) |
-| Daily loop walkthrough | 16:9 | [docs/workflow/workflow-demo.webm](docs/workflow/workflow-demo.webm) |
-| Onboarding walkthrough | 16:9 | [docs/onboarding/onboarding-demo.webm](docs/onboarding/onboarding-demo.webm) |
 
 ## What you can do
 
@@ -62,26 +61,32 @@ It is a web app (Next.js client, Express 5 + MongoDB API) where each user brings
 ## The daily loop
 
 <div align="center">
-  <img src="docs/workflow/screens/5-live-workout.png" alt="Live workout: elapsed timer, set rows with weight and reps, two sets ticked, rest timer counting down" width="100%" />
+  <img src="docs/screenshots/readme/flow-08-live-workout.webp" alt="Live workout: elapsed timer, set rows with weight and reps, sets ticked, rest timer counting down" width="100%" />
 </div>
 
-▶ **[Watch the workflow demo](docs/workflow/workflow-demo.webm)** (check-in → plan → live workout → coach → summary → exercises → progress → phone, about 1½ minutes).
+▶ **[Watch the end-to-end demo](docs/demo/e2e-workflow.mp4)** (about 5 minutes).
 
 | Today | Check-in → readiness | This week |
 | --- | --- | --- |
-| ![Today screen with readiness and streak](docs/workflow/screens/3-today-ready.png) | ![Daily check-in with energy, soreness and stress](docs/workflow/screens/2-checkin.png) | ![Plan week view with a day preview](docs/workflow/screens/4-plan-week.png) |
+| ![Today screen with readiness](docs/screenshots/readme/flow-06-dashboard.webp) | ![Daily check-in with mood, sleep, energy, soreness and stress](docs/screenshots/readme/flow-05-check-in.webp) | ![Plan week view with today's workout open](docs/screenshots/readme/flow-07-plan.webp) |
 
 | Coach on every page | Finish with sets left | Workout summary |
 | --- | --- | --- |
-| ![Coach chat panel during a workout](docs/workflow/screens/6-coach-dock.png) | ![Warning listing sets not done](docs/workflow/screens/7-finish-warning.png) | ![Summary with time, sets, volume and vs last time](docs/workflow/screens/8-summary.png) |
+| ![Coach panel during a workout](docs/screenshots/readme/flow-09-coach-dock.webp) | ![Warning listing sets not done](docs/screenshots/readme/flow-10-finish-warning.webp) | ![Summary with time, sets, volume and vs last time](docs/screenshots/readme/flow-11-summary.webp) |
 
-| Exercise library | Exercise detail | Progress |
+| Exercise library | Exercise detail | Nutrition |
 | --- | --- | --- |
-| ![Exercise library filtered to equipment and injuries](docs/workflow/screens/9-exercises.png) | ![Exercise detail with steps, cues and YouTube link](docs/workflow/screens/10-exercise-detail.png) | ![Progress with bodyweight and strength charts](docs/workflow/screens/11-progress.png) |
+| ![Exercise library filtered to equipment and injuries](docs/screenshots/readme/flow-12-exercises.webp) | ![Exercise detail with steps, cues and YouTube link](docs/screenshots/readme/flow-13-exercise-detail.webp) | ![Nutrition with water and meal suggestions](docs/screenshots/readme/flow-14-nutrition.webp) |
 
-| Profile | Phone: Today | Phone: coach |
+| Meal plan | Progress | Coach chat |
 | --- | --- | --- |
-| ![Profile with sections and workout preferences](docs/workflow/screens/12-profile.png) | ![Phone layout with bottom tab bar and coach bar](docs/workflow/screens/13-phone-today.png) | ![Coach chat as a bottom sheet on a phone](docs/workflow/screens/14-phone-coach.png) |
+| ![Whole-day meal plan](docs/screenshots/readme/flow-16-meal-plan.webp) | ![Progress with bodyweight and strength charts](docs/screenshots/readme/flow-18-progress.webp) | ![Coach chat answering about the week](docs/screenshots/readme/flow-20-coach-chat.webp) |
+
+| Phone: Today | Phone: home page | Phone: nutrition |
+| --- | --- | --- |
+| ![Phone layout with bottom tab bar](docs/screenshots/readme/mobile-app-dashboard.webp) | ![Home page on a phone with the bottom section bar](docs/screenshots/readme/mobile-public-home.webp) | ![Nutrition on a phone](docs/screenshots/readme/mobile-app-nutrition.webp) |
+
+The images above live in [docs/screenshots/readme/](docs/screenshots/readme/). The full set (every page at desktop and phone size) is not committed: generate it into `docs/screenshots/desktop/` and `docs/screenshots/mobile/` with `node scripts/record-demos.mjs shots`, and re-record the demos with `node scripts/record-demos.mjs` (dev servers running).
 
 **Without an AI key** every AI feature still works through copy and paste: the coach, the summary note and the weekly score hand you a ready-made prompt (with your plan, logs and scores) to paste into Claude, and you can paste the reply back, including any suggested changes as Apply cards.
 
@@ -90,10 +95,10 @@ Full design and build notes: [docs/app-completion.md](docs/app-completion.md).
 ## Onboarding
 
 <div align="center">
-  <img src="docs/onboarding/screens/4-ai-coach-diet-skipped.png" alt="Onboarding stepper: completed steps in green, a skipped step in red, current step highlighted" width="100%" />
+  <img src="docs/screenshots/readme/flow-04-plan-reveal.webp" alt="Here's your week: the starter plan built from the onboarding answers" width="100%" />
 </div>
 
-▶ **[Watch the onboarding demo](docs/onboarding/onboarding-demo.webm)** (sign-up → setup → your plan → daily check-in, about 1 minute).
+Sign-up and onboarding open the [end-to-end demo](docs/demo/e2e-workflow.mp4).
 
 - **Sign-up** asks for name, email, age and password, so setup opens with **2 of 8 steps already done**.
 - **Dashboard welcome card** for new users: *Continue setup* or *Skip for now*. Skipping keeps the baseline plan; you can finish later from **Profile → Finish setup**.
@@ -102,9 +107,9 @@ Full design and build notes: [docs/app-completion.md](docs/app-completion.md).
 - **"Here's your week"** shows the plan, which becomes your active plan; the old one stays in plan history. **Profile → Redo setup** builds a fresh one.
 - **Daily check-in** appears on the dashboard on every visit until today's check-in is saved (weight, mood or sleep — any one is enough), then returns tomorrow.
 
-| Welcome card | Your week | Daily check-in |
+| Sign-up | Daily check-in | Today |
 | --- | --- | --- |
-| ![Dashboard welcome card](docs/onboarding/screens/1-dashboard-welcome.png) | ![Generated starter plan](docs/onboarding/screens/5-plan-reveal.png) | ![Daily check-in card](docs/onboarding/screens/6-daily-checkin.png) |
+| ![Sign-up over the gym photo](docs/screenshots/readme/public-signup.webp) | ![Daily check-in](docs/screenshots/readme/flow-05-check-in.webp) | ![Today after the first check-in](docs/screenshots/readme/flow-06-dashboard.webp) |
 
 Full design and implementation notes: [docs/onboarding.md](docs/onboarding.md).
 
@@ -232,7 +237,7 @@ Open [http://localhost:3000](http://localhost:3000) and create an account (you'l
 | `/workout/live`, `/workout/summary/[id]` | Signed in + verified | Live workout with timer; post-workout summary |
 | `/onboarding` | Signed in + verified | Guided setup and starter plan |
 
-Branding lives in `client/public/brand/` (horizontal, stacked and mark logos, each in dark- and light-background variants), rendered by `components/Logo.tsx`; the browser-tab icons are `client/src/app/icon.png` and `apple-icon.png`. Landing videos and images are in `client/src/assets/landing/`, stock photos in `client/public/media/`. Set `NEXT_PUBLIC_GITHUB_URL` / `NEXT_PUBLIC_DOCS_URL` in `client/.env.local` for the landing page links.
+Branding lives in `client/public/brand/`: `Logo.png` (full stacked logo), `LogoNav.png` (horizontal logo for nav bars and footers) and `Favicon.png` (the mark alone), rendered by `components/Logo.tsx`; the browser-tab icons `client/src/app/icon.png` and `apple-icon.png` are resized copies of `Favicon.png`. Landing videos and images are in `client/src/assets/landing/`, stock photos in `client/public/media/`. Set `NEXT_PUBLIC_GITHUB_URL` / `NEXT_PUBLIC_DOCS_URL` in `client/.env.local` for the landing page links.
 
 ## Accounts and security
 

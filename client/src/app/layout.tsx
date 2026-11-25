@@ -13,14 +13,14 @@ export const metadata: Metadata = {
 
 export const viewport: Viewport = {
   themeColor: [
-    { media: "(prefers-color-scheme: dark)", color: "#07080a" },
-    { media: "(prefers-color-scheme: light)", color: "#f5f6f8" },
+    { media: "(prefers-color-scheme: dark)", color: "#0e0e0f" },
+    { media: "(prefers-color-scheme: light)", color: "#f7f5f0" },
   ],
 };
 
 // Applies the saved theme (or the OS setting) before first paint, so there is no flash.
-// The landing page (/) and the blog (/disciplines) are dark-only; /landing-2 follows the saved / OS theme like the app.
-const themeScript = `(function(){try{if(localStorage.getItem('sfiq-sidebar')==='collapsed')document.documentElement.dataset.sidebar='collapsed'}catch(e){}var p=location.pathname,t;if(p==='/'||p==='/disciplines'||p.indexOf('/disciplines/')===0){document.documentElement.dataset.theme='dark';return}try{t=localStorage.getItem('sfiq-theme')}catch(e){}if(t!=='light'&&t!=='dark')t=window.matchMedia('(prefers-color-scheme: light)').matches?'light':'dark';document.documentElement.dataset.theme=t})()`;
+// The home page (/), the auth pages and the guides (/disciplines) are dark-only; the app follows the saved / OS theme.
+const themeScript = `(function(){try{if(localStorage.getItem('sfiq-sidebar')==='collapsed')document.documentElement.dataset.sidebar='collapsed'}catch(e){}var p=location.pathname,t;if(p==='/'||p==='/login'||p==='/signup'||p==='/forgot-password'||p==='/reset-password'||p==='/verify-email'||p==='/disciplines'||p.indexOf('/disciplines/')===0){document.documentElement.dataset.theme='dark';return}try{t=localStorage.getItem('sfiq-theme')}catch(e){}if(t!=='light'&&t!=='dark')t=window.matchMedia('(prefers-color-scheme: light)').matches?'light':'dark';document.documentElement.dataset.theme=t})()`;
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (

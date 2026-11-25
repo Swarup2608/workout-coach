@@ -1,4 +1,4 @@
-import { PHOTOS } from "./lib";
+import { PHOTOS } from "./photos";
 
 /* ---------------------------------------------------------------------------
    One article per training discipline. Used by the landing gallery cards,
@@ -12,6 +12,8 @@ export type Discipline = {
   /** One line on the gallery card. */
   note: string;
   img: string;
+  /** CSS object-position for the hero crop (photos are cropped to a wide band). Default "center 45%". */
+  focus?: string;
   /** Article intro (index card + article lead). */
   excerpt: string;
   readMins: number;
@@ -105,6 +107,7 @@ export const DISCIPLINES: Discipline[] = [
     title: "Move without limits",
     note: "Mobility days built into your plan",
     img: PHOTOS.floorMobility,
+    focus: "center 64%",
     excerpt: "Mobility work is the session everyone skips. Putting it in the plan — and in the score — is how it actually happens.",
     readMins: 3,
     body: [

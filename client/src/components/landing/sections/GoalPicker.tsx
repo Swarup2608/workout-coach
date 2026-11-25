@@ -50,14 +50,15 @@ export const PLANS: Record<string, { label: string; img: string; title: string; 
 export function GoalPicker() {
   const [goal, setGoal] = useState("strength");
   const panel = useRef<HTMLDivElement>(null);
-  const first = useRef(true);
+  // The goal currently on screen. Comparing against it (rather than a "first render" flag) keeps the switch
+  // animation from firing on mount when React runs effects twice in dev — that stray tween fought the
+  // scroll reveal and left the sample-week rows stuck half-faded.
+  const shown = useRef(goal);
   const p = PLANS[goal];
 
   useEffect(() => {
-    if (first.current) {
-      first.current = false;
-      return;
-    }
+    if (shown.current === goal) return;
+    shown.current = goal;
     if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
     const ctx = gsap.context(() => {
       gsap.fromTo(".gp-copy > *", { y: 24, opacity: 0 }, { y: 0, opacity: 1, duration: 0.7, stagger: 0.06, ease: "power3.out" });
@@ -68,7 +69,8 @@ export function GoalPicker() {
 
   return (
     <section id="plans" className="gp">
-      {/* Every goal photo is stacked full-bleed; the active one fades in */}
+      {/* Ambient layer: every goal photo stacked full-bleed and blurred; the active one fades in.
+          The photos are 3:4 portraits, so the sharp copy sits in .gp-photo where it fits whole. */}
       <div className="gp-bg" aria-hidden="true">
         {Object.entries(PLANS).map(([id, g]) => (
           <img key={id} src={g.img} alt="" className={goal === id ? "is-active" : undefined} />
@@ -98,27 +100,35 @@ export function GoalPicker() {
         </div>
 
         <div className="gp-panel" ref={panel} data-reveal>
-          <div className="gp-copy">
-            <h3 className="h3 disp">{p.title}</h3>
-            <p className="lead">{p.desc}</p>
+          {/* The goal's photo, whole, in its native 3:4 frame; title + description over its foot */}
+          <figure className="gp-photo">
+            {Object.entries(PLANS).map(([id, g]) => (
+              <img key={id} src={g.img} alt="" className={goal === id ? "is-active" : undefined} loading="lazy" />
+            ))}
+            <figcaption className="gp-copy">
+              <h3 className="h3 disp">{p.title}</h3>
+              <p>{p.desc}</p>
+            </figcaption>
+          </figure>
+          <div className="gp-side">
+            <div className="gp-week glass">
+              <div className="mono gp-week-k">SAMPLE WEEK</div>
+              <ul className="gp-days">
+                {p.days.map(([d, what, kind]) => (
+                  <li className="gp-day" key={goal + d}>
+                    <span className="mono">{d}</span>
+                    <span>{what}</span>
+                    <i className={`k-${kind}`} aria-label={kind} />
+                  </li>
+                ))}
+              </ul>
+            </div>
             <div className="gp-ai">
               <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" style={{ color: "var(--accent)" }} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
                 <path d="M12 2l2.4 7.4H22l-6.2 4.5 2.4 7.4L12 16.8l-6.2 4.5 2.4-7.4L2 9.4h7.6z" />
               </svg>
               <p>{p.ai}</p>
             </div>
-          </div>
-          <div className="gp-week glass">
-            <div className="mono gp-week-k">SAMPLE WEEK</div>
-            <ul className="gp-days">
-              {p.days.map(([d, what, kind]) => (
-                <li className="gp-day" key={goal + d}>
-                  <span className="mono">{d}</span>
-                  <span>{what}</span>
-                  <i className={`k-${kind}`} aria-label={kind} />
-                </li>
-              ))}
-            </ul>
           </div>
         </div>
       </div>

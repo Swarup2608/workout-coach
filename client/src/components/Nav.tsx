@@ -50,7 +50,7 @@ export function Nav() {
       <header className="border-b border-ink-700 bg-ink-950/90">
         <div className="mx-auto flex max-w-6xl items-center px-4 py-3">
           <Link href="/" aria-label="StarkFitIQ home">
-            <Logo size={26} />
+            <Logo size={48} />
           </Link>
           <ThemeToggle className="ml-auto" />
         </div>
@@ -70,7 +70,7 @@ export function Nav() {
     <header className="sticky top-0 z-20 border-b border-ink-700 bg-ink-950/90 backdrop-blur">
       <div className="mx-auto flex max-w-7xl items-center gap-2 px-4 py-2.5 sm:gap-3">
         <Link href="/dashboard" aria-label="StarkFitIQ dashboard" className="shrink-0 lg:hidden">
-          <Logo size={24} />
+          <Logo size={44} />
         </Link>
         <div className="hidden sm:block">
           <DateSelector />

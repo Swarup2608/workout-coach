@@ -6,7 +6,7 @@ export function LandingFooter() {
     <footer className="footer">
       <div className="container footer-inner">
         <div className="footer-brand">
-          <Logo size={28} />
+          <Logo size={48} />
           <span className="muted">© {new Date().getFullYear()} StarkFitIQ</span>
         </div>
         <nav className="footer-links" aria-label="Footer">
@@ -15,10 +15,6 @@ export function LandingFooter() {
           <a href="#top">Contact</a>
           <Link href="/login">Log in</Link>
         </nav>
-        <p className="credits muted">Photos: Unsplash</p>
-      </div>
-      <div className="footer-giant disp" aria-hidden="true">
-        StarkFitIQ
       </div>
     </footer>
   );

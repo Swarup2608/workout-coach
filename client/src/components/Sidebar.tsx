@@ -78,7 +78,7 @@ export function Sidebar() {
     >
       <div className={`mb-6 flex items-center ${collapsed ? "flex-col gap-3 px-2" : "justify-between gap-2 px-4"}`}>
         <Link href="/dashboard" aria-label="StarkFitIQ dashboard" className={collapsed ? "" : "px-2"}>
-          {collapsed ? <LogoMark size={30} /> : <Logo size={30} />}
+          {collapsed ? <LogoMark size={30} /> : <Logo size={48} />}
         </Link>
         <button
           type="button"

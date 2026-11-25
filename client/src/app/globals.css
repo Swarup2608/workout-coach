@@ -1,89 +1,90 @@
 @import "tailwindcss";
 
 /* =====================================================================
-   StarkFitIQ themes — "Ion" indigo, light + dark.
-   Source of truth: the theme tokens below (ported from the starkfitiq 3 UI).
+   StarkFitIQ themes — warm graphite + gold + steel (the home page palette), light + dark.
+   Source of truth for the app; the public pages read the same values from
+   components/landing/landing-theme.css.
    The theme is chosen by <html data-theme="dark|light">, set before first
    paint by the script in app/layout.tsx and switched by <ThemeToggle />.
    ===================================================================== */
 :root,
 [data-theme="dark"] {
   color-scheme: dark;
-  --bg: #07080a;
-  --bg-2: #0e1114;
-  --card: #12161a;
-  --card-2: #0b0d10;
-  --line: rgba(255, 255, 255, 0.08);
-  --line-2: rgba(255, 255, 255, 0.22);
-  --text: #f2f4f7;
-  --text-2: #c4ccd5;
-  --muted: #a3acb6;
-  --accent: #8b93ff;
+  --bg: #0e0e0f;
+  --bg-2: #161617;
+  --card: #1a1a1c;
+  --card-2: #161617;
+  --line: #2a2a2d;
+  --line-2: #3a3a3e;
+  --text: #ede9e1;
+  --text-2: #c9c4ba;
+  --muted: #a39e95;
+  --accent: #d4b483;
   /* text, lines, icons on dark */
-  --accent-fill: #4f57f0;
+  --accent-fill: #d4b483;
   /* buttons and filled surfaces */
-  --on-accent: #ffffff;
-  --accent-soft: rgba(139, 147, 255, 0.12);
-  --accent-line: rgba(139, 147, 255, 0.42);
-  --accent-glow: rgba(79, 87, 240, 0.55);
-  --ice: #5fd4f5;
-  --pulse: #ff8a4c;
-  --rest: #5b6470;
-  --good: #34d399;
-  --warn: #fbbf24;
-  --bad: #f87171;
-  --glass: rgba(14, 17, 20, 0.62);
-  --glass-line: rgba(255, 255, 255, 0.12);
-  --nav-bg: rgba(7, 8, 10, 0.72);
-  --shadow: rgba(0, 0, 0, 0.85);
-  --grid-line: rgba(255, 255, 255, 0.05);
-  --outline-text: rgba(255, 255, 255, 0.32);
-  --giant: rgba(255, 255, 255, 0.3);
-  --hero-shade: linear-gradient(90deg, rgba(7, 8, 10, 0.92) 0%, rgba(7, 8, 10, 0.6) 45%, rgba(7, 8, 10, 0.2) 100%);
-  --cta-shade: radial-gradient(ellipse at 50% 60%, rgba(7, 8, 10, 0.55), rgba(7, 8, 10, 0.94) 70%);
+  --on-accent: #1a1408;
+  --accent-soft: rgba(212, 180, 131, 0.12);
+  --accent-line: rgba(212, 180, 131, 0.4);
+  --accent-glow: rgba(212, 180, 131, 0.35);
+  --ice: #8e9aaf; /* steel */
+  --pulse: #e0c497; /* light gold */
+  --rest: #4a4844;
+  --good: #7fb08a; /* muted sage: success without leaving the warm palette */
+  --warn: #e0b45a;
+  --bad: #e07a6a;
+  --glass: rgba(22, 22, 23, 0.7);
+  --glass-line: rgba(237, 233, 225, 0.1);
+  --nav-bg: rgba(22, 22, 23, 0.88);
+  --shadow: rgba(0, 0, 0, 0.6);
+  --grid-line: rgba(42, 42, 45, 0.6);
+  --outline-text: rgba(237, 233, 225, 0.3);
+  --giant: rgba(237, 233, 225, 0.22);
+  --hero-shade: linear-gradient(90deg, rgba(14, 14, 15, 0.92) 0%, rgba(14, 14, 15, 0.6) 45%, rgba(14, 14, 15, 0.2) 100%);
+  --cta-shade: radial-gradient(ellipse at 50% 60%, rgba(14, 14, 15, 0.55), rgba(14, 14, 15, 0.94) 70%);
   --photo-filter: grayscale(0.4) contrast(1.05);
   /* Solid surface steps used by the app (borders, inputs, hover fills) */
-  --surface-700: #22272e;
-  --surface-600: #2f353d;
-  --surface-500: #4a525c;
+  --surface-700: #2a2a2d;
+  --surface-600: #3a3a3e;
+  --surface-500: #4a4844;
 }
 
 [data-theme="light"] {
   color-scheme: light;
-  --bg: #f5f6f8;
-  --bg-2: #f2f2f2;
+  --bg: #f7f5f0;
+  --bg-2: #efece5;
   --card: #ffffff;
-  --card-2: #f5f6f8;
-  --line: rgba(11, 13, 16, 0.09);
-  --line-2: rgba(11, 13, 16, 0.2);
-  --text: #0b0d10;
-  --text-2: #2e343b;
-  --muted: #59626e;
-  --accent: #3b3fd8;
-  --accent-fill: #3b3fd8;
-  --on-accent: #ffffff;
-  --accent-soft: rgba(59, 63, 216, 0.08);
-  --accent-line: rgba(59, 63, 216, 0.35);
-  --accent-glow: rgba(59, 63, 216, 0.4);
-  --ice: #0a7394;
-  --pulse: #c2410c;
-  --rest: #9aa3ae;
-  --good: #15803d;
-  --warn: #b45309;
-  --bad: #dc2626;
-  --glass: rgba(255, 255, 255, 0.74);
-  --glass-line: rgba(11, 13, 16, 0.08);
-  --nav-bg: rgba(245, 246, 248, 0.8);
-  --shadow: rgba(30, 36, 60, 0.22);
-  --grid-line: rgba(11, 13, 16, 0.06);
-  --outline-text: rgba(11, 13, 16, 0.28);
-  --giant: rgba(11, 13, 16, 0.12);
-  --hero-shade: linear-gradient(90deg, rgba(245, 246, 248, 0.78) 0%, rgba(245, 246, 248, 0.5) 45%, rgba(245, 246, 248, 0.1) 100%);
-  --cta-shade: radial-gradient(ellipse at 50% 60%, rgba(245, 246, 248, 0.7), rgba(245, 246, 248, 0.96) 70%);
+  --card-2: #f7f5f0;
+  --line: #e2ddd3;
+  --line-2: #c9c2b5;
+  --text: #1c1a17;
+  --text-2: #3d3934;
+  --muted: #5e5952;
+  --accent: #8a6a35; /* gold as text/lines: ≥4.5:1 on the light surfaces */
+  --accent-fill: #b8955c; /* gold buttons, with dark text */
+  --on-accent: #1a1408;
+  --accent-soft: rgba(184, 149, 92, 0.14);
+  --accent-line: rgba(138, 106, 53, 0.38);
+  --accent-glow: rgba(138, 106, 53, 0.3);
+  --ice: #4d5a70;
+  --pulse: #8a6a35;
+  --rest: #a39e95;
+  --good: #3f7a4f;
+  --warn: #9a6b12;
+  --bad: #b3412f;
+  --glass: rgba(255, 255, 255, 0.82);
+  --glass-line: rgba(28, 26, 23, 0.1);
+  --nav-bg: rgba(247, 245, 240, 0.9);
+  --shadow: rgba(28, 26, 23, 0.16);
+  --grid-line: rgba(226, 221, 211, 0.7);
+  --outline-text: rgba(28, 26, 23, 0.26);
+  --giant: rgba(28, 26, 23, 0.12);
+  --hero-shade: linear-gradient(90deg, rgba(247, 245, 240, 0.8) 0%, rgba(247, 245, 240, 0.5) 45%, rgba(247, 245, 240, 0.1) 100%);
+  --cta-shade: radial-gradient(ellipse at 50% 60%, rgba(247, 245, 240, 0.7), rgba(247, 245, 240, 0.96) 70%);
   --photo-filter: grayscale(0.2) contrast(1.02);
-  --surface-700: #dfe3e9;
-  --surface-600: #cfd5dd;
-  --surface-500: #aab2bd;
+  --surface-700: #e2ddd3;
+  --surface-600: #d3ccbf;
+  --surface-500: #a39e95;
 }
 
 :root {
@@ -113,7 +114,6 @@
   --font-mono: var(--f-mono);
   --font-workout: var(--f-workout);
   --font-badge: var(--f-badge);
-  --font-landing2: "Manrope", "Inter", system-ui, sans-serif;
 
   --color-ink-950: var(--bg);
   --color-ink-900: var(--card);
@@ -126,7 +126,7 @@
   --color-fg: var(--text);
   --color-on-accent: var(--on-accent);
 
-  /* "volt" is the app's accent name: now Ion indigo */
+  /* "volt" is the app's accent name: now gold */
   --color-volt: var(--accent-fill);
   --color-volt-bright: var(--accent);
   --color-gold-deep: var(--accent-fill);
@@ -307,4 +307,46 @@ body {
   .theme-anim * {
     transition: none !important;
   }
+}
+/* Auth pages (login, signup, password reset, verify email): form centred over the gym photo */
+.auth-shell {
+  position: relative;
+  isolation: isolate;
+  min-height: 100dvh;
+  display: grid;
+  place-items: center;
+  padding: clamp(24px, 6vh, 64px) 16px;
+}
+.auth-bg {
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  background: var(--bg);
+}
+.auth-bg img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.auth-bg::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(ellipse at 50% 45%, rgba(14, 14, 15, 0.55), rgba(14, 14, 15, 0.9) 75%),
+    linear-gradient(rgba(14, 14, 15, 0.35), rgba(14, 14, 15, 0.35));
+}
+.auth-main {
+  width: 100%;
+}
+/* the form card reads as frosted glass over the photo */
+.auth-main .card {
+  background: rgba(22, 22, 23, 0.72);
+  border-color: rgba(237, 233, 225, 0.12);
+  backdrop-filter: blur(18px) saturate(1.2);
+  -webkit-backdrop-filter: blur(18px) saturate(1.2);
+  box-shadow: 0 40px 80px -40px rgba(0, 0, 0, 0.8);
+}
+.auth-main .text-ink-400 {
+  color: var(--text-2);
 }
