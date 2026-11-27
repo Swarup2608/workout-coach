@@ -2,7 +2,6 @@
 //
 // Usage: npm run dev (both servers), then:
 //   node scripts/record-demos.mjs            # everything
-//   node scripts/record-demos.mjs home       # docs/demo/home.mp4
 //   node scripts/record-demos.mjs e2e shots  # docs/demo/e2e-workflow.mp4 + docs/screenshots/**
 //
 // The e2e run signs up a fresh demo-<timestamp>@example.com account and marks it verified directly in the
@@ -188,59 +187,6 @@ async function simulateAiKey(page) {
     const body = words.map((w) => `event: delta\ndata: ${JSON.stringify(w)}\n\n`).join("") + `event: done\ndata: ${JSON.stringify(reply)}\n\n`;
     return r.fulfill({ status: 200, headers: { "Content-Type": "text/event-stream" }, body });
   });
-}
-
-/* ------------------------------------------------------------------ home demo */
-
-async function recordHome(browser) {
-  const ctx = await browser.newContext({ viewport: DESKTOP, colorScheme: "dark", recordVideo: { dir: RAW, size: DESKTOP } });
-  await ctx.addInitScript(OVERLAY);
-  await ctx.addInitScript(() => sessionStorage.removeItem("__demo-cap"));
-  const p = await ctx.newPage();
-  await p.goto(BASE + "/", { waitUntil: "load" });
-  await sleep(3500); // hero entrance
-  await p.mouse.move(1100, 270, { steps: 25 }); // hover the AI coach card
-  await sleep(1200);
-  await p.mouse.move(860, 510, { steps: 20 }); // and the weekly score card
-  await sleep(1200);
-  await scrollTo(p, "#how");
-  await sleep(2500);
-  await scrollTo(p, "#features");
-  await sleep(800);
-  await p.hover(".f-card >> nth=0");
-  await sleep(1400);
-  await p.hover(".f-card >> nth=2");
-  await sleep(1400);
-  await scrollTo(p, ".story");
-  for (let k = 0; k < 3; k++) {
-    await scrollBy(p, 850, { step: 30, tick: 40 }); // the phone story pins and steps through its panels
-    await sleep(1800);
-  }
-  await scrollTo(p, "#plans");
-  await sleep(1200);
-  for (const tab of ["Lose fat", "Boost endurance", "Move better"]) {
-    await click(p, `button.gp-tab:has-text("${tab}")`, { pause: 1600 });
-  }
-  await scrollTo(p, "#coach");
-  await sleep(2000);
-  await scrollTo(p, "#disciplines");
-  await sleep(800);
-  await p.hover(".l3-disc-card >> nth=1");
-  await sleep(1500);
-  await scrollTo(p, "#pricing");
-  await sleep(3500);
-  await scrollTo(p, ".l3-int");
-  await sleep(1500);
-  await scrollTo(p, "#film", { offset: 0 });
-  await sleep(4500);
-  await scrollTo(p, "#faq");
-  await sleep(800);
-  await click(p, '#faq summary:has-text("Which AI providers work?")', { pause: 2000 });
-  await scrollTo(p, ".cta");
-  await sleep(2000);
-  await scrollBy(p, 1200);
-  await sleep(1500);
-  await saveVideo(p, ctx, "home");
 }
 
 /* ------------------------------------------------------------------- e2e demo */
@@ -466,9 +412,6 @@ async function recordE2E(browser) {
 /* ---------------------------------------------------------------- screenshots */
 
 const PUBLIC = [
-  ["/", "home"],
-  ["/disciplines", "guides"],
-  ["/disciplines/mobility", "guide-mobility"],
   ["/login", "login"],
   ["/signup", "signup"],
   ["/forgot-password", "forgot-password"],
@@ -489,7 +432,6 @@ const APP = [
   ["/chat", "coach-chat"],
   ["/profile", "profile"],
 ];
-const HOME_SECTIONS = [["#features", "system"], [".story", "phone-story"], ["#plans", "try-it"], ["#coach", "ai-coach"], ["#disciplines", "disciplines"], ["#pricing", "pricing"], ["#faq", "faq"], [".cta", "cta"]];
 
 async function captureSet(browser, { viewport, folder, mobile }) {
   const dir = path.join(SHOTS, folder);
@@ -501,19 +443,7 @@ async function captureSet(browser, { viewport, folder, mobile }) {
   for (const [url, name] of PUBLIC) {
     await p.goto(BASE + url, { waitUntil: "load" });
     await sleep(3000);
-    await p.screenshot({ path: path.join(dir, `public-${name}.png`), fullPage: url !== "/" });
-  }
-  // Home: one shot per section (the full page is very tall and has pinned sections)
-  await p.goto(BASE + "/", { waitUntil: "load" });
-  await sleep(3000);
-  for (const [sel, name] of HOME_SECTIONS) {
-    await p.evaluate((s) => {
-      const el = document.querySelector(s);
-      const y = el.getBoundingClientRect().top + window.scrollY - (s === ".story" ? -window.innerHeight * 0.4 : 72);
-      window.__lenis ? window.__lenis.scrollTo(y, { immediate: true }) : window.scrollTo(0, y);
-    }, sel);
-    await sleep(2200);
-    await p.screenshot({ path: path.join(dir, `home-${name}.png`) });
+    await p.screenshot({ path: path.join(dir, `public-${name}.png`), fullPage: true });
   }
   await pub.close();
 
@@ -535,7 +465,6 @@ fs.mkdirSync(RAW, { recursive: true });
 fs.mkdirSync(path.join(SHOTS, "desktop"), { recursive: true });
 const browser = await chromium.launch();
 try {
-  if (want("home")) await recordHome(browser);
   if (want("e2e")) await recordE2E(browser);
   if (want("shots")) {
     await captureSet(browser, { viewport: DESKTOP, folder: "desktop" });

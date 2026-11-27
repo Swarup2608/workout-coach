@@ -1,12 +1,12 @@
-import type { Metadata } from "next";
-import LandingPage from "@/components/landing/LandingPage";
+import Link from "next/link";
 
-export const metadata: Metadata = {
-  title: "StarkFitIQ — Train like you engineered it.",
-  description: "Plan your week, log every set, and get a weekly score with AI coaching on exactly what to change next.",
-};
-
-/** Public home page. Signed-in visitors get "Open dashboard" CTAs. */
 export default function Home() {
-  return <LandingPage />;
+  return (
+    <main className="flex min-h-screen flex-col items-center justify-center gap-6">
+      <h1 className="text-4xl font-semibold">Hello</h1>
+      <Link href="/login" className="rounded-lg border border-current px-5 py-2">
+        Sign in
+      </Link>
+    </main>
+  );
 }

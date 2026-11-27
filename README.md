@@ -27,7 +27,6 @@ It is a web app (Next.js client, Express 5 + MongoDB API) where each user brings
 | Video | Format | File |
 | --- | --- | --- |
 | End-to-end walkthrough (sign-up → onboarding → check-in → plan → live workout → summary → exercises → nutrition → log → progress → profile → AI coach), about 5 min | 16:9 | [docs/demo/e2e-workflow.mp4](docs/demo/e2e-workflow.mp4) |
-| Home page tour, about 1 min | 16:9 | [docs/demo/home.mp4](docs/demo/home.mp4) |
 | Promo ad, 60 s | 16:9 | [voice-over](docs/ad/starkfitiq-ad-60s-16x9.mp4) · [with music](docs/ad/starkfitiq-ad-60s-16x9-music.mp4) |
 | Promo ad, 30 s | 9:16 (phone) | [voice-over](docs/ad/starkfitiq-ad-30s-9x16.mp4) · [with music](docs/ad/starkfitiq-ad-30s-9x16-music.mp4) |
 
@@ -82,9 +81,9 @@ It is a web app (Next.js client, Express 5 + MongoDB API) where each user brings
 | --- | --- | --- |
 | ![Whole-day meal plan](docs/screenshots/readme/flow-16-meal-plan.webp) | ![Progress with bodyweight and strength charts](docs/screenshots/readme/flow-18-progress.webp) | ![Coach chat answering about the week](docs/screenshots/readme/flow-20-coach-chat.webp) |
 
-| Phone: Today | Phone: home page | Phone: nutrition |
-| --- | --- | --- |
-| ![Phone layout with bottom tab bar](docs/screenshots/readme/mobile-app-dashboard.webp) | ![Home page on a phone with the bottom section bar](docs/screenshots/readme/mobile-public-home.webp) | ![Nutrition on a phone](docs/screenshots/readme/mobile-app-nutrition.webp) |
+| Phone: Today | Phone: nutrition |
+| --- | --- |
+| ![Phone layout with bottom tab bar](docs/screenshots/readme/mobile-app-dashboard.webp) | ![Nutrition on a phone](docs/screenshots/readme/mobile-app-nutrition.webp) |
 
 The images above live in [docs/screenshots/readme/](docs/screenshots/readme/). The full set (every page at desktop and phone size) is not committed: generate it into `docs/screenshots/desktop/` and `docs/screenshots/mobile/` with `node scripts/record-demos.mjs shots`, and re-record the demos with `node scripts/record-demos.mjs` (dev servers running).
 
@@ -197,10 +196,9 @@ workout-coach/
         ├── lib/domain.ts            # Client's domain types and helpers
         ├── lib/api.ts               # API client (cookies, CSRF, silent refresh)
         ├── lib/units.ts             # kg/lb conversion and the per-user unit preference
-        └── assets/landing/          # Landing page videos and images
     └── public/
         ├── brand/                   # Logo PNGs used by components/Logo.tsx
-        └── media/                   # Stock photos (landing page, exercise images)
+        └── media/                   # Stock photos (exercise images)
 docs/
 ├── demo/, ad/                       # Product demo and promo ad videos
 ├── onboarding/, workflow/           # Walkthrough videos and screenshots
@@ -230,14 +228,12 @@ Open [http://localhost:3000](http://localhost:3000) and create an account (you'l
 
 | URL | Who | What |
 | --- | --- | --- |
-| `/` | Everyone | Landing page (black + gold, the site-wide theme) |
-| `/disciplines`, `/disciplines/[slug]` | Everyone | Training disciplines blog |
+| `/` | Everyone | Hello page with a sign-in link |
 | `/login`, `/signup`, `/forgot-password`, `/reset-password`, `/verify-email` | Everyone | Auth pages |
 | `/dashboard` (Today), `/plan`, `/progress`, `/exercises`, `/exercises/[slug]`, `/checkin`, `/log`, `/history`, `/chat`, `/profile` | Signed in + verified | The app (coach chat bar on every page; bottom tab bar on phones) |
 | `/workout/live`, `/workout/summary/[id]` | Signed in + verified | Live workout with timer; post-workout summary |
 | `/onboarding` | Signed in + verified | Guided setup and starter plan |
 
-Branding lives in `client/public/brand/`: `Logo.png` (full stacked logo), `LogoNav.png` (horizontal logo for nav bars and footers) and `Favicon.png` (the mark alone), rendered by `components/Logo.tsx`; the browser-tab icons `client/src/app/icon.png` and `apple-icon.png` are resized copies of `Favicon.png`. Landing videos and images are in `client/src/assets/landing/`, stock photos in `client/public/media/`. Set `NEXT_PUBLIC_GITHUB_URL` / `NEXT_PUBLIC_DOCS_URL` in `client/.env.local` for the landing page links.
 
 ## Accounts and security
 

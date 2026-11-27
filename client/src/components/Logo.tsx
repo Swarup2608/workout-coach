@@ -4,8 +4,9 @@ import Image from "next/image";
  * StarkFitIQ brand marks, from public/brand/:
  *
  *   Logo.png     1254×1254  — full logo (mark + wordmark + tagline): auth pages, splash
- *   LogoNav.png  2172×724   — horizontal logo (mark + wordmark): nav bars, footers
- *   Favicon.png  1254×1254  — the "S" mark alone: icon-only spots, browser tab
+ *   Logo StarkFitIQ.png  2172×724 — horizontal logo (mark + wordmark): nav bars, footers
+ *   Logo.png also serves as the icon-only mark (LogoMark)
+ *   Logo Tagline.png 2172×724 — horizontal logo with tagline (opaque black background; see TaglineLogo)
  *
  * Both are metallic artwork on a transparent background, so one file serves light and dark themes.
  * They're large PNGs; next/image serves resized, compressed copies at the rendered size.
@@ -13,7 +14,7 @@ import Image from "next/image";
  */
 const SRC = {
   stacked: "/brand/Logo.png",
-  mark: "/brand/Favicon.png",
+  mark: "/brand/Logo.png",
 } as const;
 
 type Variant = keyof typeof SRC;
@@ -59,7 +60,7 @@ export function Logo({ size = 48, className = "" }: { size?: number; tone?: "aut
   return (
     <span className={`inline-flex items-center ${className}`}>
       <Image
-        src="/brand/LogoNav.png"
+        src="/brand/Logo%20StarkFitIQ.png"
         alt="StarkFitIQ"
         width={width}
         height={size}
@@ -73,4 +74,19 @@ export function Logo({ size = 48, className = "" }: { size?: number; tone?: "aut
 
 export function LogoMark({ size = 40, className = "" }: { size?: number; tone?: "auto" | "dark" | "light"; className?: string }) {
   return <BrandImage variant="mark" size={size} className={className} alt="" />;
+}
+
+/** Horizontal logo with the tagline. The artwork has an opaque black background, so `lighten` blending lets it sit on dark surfaces. */
+export function TaglineLogo({ size = 96, className = "" }: { size?: number; className?: string }) {
+  const width = Math.round(size * NAV_RATIO);
+  return (
+    <Image
+      src="/brand/Logo%20Tagline.png"
+      alt="StarkFitIQ — Train, Track, Analyze, Transform"
+      width={width}
+      height={size}
+      className={`block shrink-0 ${className}`}
+      style={{ width, height: size, mixBlendMode: "lighten" }}
+    />
+  );
 }

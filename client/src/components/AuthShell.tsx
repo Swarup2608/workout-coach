@@ -2,7 +2,7 @@
 
 /* eslint-disable @next/next/no-img-element */
 import { useForceDarkTheme } from "@/components/ThemeToggle";
-import { PHOTOS } from "@/components/landing/photos";
+
 
 /**
  * Frame for the auth pages (login, signup, password reset, email verification):
@@ -13,7 +13,7 @@ export function AuthShell({ children }: { children: React.ReactNode }) {
   return (
     <div className="auth-shell">
       <div className="auth-bg" aria-hidden="true">
-        <img src={PHOTOS.gymInterior} alt="" />
+        <img src={"/media/gym-interior.jpg"} alt="" />
       </div>
       <main className="auth-main">{children}</main>
     </div>
